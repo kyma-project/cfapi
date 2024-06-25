@@ -1,0 +1,16 @@
+---
+adminUserName: cf-admin
+containerRegistryCACertSecret: null
+containerRegistrySecrets:
+- cfapi-app-registry
+containerRepositoryPrefix: ""
+packageRegistrySecretNames:
+- cfapi-app-registry
+debug: false
+defaultAppDomainName: null
+eksContainerRegistryRoleARN: ""
+generateIngressCertificates: false
+logLevel: info
+networking:
+  gatewayClass: istio
+Secrets: ["cfapi-system-registry"]
