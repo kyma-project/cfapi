@@ -1,0 +1,30 @@
+{{ define "dnsEntries" }}
+---
+apiVersion: dns.gardener.cloud/v1alpha1
+kind: DNSEntry
+metadata:
+  annotations:
+    # Let Gardener manage this DNS entry.
+    dns.gardener.cloud/class: garden
+  name: cf-api-ingress
+  namespace: korifi
+spec:
+  dnsName: {{ .KorifiAPI }}
+  ttl: 600
+  targets:
+  - {{ .IngressHost }}
+---
+apiVersion: dns.gardener.cloud/v1alpha1
+kind: DNSEntry
+metadata:
+  annotations:
+    # Let Gardener manage this DNS entry.
+    dns.gardener.cloud/class: garden
+  name: cf-apps-ingress
+  namespace: korifi
+spec:
+  dnsName: "*.{{ .AppsDomain }}"
+  ttl: 600
+  targets:
+  - {{ .IngressHost }}
+{{ end }}

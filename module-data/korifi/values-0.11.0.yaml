@@ -1,0 +1,111 @@
+---
+adminUserName: null
+api:
+  apiServer:
+    internalPort: 9000
+    port: 0
+    timeouts:
+      idle: 900
+      read: 900
+      readHeader: 10
+      write: 900
+    url: ""
+  authProxy:
+    caCert: ""
+    host: ""
+  image: trinity.common.repositories.cloud.sap/trinity/korifi-api-0.11.0@sha256:10c2b580b32155892ddbdf0b6de093a82fea60be2de4a7b0b3c9e7ac05d4523b
+  include: true
+  lifecycle:
+    stack: cflinuxfs3
+    type: buildpack
+  logcache:
+    url: ""
+  replicas: 1
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 50m
+      memory: 100Mi
+  uaaURL: ""
+  userCertificateExpirationWarningDuration: 168h
+containerRegistryCACertSecret: null
+containerRegistrySecrets:
+- image-registry-credentials
+controllers:
+  extraVCAPApplicationValues: {}
+  image: trinity.common.repositories.cloud.sap/trinity/korifi-controllers-0.11.0@sha256:e5d932ee0d447abc28a1fc9b220e2714d9c4e610f71d54f401fe1317de015b78
+  maxRetainedBuildsPerApp: 5
+  maxRetainedPackagesPerApp: 5
+  namespaceLabels: {}
+  processDefaults:
+    diskQuotaMB: 1024
+    memoryMB: 1024
+  replicas: 1
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 50m
+      memory: 100Mi
+  taskTTL: 30d
+  workloadsTLSSecret: korifi-workloads-ingress-cert
+debug: false
+defaultAppDomainName: null
+eksContainerRegistryRoleARN: ""
+generateIngressCertificates: false
+helm:
+  hooksImage: alpine/k8s:1.25.2
+jobTaskRunner:
+  include: true
+  jobTTL: 24h
+  replicas: 1
+  resources:
+    limits:
+      cpu: 500m
+      memory: 128Mi
+    requests:
+      cpu: 10m
+      memory: 64Mi
+  temporarySetPodSeccompProfile: false
+kpackImageBuilder:
+  builderReadinessTimeout: 30s
+  builderRepository: ""
+  clusterBuilderName: ""
+  clusterStackBuildImage: paketobuildpacks/build-jammy-full
+  clusterStackID: io.buildpacks.stacks.jammy
+  clusterStackRunImage: paketobuildpacks/run-jammy-full
+  include: true
+  replicas: 1
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 50m
+      memory: 100Mi
+logLevel: info
+networking:
+  gatewayClass: null
+reconcilers:
+  build: kpack-image-builder
+  run: statefulset-runner
+rootNamespace: cf
+stagingRequirements:
+  buildCacheMB: 2048
+  diskMB: 0
+  memoryMB: 0
+statefulsetRunner:
+  include: true
+  replicas: 1
+  resources:
+    limits:
+      cpu: 500m
+      memory: 128Mi
+    requests:
+      cpu: 10m
+      memory: 64Mi
+  temporarySetPodSeccompProfile: false
+systemImagePullSecrets: []

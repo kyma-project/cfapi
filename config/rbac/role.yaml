@@ -1,0 +1,238 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: manager-role
+rules:
+- apiGroups:
+  - ""
+  resources: 
+  - "*"
+  verbs:
+  - "*"
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  - replicasets
+  - statefulsets
+  - statefulsets/finalizers
+  verbs:
+  - create
+  - update
+  - delete
+  - patch
+  - list
+  - watch
+  - get
+- apiGroups:
+  - batch
+  resources:
+  - jobs
+  verbs:
+  - get
+  - list
+  - create
+  - delete
+  - deletecollection
+  - watch
+- apiGroups:
+  - policy
+  resources:
+  - poddisruptionbudgets
+  - podsecuritypolicies
+  verbs:
+  - get
+  - create
+  - update
+  - patch
+  - delete
+  - deletecollection
+  - use
+- apiGroups:
+  - storage.k8s.io
+  resources:
+  - storageclasses
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - authentication.k8s.io
+  resources:
+  - tokenreviews
+  verbs:
+  - create
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - "*"
+  verbs:
+  - "*"
+- apiGroups:
+  - scheduling.k8s.io
+  resources:
+  - priorityclasses
+  verbs:
+  - get
+  - watch
+  - list
+  - patch
+  - update
+  - create
+  - delete
+- apiGroups:
+  - admissionregistration.k8s.io
+  resources:
+  - mutatingwebhookconfigurations
+  - validatingwebhookconfigurations
+  verbs:
+  - get
+  - watch
+  - list
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - get
+  - list
+  - create
+  - update
+  - delete
+  - patch
+  - watch
+- apiGroups:
+  - metrics.k8s.io
+  resources:
+  - pods
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - cert.gardener.cloud
+  resources:
+  - certificates
+  verbs:
+  - get
+  - watch
+  - list
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - dns.gardener.cloud
+  resources:
+  - dnsentries
+  verbs:
+  - get
+  - list
+  - create
+  - update
+  - patch
+  - watch
+- apiGroups:
+  - operator.kyma-project.io
+  resources:
+  - cfapis
+  - cfapis/finalizers
+  - cfapis/status
+  verbs:
+  - "*"
+- apiGroups:
+  - networking.istio.io
+  resources:
+  - gateways
+  - envoyfilters
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - gateways
+  - referencegrants
+  - tlsroutes
+  - httproutes
+  - httproutes/status
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - apiextensions.k8s.io
+  resources:
+  - customresourcedefinitions
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - kpack.io
+  resources:
+  - "*"
+  verbs:
+  - "*"
+- apiGroups:
+  - korifi.cloudfoundry.org
+  resources: 
+  - "*"
+  verbs:
+  - "*"
+- apiGroups:
+  - servicebinding.io
+  resources:
+  - servicebindings
+  verbs:
+  - get
+  - list
+  - create
+  - patch
+  - update
+  - delete
+  - watch
+- apiGroups:
+  - services.cloud.sap.com
+  resources:
+  - servicebindings
+  - serviceinstances
+  verbs:
+  - get
+  - list
+  - create
+  - patch
+  - update
+  - delete
+  - watch
+- apiGroups:
+  - cert-manager.io
+  - acme.cert-manager.io
+  resources:
+  - "*"
+  verbs:
+  - "*"
+- apiGroups:
+  - apiregistration.k8s.io
+  resources:
+  - apiservices
+  verbs:
+  - "*"

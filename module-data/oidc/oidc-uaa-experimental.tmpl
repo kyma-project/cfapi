@@ -1,0 +1,14 @@
+{{ define "oidcUAA" }}
+apiVersion: authentication.gardener.cloud/v1alpha1
+kind: OpenIDConnect
+metadata:
+  name: oidc-uaa
+spec:
+  issuerURL: {{.UAA}}/oauth/token
+  clientID: cf
+  usernameClaim: "user_name"
+  usernamePrefix: "sap.ids:"
+  groupsClaim: ""
+  supportedSigningAlgs:
+  - RS256
+{{ end }}

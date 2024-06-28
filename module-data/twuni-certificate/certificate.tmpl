@@ -1,0 +1,14 @@
+{{ define "twuniCert" }}
+apiVersion: cert.gardener.cloud/v1alpha1
+kind: Certificate
+metadata:
+  name: docker-registry-ingress-cert
+  namespace: cfapi-system
+spec:
+  commonName: {{ .CFDomain }}
+  dnsNames:
+  - "{{ .TwuniDomain }}"
+  secretRef:
+    name: docker-registry-ingress-cert
+    namespace: cfapi-system
+{{ end }}
