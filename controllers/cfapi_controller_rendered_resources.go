@@ -892,13 +892,32 @@ func getStatusFromSample(objectInstance *v1alpha1.CFAPI) v1alpha1.CFAPIStatus {
 func (r *CFAPIReconciler) deployKorifi(ctx context.Context, appsDomain, korifiAPIDomain, cfDomain, crDomain, uaaURL string) error {
 	logger := log.FromContext(ctx)
 
-	chart, err := loader.Load("./module-data/korifi/")
+	helmfile, err := findOneGlob("./module-data/korifi/korifi-helm-*.tar.gz")
 	if err != nil {
-		logger.Error(err, "error during loading korifi helm chart")
+		logger.Error(err, "Failed to find korifi helm chart under dir module-data/korifi")
+		return err
+	}
+	chart, err := loader.Load(helmfile)
+	if err != nil {
+		logger.Error(err, "error loading korifi helm chart")
 		return err
 	}
 
-	inputValues := map[string]interface{}{
+	values, err := loadOneYaml("./module-data/korifi/values-*.yaml")
+	if err != nil {
+		logger.Error(err, "Failed to load korifi helm chart release values")
+		return err
+	}
+
+	values_cfapi, err := loadOneYaml("./module-data/korifi/values.yaml")
+	if err != nil {
+		logger.Error(err, "Failed to load CFAPI values for korifi helm chart")
+		return err
+	}
+
+	DeepUpdate(values, values_cfapi)
+
+	values_dynamic := map[string]interface{}{
 		"api": map[string]interface{}{
 			"apiServer": map[string]interface{}{
 				"url": korifiAPIDomain,
@@ -916,16 +935,18 @@ func (r *CFAPIReconciler) deployKorifi(ctx context.Context, appsDomain, korifiAP
 		"cfDomain":                  cfDomain,
 	}
 
+	DeepUpdate(values, values_dynamic)
+
 	if releaseExists("korifi", "korifi") {
 		// update
 		logger.Info("korifi release found, upgrading it")
 
-		err = updateRelease(chart, "korifi", "korifi", inputValues, logger)
+		err = updateRelease(chart, "korifi", "korifi", values, logger)
 	} else {
 		// install
 		logger.Info("korifi release not found, installing it")
 
-		err = installRelease(chart, "korifi", "korifi", inputValues, logger)
+		err = installRelease(chart, "korifi", "korifi", values, logger)
 	}
 
 	return err

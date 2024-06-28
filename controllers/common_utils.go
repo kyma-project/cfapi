@@ -87,6 +87,21 @@ func findOneGlob(pattern string) (string, error) {
 	return matches[0], nil
 }
 
+func loadOneYaml(pattern string) (map[string]any, error) {
+	file, err := findOneGlob(pattern)
+	if err != nil {
+		return nil, err
+	}
+	data, err := os.ReadFile(file)
+	if err != nil {
+		return nil, err
+	}
+
+	content := make(map[string]any, 50)
+	err = yaml.Unmarshal(data, &content)
+	return content, err
+}
+
 // parseManifestStringToObjects parses the string of resources into a list of unstructured resources.
 func parseManifestStringToObjects(manifest string) (*ManifestResources, error) {
 	objects := &ManifestResources{}

@@ -2,6 +2,7 @@ package controllers
 
 import (
 	golog "log"
+	"reflect"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -90,4 +91,26 @@ func updateRelease(chart *chart.Chart, namespace, name string, values map[string
 
 func isReleaseUninstalled(versions []*release.Release) bool {
 	return len(versions) > 0 && versions[len(versions)-1].Info.Status == release.StatusUninstalled
+}
+
+/*
+This will update map m1 with the values of map m2 doing deep update.
+The purpose is to prepare HELM values from different YML sources
+*/
+func DeepUpdate(m1, m2 map[string]any) {
+	for k, vn := range m2 {
+		vo, found := m1[k]
+		updated := false
+		if found && (vo != nil) {
+			ko := reflect.TypeOf(vo).Kind()
+			kn := reflect.TypeOf(vn).Kind()
+			if ko == reflect.Map && kn == reflect.Map {
+				DeepUpdate(vo.(map[string]any), vn.(map[string]any))
+				updated = true
+			}
+		}
+		if !updated {
+			m1[k] = vn
+		}
+	}
 }
