@@ -49,13 +49,6 @@ jobs:
     - name: install-crds
       run: make install
     
-    - name: system-registry
-      env:
-        DOCKER_REGISTRY: ${{ secrets.DOCKER_REGISTRY }}
-        DOCKER_REGISTRY_USER: ${{ secrets.DOCKER_REGISTRY_USER }}
-        DOCKER_REGISTRY_PASS: ${{ secrets.DOCKER_REGISTRY_PASS }}
-      run: make system-registry
-    
     - name: deploy 
       run: make deploy
       
