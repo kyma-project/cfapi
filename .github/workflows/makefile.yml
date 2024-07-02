@@ -1,0 +1,62 @@
+name: Run-On-Kyma
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build:
+    runs-on: [ self-hosted ]
+
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Log in to the Container registry
+        uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: go vet lint
+      run: make vet lint
+      
+    - name: docker build
+      run: make docker-build
+
+    - name: docker-push 
+      run: make docker-push 
+    
+    - name: install kustomize cli
+      run: make kustomize
+    
+    - name: install istio 
+      run: make install-istio
+      
+    - name: install-crds
+      run: make install
+    
+    - name: system-registry
+      env:
+        DOCKER_REGISTRY: ${{ secrets.DOCKER_REGISTRY }}
+        DOCKER_REGISTRY_USER: ${{ secrets.DOCKER_REGISTRY_USER }}
+        DOCKER_REGISTRY_PASS: ${{ secrets.DOCKER_REGISTRY_PASS }}
+      run: make system-registry
+    
+    - name: deploy 
+      run: make deploy
+      
+    
