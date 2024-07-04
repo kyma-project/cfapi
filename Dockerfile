@@ -38,24 +38,24 @@ ENV VERSION_KORIFI=0.12.0
 
 
 WORKDIR /workspace/module-data/servicebinding
-RUN curl -O https://github.com/servicebinding/runtime/releases/download/v$VERSION_SERVICEBINDING/servicebinding-runtime-v$VERSION_SERVICEBINDING.yaml
-RUN curl -O https://github.com/servicebinding/runtime/releases/download/v$VERSION_SERVICEBINDING/servicebinding-workloadresourcemappings-v$VERSION_SERVICEBINDING.yaml 
+RUN curl -OLf https://github.com/servicebinding/runtime/releases/download/v$VERSION_SERVICEBINDING/servicebinding-runtime-v$VERSION_SERVICEBINDING.yaml
+RUN curl -OLf https://github.com/servicebinding/runtime/releases/download/v$VERSION_SERVICEBINDING/servicebinding-workloadresourcemappings-v$VERSION_SERVICEBINDING.yaml 
 
 WORKDIR /workspace/module-data/kpack
-RUN curl -O https://github.com/buildpacks-community/kpack/releases/download/v$VERSION_KPACK/release-$VERSION_KPACK.yaml
+RUN curl -OLf https://github.com/buildpacks-community/kpack/releases/download/v$VERSION_KPACK/release-$VERSION_KPACK.yaml
 
 WORKDIR /workspace/module-data/cert-manager
-RUN curl -O https://github.com/cert-manager/cert-manager/releases/download/v$VERSION_CERT_MANAGER/cert-manager.yaml
+RUN curl -OLf https://github.com/cert-manager/cert-manager/releases/download/v$VERSION_CERT_MANAGER/cert-manager.yaml
 
 WORKDIR /workspace/module-data/gateway-api
-RUN curl -O https://github.com/kubernetes-sigs/gateway-api/releases/download/v$VERSION_GATEWAY_API/experimental-install.yaml
+RUN curl -OLf https://github.com/kubernetes-sigs/gateway-api/releases/download/v$VERSION_GATEWAY_API/experimental-install.yaml
 
 WORKDIR /workspace/module-data/twuni-helm
-RUN curl -L -O https://github.com/twuni/docker-registry.helm/archive/refs/tags/v$VERSION_TWUNI.tar.gz
+RUN curl -OLf https://github.com/twuni/docker-registry.helm/archive/refs/tags/v$VERSION_TWUNI.tar.gz
 
 #Some day we are going to use the OSS Korifi project
 #WORKDIR /workspace/module-data/korifi
-#RUN curl -L -O https://github.com/cloudfoundry/korifi/releases/download/v$VERSION_KORIFI/korifi-$VERSION_KORIFI.tgz
+#RUN curl -OLf https://github.com/cloudfoundry/korifi/releases/download/v$VERSION_KORIFI/korifi-$VERSION_KORIFI.tgz
 
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
