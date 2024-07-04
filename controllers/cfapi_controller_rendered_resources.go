@@ -36,7 +36,6 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/types"
 
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
@@ -407,15 +406,6 @@ func (r *CFAPIReconciler) processResources(ctx context.Context, cfAPI *v1alpha1.
 	}
 	logger.Info("buildkit secret created")
 
-	logger.Info("Sync cfapi-system-secret to NS korifi")
-	err = r.syncSecret(ctx,
-		types.NamespacedName{Namespace: "cfapi-system", Name: "cfapi-system-registry"},
-		types.NamespacedName{Namespace: "korifi", Name: "cfapi-system-registry"})
-
-	if err != nil {
-		logger.Error(err, "error sync secret cfapi-system-registry")
-		return "", err
-	}
 	// deploy korifi
 	logger.Info("Start deploying korifi ...")
 	var uaaUrl = cfAPI.Spec.UAA

@@ -49,9 +49,14 @@ func (r *CFAPIReconciler) installOneGlob(ctx context.Context, pattern string) er
 	}
 
 	for _, obj := range resources.Items {
-		if err := r.ssa(ctx, obj); err != nil && !errors2.IsAlreadyExists(err) {
+		logger.Info("Patch", "Namespace", obj.GetNamespace(), "Kind", obj.GetKind(), "APIVersion", obj.GetAPIVersion(), "Name", obj.GetName())
+		err = r.ssa(ctx, obj)
+		if err != nil && !errors2.IsAlreadyExists(err) {
 			logger.Error(err, "error during installation of resources")
 			return err
+		}
+		if err != nil {
+			logger.Error(err, "[Ignored] error during installation of resources")
 		}
 	}
 	return nil
