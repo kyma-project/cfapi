@@ -201,7 +201,7 @@ rules:
 - apiGroups:
   - servicebinding.io
   resources:
-  - servicebindings
+  - *
   verbs:
   - get
   - list
