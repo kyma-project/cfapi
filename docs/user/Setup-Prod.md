@@ -31,18 +31,6 @@
     
     Note: that step requires an UAA client (uaac), which requires Ruby runtime
 
-3. ### Registry secret ###
-
-    Create a system docker registry with name **cfapi-system-registry**, namespace cfapi-system. That registry contains the system images for the kyma module.     Currently that is manual step, that the cfapi-kyma-module dev team has to provide credentials to SAP artifactory
-    The easiest way is to execute:
-``` bash
-export DOCKER_REGISTRY=trinity.common.repositories.cloud.sap
-export DOCKER_REGISTRY_USER=korifi-dev
-export DOCKER_REGISTRY_PASS=*******************
-
-kubectl create namespace cfapi-system --dry-run=client -o yaml | kubectl apply -f -
-kubectl create -n cfapi-system secret docker-registry cfapi-system-registry --docker-server=${DOCKER_REGISTRY} --docker-username=${DOCKER_REGISTRY_USER} --docker-password=${DOCKER_REGISTRY_PASS}
-```
 
 4. ### Istio installed ###
 
