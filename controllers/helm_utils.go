@@ -13,6 +13,63 @@ import (
 	"helm.sh/helm/v3/pkg/storage/driver"
 )
 
+const (
+	helmChartApplyWaitTime = 5 * time.Minute
+)
+
+func applyRelease(chart *chart.Chart, namespace, name string, values map[string]interface{}, logger logr.Logger) error {
+	if releaseExists(namespace, name) {
+		logger.Info("release " + name + " exists in namespace " + namespace)
+
+		if releaseIsPending(namespace, name, logger) {
+			logger.Info("release " + name + " in namespace + " + namespace + " is pending, wait for it to finish before updating")
+			time.Sleep(helmChartApplyWaitTime)
+
+			if releaseIsPending(namespace, name, logger) {
+				logger.Info("release " + name + " in namespace + " + namespace + " is still pending, uninstall and try again")
+				err := uninstallRelease(namespace, name, logger)
+				if err != nil {
+					logger.Error(err, "error during uninstall of "+name+" helm release in "+namespace+" namespace")
+					return err
+				}
+				return installRelease(chart, namespace, name, values, logger)
+			}
+		}
+
+		logger.Info("updating existing release " + name + " in namespace " + namespace)
+
+		return updateRelease(chart, namespace, name, values, logger)
+	}
+
+	logger.Info("installing new release " + name + " in namespace " + namespace)
+
+	return installRelease(chart, namespace, name, values, logger)
+}
+
+func releaseIsPending(namespace, name string, logger logr.Logger) bool {
+	settings := cli.New()
+	actionConfig := new(action.Configuration)
+	err := actionConfig.Init(settings.RESTClientGetter(), namespace,
+		"secret", golog.Printf)
+
+	if err != nil {
+		return false
+	}
+
+	histClient := action.NewHistory(actionConfig)
+	histClient.Max = 1
+	versions, err := histClient.Run(name)
+
+	if err != nil {
+		logger.Error(err, "error during checking helm release")
+		return false
+	}
+
+	lastVersionStatus := versions[len(versions)-1].Info.Status
+
+	return (lastVersionStatus.IsPending())
+}
+
 func releaseExists(namespace, name string) bool {
 	settings := cli.New()
 	actionConfig := new(action.Configuration)
@@ -56,6 +113,8 @@ func installRelease(chart *chart.Chart, namespace, name string, values map[strin
 		return err
 	}
 
+	logger.Info("release " + name + " in namespace " + namespace + " installed successfully")
+
 	return nil
 }
 
@@ -83,6 +142,35 @@ func updateRelease(chart *chart.Chart, namespace, name string, values map[string
 
 	if err != nil {
 		logger.Error(err, "error during deployment of korifi helm chart")
+		return err
+	}
+
+	logger.Info("release " + name + " in namespace " + namespace + " updated successfully")
+
+	return nil
+}
+
+func uninstallRelease(namespace, name string, logger logr.Logger) error {
+
+	settings := cli.New()
+	actionConfig := new(action.Configuration)
+	err := actionConfig.Init(settings.RESTClientGetter(), namespace,
+		"secret", golog.Printf)
+
+	if err != nil {
+		logger.Error(err, "error during init of helm action config")
+		return err
+	}
+
+	uninstallClient := action.NewUninstall(actionConfig)
+
+	uninstallClient.Timeout = 5 * time.Minute
+	uninstallClient.Wait = true
+
+	_, err = uninstallClient.Run(name)
+
+	if err != nil {
+		logger.Error(err, "error during uninstall of "+name+" helm release")
 		return err
 	}
 

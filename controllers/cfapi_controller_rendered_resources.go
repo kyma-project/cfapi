@@ -937,17 +937,7 @@ func (r *CFAPIReconciler) deployKorifi(ctx context.Context, appsDomain, korifiAP
 
 	DeepUpdate(values, values_dynamic)
 
-	if releaseExists("korifi", "korifi") {
-		// update
-		logger.Info("korifi release found, upgrading it")
-
-		err = updateRelease(chart, "korifi", "korifi", values, logger)
-	} else {
-		// install
-		logger.Info("korifi release not found, installing it")
-
-		err = installRelease(chart, "korifi", "korifi", values, logger)
-	}
+	err = applyRelease(chart, "korifi", "korifi", values, logger)
 
 	return err
 }

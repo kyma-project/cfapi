@@ -207,17 +207,7 @@ func (r *CFAPIReconciler) deployTwuniHelm(ctx context.Context) error {
 		"tlsSecretName": "docker-registry-ingress-cert",
 	}
 
-	if releaseExists("cfapi-system", "localregistry") {
-		// update
-		logger.Info("twuni release found, upgrading it")
-
-		err = updateRelease(chart, "cfapi-system", "localregistry", inputValues, logger)
-	} else {
-		// install
-		logger.Info("twuni release not found, installing it")
-
-		err = installRelease(chart, "cfapi-system", "localregistry", inputValues, logger)
-	}
+	err = applyRelease(chart, "cfapi-system", "localregistry", inputValues, logger)
 
 	return err
 }
