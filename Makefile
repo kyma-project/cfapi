@@ -99,7 +99,7 @@ release: manifests kustomize
 	mkdir -p release-$(VERSION)
 	cp default-cr.yaml release-$(VERSION)/cfapi-default-cr.yaml
 	$(KUSTOMIZE) build config/crd > release-$(VERSION)/cfapi-crd.yaml
-	pushd config/manager && $(KUSTOMIZE) edit set image controller=${REGISRRY}/${IMG} && popd
+	pushd config/manager && $(KUSTOMIZE) edit set image controller=${REGISTRY}/${IMG} && popd
 	$(KUSTOMIZE) build config/default > release-$(VERSION)/cfapi-manager.yaml
 
 ##@ Deployment
