@@ -83,7 +83,7 @@ run: manifests generate fmt vet ## Run a controller from your host.
 .PHONY: docker-build
 docker-build: ## Build docker image with the manager.
 	docker build -t ${REGISTRY}/${IMG} --build-arg TARGETARCH=amd64 .
-	docker tag ${REGISTRY}/${IMG} $VERSION
+	docker tag ${REGISTRY}/${IMG} ${VERSION}
 
 .PHONY: docker-push
 docker-push: ## Push docker image with the manager.
