@@ -8,7 +8,6 @@ import (
 	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	errors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -98,28 +97,6 @@ func (r *CFAPIReconciler) ssa(ctx context.Context, obj client.Object) error {
 	obj.SetResourceVersion("")
 
 	return r.Client.Patch(ctx, obj, client.Apply, client.ForceOwnership, client.FieldOwner(fieldOwner))
-}
-
-func (r *CFAPIReconciler) syncSecret(ctx context.Context, source, target types.NamespacedName) error {
-	var sourceSecret = &corev1.Secret{}
-	var err = r.Client.Get(ctx, source, sourceSecret)
-	if err != nil {
-		return err
-
-	}
-	targetSecret := corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      target.Name,
-			Namespace: target.Namespace,
-		},
-		Type: "kubernetes.io/dockerconfigjson",
-		Data: sourceSecret.Data,
-	}
-	if r.secretExists(target.Namespace, target.Name) {
-		return r.Client.Patch(ctx, &targetSecret, client.MergeFrom(&corev1.Secret{}))
-	} else {
-		return r.Client.Create(context.Background(), &targetSecret)
-	}
 }
 
 func (r *CFAPIReconciler) createIfMissing(ctx context.Context, object client.Object) error {
