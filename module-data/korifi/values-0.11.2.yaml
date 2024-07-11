@@ -13,13 +13,21 @@ api:
   authProxy:
     caCert: ""
     host: ""
-  image: trinity.common.repositories.cloud.sap/trinity/korifi-api-0.11.0@sha256:10c2b580b32155892ddbdf0b6de093a82fea60be2de4a7b0b3c9e7ac05d4523b
+  image: ghcr.io/kyma-project/cfapi/korifi-api-0.0.0@sha256:34311f2f3685fe7ef06c2f35d6e9801635f00f8dab2971fc519e75e1125ab2e7
   include: true
+  infoConfig:
+    custom: {}
+    description: Korifi Cloud Foundry Environment
+    minCLIVersion: ""
+    name: korifi
+    recommendedCLIVersion: ""
+    supportAddress: https://www.cloudfoundry.org/technology/korifi/
   lifecycle:
     stack: cflinuxfs3
     type: buildpack
   logcache:
     url: ""
+  nodeSelector: {}
   replicas: 1
   resources:
     limits:
@@ -28,17 +36,19 @@ api:
     requests:
       cpu: 50m
       memory: 100Mi
+  tolerations: []
   uaaURL: ""
   userCertificateExpirationWarningDuration: 168h
 containerRegistryCACertSecret: null
 containerRegistrySecrets:
-- image-registry-credentials
+  - image-registry-credentials
 controllers:
   extraVCAPApplicationValues: {}
-  image: trinity.common.repositories.cloud.sap/trinity/korifi-controllers-0.11.0@sha256:e5d932ee0d447abc28a1fc9b220e2714d9c4e610f71d54f401fe1317de015b78
+  image: ghcr.io/kyma-project/cfapi/korifi-controllers-0.0.0@sha256:ce7c511ccbce675f5954d1ecd99bc960a710dd8f79fc9f3ff5bc40804523c0b1
   maxRetainedBuildsPerApp: 5
   maxRetainedPackagesPerApp: 5
   namespaceLabels: {}
+  nodeSelector: {}
   processDefaults:
     diskQuotaMB: 1024
     memoryMB: 1024
@@ -51,6 +61,7 @@ controllers:
       cpu: 50m
       memory: 100Mi
   taskTTL: 30d
+  tolerations: []
   workloadsTLSSecret: korifi-workloads-ingress-cert
 debug: false
 defaultAppDomainName: null

@@ -3,7 +3,7 @@
 VERSION ?= 0.0.0
 #IMG ?= trinity.common.repositories.cloud.sap/kyma-module/cfapi-controller-$(VERSION)
 REGISTRY = ghcr.io
-IMG ?= kyma-project/cfapi/cfapi-controller-$(VERSION)
+IMG ?= kyma-project/cfapi/cfapi-controller
 
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
 ENVTEST_K8S_VERSION = 1.24.1
