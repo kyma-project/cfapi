@@ -13,4 +13,4 @@ generateIngressCertificates: false
 logLevel: info
 networking:
   gatewayClass: istio
-Secrets: ["cfapi-system-registry"]
+Secrets: []

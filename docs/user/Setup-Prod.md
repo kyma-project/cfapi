@@ -31,20 +31,8 @@
     
     Note: that step requires an UAA client (uaac), which requires Ruby runtime
 
-3. ### Registry secret ###
 
-    Create a system docker registry with name **cfapi-system-registry**, namespace cfapi-system. That registry contains the system images for the kyma module.     Currently that is manual step, that the cfapi-kyma-module dev team has to provide credentials to SAP artifactory
-    The easiest way is to execute:
-``` bash
-export DOCKER_REGISTRY=trinity.common.repositories.cloud.sap
-export DOCKER_REGISTRY_USER=korifi-dev
-export DOCKER_REGISTRY_PASS=*******************
-
-kubectl create namespace cfapi-system --dry-run=client -o yaml | kubectl apply -f -
-kubectl create -n cfapi-system secret docker-registry cfapi-system-registry --docker-server=${DOCKER_REGISTRY} --docker-username=${DOCKER_REGISTRY_USER} --docker-password=${DOCKER_REGISTRY_PASS}
-```
-
-4. ### Istio installed ###
+3. ### Istio installed ###
 
     If Istio Kyma module is not installed, you can do it with:
 
@@ -59,7 +47,7 @@ Or directly with kubectl
 	kubectl apply -f https://github.com/kyma-project/istio/releases/latest/download/istio-default-cr.yaml
 ```
 
-5. ### Deploy CF API ###
+4. ### Deploy CF API ###
 
     Deploy the resources from a particular release version to kyma
 ```
@@ -75,14 +63,14 @@ NAME             STATE   URL
 default-cf-api   Ready   https://cfapi.cc6e362.kyma.ondemand.com
 ```
 
-7.  ### Configure CF cli ###
+5.  ### Configure CF cli ###
 
     Set cf cli to point to CF API 
 ```
 cf api https://cfapi.cc6e362.kyma.ondemand.com 
 ```
 
-8. ### CF Login ###
+6. ### CF Login ###
  
 ```
 cf login --sso
