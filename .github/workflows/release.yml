@@ -22,51 +22,51 @@ jobs:
       id-token: write
 
   steps:
-  - uses: actions/checkout@v3
+    - uses: actions/checkout@v3
 
-  - name: Log in to the Container registry
-    uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
-    with:
-      registry: ${{ env.REGISTRY }}
-      username: ${{ github.actor }}
-      password: ${{ secrets.GITHUB_TOKEN }}
+    - name: Log in to the Container registry
+      uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
 
-  - name: set version
-    run: echo "version=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
-    id: version
+    - name: set version
+      run: echo "version=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+      id: version
 
-  - name: docker build
-    run: VERSION=${{ steps.version.outputs.version }} make docker-build
+    - name: docker build
+      run: VERSION=${{ steps.version.outputs.version }} make docker-build
   
-  - name: docker-push 
-    run: VERSION=${{ steps.version.outputs.version }} make docker-push
+    - name: docker-push 
+      run: VERSION=${{ steps.version.outputs.version }} make docker-push
     
-  - name: prepare release artifacts 
-    run:  VERSION=${{ steps.version.outputs.version }} make release
+    - name: prepare release artifacts 
+      run:  VERSION=${{ steps.version.outputs.version }} make release
 
-  - name: Create draft release
-    env:
-      VERSION: ${{ steps.version.outputs.version }}
-      GH_TOKEN: ${{ github.token }}
-    shell: bash
-    run: |
-      gh release create "${VERSION}" --draft --notes-file RELEASE.md
+    - name: Create draft release
+      env:
+        VERSION: ${{ steps.version.outputs.version }}
+        GH_TOKEN: ${{ github.token }}
+      shell: bash
+      run: |
+        gh release create "${VERSION}" --draft --notes-file RELEASE.md
     
-  - name: Publish Release
-    env:
-      VERSION: ${{ steps.version.outputs.version }}
-      GH_TOKEN: ${{ github.token }}
-    shell: bash
-    run: |
-      gh release edit "${VERSION}" --draft=false --latest
+    - name: Publish Release
+      env:
+        VERSION: ${{ steps.version.outputs.version }}
+        GH_TOKEN: ${{ github.token }}
+      shell: bash
+      run: |
+        gh release edit "${VERSION}" --draft=false --latest
 
-  - name: Upload release artifacts
-    env:
-      VERSION: ${{ steps.version.outputs.version }}
-      GH_TOKEN: ${{ github.token }}
-    shell: bash
-    run: |
-      gh release upload "${VERSION}" "./release-${VERSION}/cfapi-default-cr.yaml"
-      gh release upload "${VERSION}" "./release-${VERSION}/cfapi-crd.yaml"
-      gh release upload "${VERSION}" "./release-${VERSION}/cfapi-manager.yaml"
+    - name: Upload release artifacts
+      env:
+        VERSION: ${{ steps.version.outputs.version }}
+        GH_TOKEN: ${{ github.token }}
+      shell: bash
+      run: |
+        gh release upload "${VERSION}" "./release-${VERSION}/cfapi-default-cr.yaml"
+        gh release upload "${VERSION}" "./release-${VERSION}/cfapi-crd.yaml"
+        gh release upload "${VERSION}" "./release-${VERSION}/cfapi-manager.yaml"
     
