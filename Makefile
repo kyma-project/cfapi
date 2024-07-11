@@ -3,7 +3,7 @@
 VERSION ?= 0.0.0
 #IMG ?= trinity.common.repositories.cloud.sap/kyma-module/cfapi-controller-$(VERSION)
 REGISTRY = ghcr.io
-IMG ?= kyma-project/cfapi/cfapi-controller-$(VERSION)
+IMG ?= kyma-project/cfapi/cfapi-controller
 
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
 ENVTEST_K8S_VERSION = 1.24.1
@@ -83,13 +83,14 @@ run: manifests generate fmt vet ## Run a controller from your host.
 .PHONY: docker-build
 docker-build: ## Build docker image with the manager.
 	docker build -t ${REGISTRY}/${IMG} --build-arg TARGETARCH=amd64 .
+	docker tag ${REGISTRY}/${IMG} ${VERSION}
 
 .PHONY: docker-push
 docker-push: ## Push docker image with the manager.
 ifneq (,$(GCR_DOCKER_PASSWORD))
 	docker login $(IMG_REGISTRY) -u oauth2accesstoken --password $(GCR_DOCKER_PASSWORD)
 endif
-	docker push ${REGISTRY}/${IMG}
+	docker push --all-tags ${REGISTRY}/${IMG}
 
 ##@ Release
 .PHONY: release
@@ -98,7 +99,7 @@ release: manifests kustomize
 	mkdir -p release-$(VERSION)
 	cp default-cr.yaml release-$(VERSION)/cfapi-default-cr.yaml
 	$(KUSTOMIZE) build config/crd > release-$(VERSION)/cfapi-crd.yaml
-	pushd config/manager && $(KUSTOMIZE) edit set image controller=${REGISRRY}/${IMG} && popd
+	pushd config/manager && $(KUSTOMIZE) edit set image controller=${REGISTRY}/${IMG} && popd
 	$(KUSTOMIZE) build config/default > release-$(VERSION)/cfapi-manager.yaml
 
 ##@ Deployment
@@ -139,7 +140,7 @@ system-namespace:
 
 .PHONY: deploy
 deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
-	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
+	cd config/manager && $(KUSTOMIZE) edit set image controller=${REGISTRY}/${IMG}
 	$(KUSTOMIZE) build config/default | kubectl apply -f -
 
 .PHONY: deploy-cr
