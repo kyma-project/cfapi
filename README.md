@@ -1,55 +1,107 @@
-> **NOTE:** This is a general template that you can use for a project README.md. Except for the mandatory sections, use only those sections that suit your use case but keep the proposed section order.
->
-> Mandatory sections: 
-> - `Overview`
-> - `Prerequisites`, if there are any requirements regarding hard- or software
-> - `Installation`
-> - `Contributing` - do not change this!
-> - `Code of Conduct` - do not change this!
-> - `Licensing` - do not change this!
-
-# {Project Title}
-<!--- mandatory --->
-> Modify the title and insert the name of your project. Use Heading 1 (H1).
+# CFAPI Kyma Module
 
 ## Overview
-<!--- mandatory section --->
+CF API Kyma Module is providing a CF API to run on top of Kyma, using the open source [Korifi](https://github.com/cloudfoundry/korifi) project
+Once installed, one could use the cf cli to connect and deploy workloads. 
 
-> Provide a description of the project's functionality.
->
-> If it is an example README.md, describe what the example illustrates.
+## Custom Resource (CR) Specification
+| Property | Optional | Default | Description |
+|-----|-----|-----|-----|
+| RootNamespace | Optional | cf | Root namespace for CF resources |
+| AppImagePullSecret | Optional | By default a localregistry will be deployed and used for application images | Dockerregistry secret pointing to a custom docker registry |
+| UAA | Optional | "https://uaa.cf.eu10.hana.ondemand.com" |  UAA URL to be used for authentication |
+| CFAdmins | Optional | By default Kyma cluster-admins will become CF admins | List of users, which will become CF administrators.A user is expected in format sap.ids:\<sap email\> example sap.ids:samir.zeort@sap.com  |
+
 
 ## Prerequisites
-
-> List the requirements to run the project or example.
+* A Kyma cluster preconfigured with UAA as OIDC provider
+* Istio Kyma module installed
 
 ## Installation
+1. ### Kyma environment ###
 
-> Explain the steps to install your project. If there are multiple installation options, mention the recommended one and include others in a separate document. Create an ordered list for each installation task.
->
-> If it is an example README.md, describe how to build, run locally, and deploy the example. Format the example as code blocks and specify the language, highlighting where possible. Explain how you can validate that the example ran successfully. For example, define the expected output or commands to run which check a successful deployment.
->
-> Add subsections (H3) for better readability.
+    You need a Kyma environment which is configured with UAA as an OIDC provider, with following parameters
+``` yaml
+{
+  "administrators": [
+    "sap.ids:myfirstname.mysecondname@sap.com"
+  ],
+  "autoScalerMax": 3,
+  "autoScalerMin": 3,
+  "oidc": {
+    "clientID": "cf",
+    "groupsClaim": "",
+    "issuerURL": "https://uaa.cf.eu10.hana.ondemand.com/oauth/token",
+    "signingAlgs": [
+      "RS256"
+    ],
+    "usernameClaim": "user_name",
+    "usernamePrefix": "sap.ids:"
+  }
+}
+```
+2. ### Kyma Access ###
 
+Use that script to generate a stable kubeconfig: <br>
+https://github.tools.sap/unified-runtime/trinity/blob/main/scripts/tools/generate-kyma-kubeconfig.sh
+    
+Note: that step requires an UAA client (uaac), which requires Ruby runtime
+
+3. ### Istio installed ###
+
+    If Istio Kyma module is not installed, you can do it with:
+
+*make* from this repository
+```
+make install-istio
+```
+Or directly with kubectl
+```
+	kubectl label namespace cfapi-system istio-injection=enabled --overwrite
+	kubectl apply -f https://github.com/kyma-project/istio/releases/latest/download/istio-manager.yaml
+	kubectl apply -f https://github.com/kyma-project/istio/releases/latest/download/istio-default-cr.yaml
+```
+4. ### Deploy CF API ###
+
+Deploy the resources from a particular release version to kyma
+```
+kubectl apply -f cfapi-crd.yaml
+kubectl apply -f cfapi-manager.yaml
+kubectl apply -f cfapi-default-cr.yaml
+```
+
+  Wait for a Ready state of the CFAPI resource and read the CF URL 
+```
+kubectl get -n cfapi-system cfapi
+NAME             STATE   URL
+default-cf-api   Ready   https://cfapi.cc6e362.kyma.ondemand.com
+```
+
+5.  ### Configure CF cli ###
+
+    Set cf cli to point to CF API 
+```
+cf api https://cfapi.cc6e362.kyma.ondemand.com 
+```
+
+6. ### CF Login ###
+ 
+```
+cf login --sso
+```
+   
 ## Usage
 
-> Explain how to use the project. You can create multiple subsections (H3). Include the instructions or provide links to the related documentation.
+Use CF cli to deploy applications as on a normal CF. The buildpacks used are native community buildpacks. 
 
 ## Development
 
-> Add instructions on how to develop the project or example. It must be clear what to do and, for example, how to trigger the tests so that other contributors know how to make their pull requests acceptable. Include the instructions or provide links to related documentation.
-
 ## Contributing
-<!--- mandatory section - do not change this! --->
-
 See the [Contributing Rules](CONTRIBUTING.md).
 
 ## Code of Conduct
-<!--- mandatory section - do not change this! --->
-
 See the [Code of Conduct](CODE_OF_CONDUCT.md) document.
 
 ## Licensing
-<!--- mandatory section - do not change this! --->
 
 See the [license](./LICENSE) file.
