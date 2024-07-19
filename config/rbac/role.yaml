@@ -202,6 +202,7 @@ rules:
   - servicebinding.io
   resources:
   - servicebindings
+  - clusterworkloadresourcemappings
   verbs:
   - get
   - list
