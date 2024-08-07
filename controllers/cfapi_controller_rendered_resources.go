@@ -323,14 +323,15 @@ func (r *CFAPIReconciler) processResources(ctx context.Context, cfAPI *v1alpha1.
 
 	// ensure docker registry
 	logger.Info("Start ensuring docker registry ...")
-	err = r.ensureDockerRegistry(ctx)
+	err = r.ensureDockerRegistry(ctx, cfAPI)
 	if err != nil {
 		logger.Error(err, "error ensuring docker registry")
 		return "", err
 	}
 	logger.Info("docker registry ensured")
 
-	containerRegistry, err := r.getAppContainerRegistry(ctx)
+	// get app container registry
+	containerRegistry, err := r.getAppContainerRegistry(ctx, cfAPI)
 	if err != nil {
 		logger.Error(err, "error getting app container registry")
 		return "", err
@@ -439,8 +440,13 @@ func (r *CFAPIReconciler) processResources(ctx context.Context, cfAPI *v1alpha1.
 	return "https://" + korifiApiDomain, nil
 }
 
-func (r *CFAPIReconciler) ensureDockerRegistry(ctx context.Context) error {
+func (r *CFAPIReconciler) ensureDockerRegistry(ctx context.Context, cfAPI *v1alpha1.CFAPI) error {
 	logger := log.FromContext(ctx)
+
+	if cfAPI.Spec.AppImagePullSecret != "" {
+		logger.Info("App Container Img Reg Secret is set, using it")
+		return nil
+	}
 
 	if !r.crdExists(ctx, "DockerRegistry") {
 		logger.Info("DockerRegistry CRD does not exist")
@@ -514,8 +520,29 @@ func (r *CFAPIReconciler) createOIDCConfig(ctx context.Context, cfAPI *v1alpha1.
 	return nil
 }
 
-func (r *CFAPIReconciler) getAppContainerRegistry(ctx context.Context) (ContainerRegistry, error) {
+func (r *CFAPIReconciler) getAppContainerRegistry(ctx context.Context, cfAPI *v1alpha1.CFAPI) (ContainerRegistry, error) {
 	logger := log.FromContext(ctx)
+
+	if cfAPI.Spec.AppImagePullSecret != "" {
+		logger.Info("App Container Img Reg Secret is set, using it")
+		// extract container registry from secret
+		secret := corev1.Secret{}
+		err := r.Client.Get(context.Background(), client.ObjectKey{
+			Namespace: "korifi",
+			Name:      cfAPI.Spec.AppImagePullSecret,
+		}, &secret)
+
+		if err != nil {
+			logger.Error(err, "error getting app container registry secret")
+			return ContainerRegistry{}, err
+		}
+
+		return ContainerRegistry{
+			Server: string(secret.Data["server"]),
+			User:   string(secret.Data["username"]),
+			Pass:   string(secret.Data["password"]),
+		}, nil
+	}
 
 	logger.Info("Constructing app container registry from dockerregistry-config-external secret ")
 
