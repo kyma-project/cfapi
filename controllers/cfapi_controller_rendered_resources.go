@@ -315,14 +315,22 @@ func (r *CFAPIReconciler) processResources(ctx context.Context, cfAPI *v1alpha1.
 	cfDomain := wildCardDomain[2:]
 	appsDomain := "apps." + cfDomain
 	korifiApiDomain := "cfapi." + cfDomain
-	twuniDomain := "cr." + cfDomain
 
 	logger.Info("wildcard domain retrieved : " + wildCardDomain)
 	logger.Info("cf domain calculated : " + cfDomain)
 	logger.Info("apps domain calculated : " + appsDomain)
 	logger.Info("korifi api domain calculated : " + korifiApiDomain)
 
-	containerRegistry, err := r.getAppContainerRegistry(ctx, cfAPI, twuniDomain)
+	// ensure docker registry
+	logger.Info("Start ensuring docker registry ...")
+	err = r.ensureDockerRegistry(ctx)
+	if err != nil {
+		logger.Error(err, "error ensuring docker registry")
+		return "", err
+	}
+	logger.Info("docker registry ensured")
+
+	containerRegistry, err := r.getAppContainerRegistry(ctx)
 	if err != nil {
 		logger.Error(err, "error getting app container registry")
 		return "", err
@@ -361,15 +369,6 @@ func (r *CFAPIReconciler) processResources(ctx context.Context, cfAPI *v1alpha1.
 		return "", err
 	}
 	logger.Info("namespaces created")
-
-	// install twuni
-	logger.Info("Start installing twuni ...")
-	err = r.installTwuni(ctx, cfAPI, cfDomain, twuniDomain)
-	if err != nil {
-		logger.Error(err, "error installing twuni")
-		return "", err
-	}
-	logger.Info("twuni installed")
 
 	// generate ingress certificates
 	logger.Info("Start generating ingress certificates ...")
@@ -428,15 +427,6 @@ func (r *CFAPIReconciler) processResources(ctx context.Context, cfAPI *v1alpha1.
 	}
 	logger.Info("dns entries created")
 
-	// create twuni dns entries
-	logger.Info("Start creating twuni dns entries ...")
-	err = r.createTwuniDNSEntry(ctx, cfAPI, twuniDomain)
-	if err != nil {
-		logger.Error(err, "error creating twuni dns entries")
-		return "", err
-	}
-	logger.Info("twuni dns entries created")
-
 	var subjects = toSubjectList(cfAPI.Spec.CFAdmins)
 	err = r.assignCfAdministrators(ctx, subjects, cfAPI.Spec.RootNamespace)
 	if err != nil {
@@ -447,6 +437,29 @@ func (r *CFAPIReconciler) processResources(ctx context.Context, cfAPI *v1alpha1.
 	logger.Info("CFAPI reconciled successfully")
 
 	return "https://" + korifiApiDomain, nil
+}
+
+func (r *CFAPIReconciler) ensureDockerRegistry(ctx context.Context) error {
+	logger := log.FromContext(ctx)
+
+	if !r.crdExists(ctx, "DockerRegistry") {
+		logger.Info("DockerRegistry CRD does not exist")
+		return errors.New("DockerRegistry CRD does not exist. Create it by enablib docker registry Kyma module")
+	}
+
+	err := r.installOneGlob(ctx, "./module-data/docker-registry/docker-registry.yaml")
+	if err != nil {
+		logger.Error(err, "error installing docker registry")
+		return err
+	}
+
+	err = r.waitForSecret("cfapi-system", "dockerregistry-config-external")
+	if err != nil {
+		logger.Error(err, "error waiting for secret dockerregistry-config-external")
+		return err
+	}
+
+	return nil
 }
 
 func (r *CFAPIReconciler) createOIDCConfig(ctx context.Context, cfAPI *v1alpha1.CFAPI) error {
@@ -501,36 +514,26 @@ func (r *CFAPIReconciler) createOIDCConfig(ctx context.Context, cfAPI *v1alpha1.
 	return nil
 }
 
-func (r *CFAPIReconciler) getAppContainerRegistry(ctx context.Context, cfAPI *v1alpha1.CFAPI,
-	twuniDomain string) (ContainerRegistry, error) {
+func (r *CFAPIReconciler) getAppContainerRegistry(ctx context.Context) (ContainerRegistry, error) {
 	logger := log.FromContext(ctx)
 
-	if cfAPI.Spec.AppImagePullSecret != "" {
-		logger.Info("App Container Img Reg Secret is set, using it")
-		// extract container registry from secret
-		secret := corev1.Secret{}
-		err := r.Client.Get(context.Background(), client.ObjectKey{
-			Namespace: "korifi",
-			Name:      cfAPI.Spec.AppImagePullSecret,
-		}, &secret)
+	logger.Info("Constructing app container registry from dockerregistry-config-external secret ")
 
-		if err != nil {
-			logger.Error(err, "error getting app container registry secret")
-			return ContainerRegistry{}, err
-		}
+	secret := corev1.Secret{}
+	err := r.Client.Get(context.Background(), client.ObjectKey{
+		Namespace: "cfapi-system",
+		Name:      "dockerregistry-config-external",
+	}, &secret)
 
-		return ContainerRegistry{
-			Server: string(secret.Data["server"]),
-			User:   string(secret.Data["username"]),
-			Pass:   string(secret.Data["password"]),
-		}, nil
+	if err != nil {
+		logger.Error(err, "error getting app container registry secret")
+		return ContainerRegistry{}, err
 	}
 
-	logger.Info("App Container Img Reg Secret is not set, using twuni")
 	return ContainerRegistry{
-		Server: twuniDomain,
-		User:   DefaultTwuniUser,
-		Pass:   DefaultTwuniPass,
+		Server: string(secret.Data["pushRegAddr"]),
+		User:   string(secret.Data["username"]),
+		Pass:   string(secret.Data["password"]),
 	}, nil
 }
 
