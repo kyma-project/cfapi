@@ -1,0 +1,9 @@
+apiVersion: operator.kyma-project.io/v1alpha1
+kind: DockerRegistry
+metadata:
+  name: cfapi-docker-registry
+  namespace: cfapi-system
+spec:
+  externalAccess:
+    enabled: true
+    hostPrefix: cfapi-registry

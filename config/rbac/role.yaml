@@ -237,3 +237,9 @@ rules:
   - apiservices
   verbs:
   - "*"
+- apiGroups:
+  - operator.kyma-project.io
+  resources:
+  - dockerregistries
+  verbs:
+  - "*"
