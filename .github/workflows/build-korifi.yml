@@ -24,7 +24,7 @@ jobs:
         repository: unified-runtime/korifi-trinity
         ref: v${{ env.V_KORIFI }}
         github-server-url: 'https://github.tools.sap'
-        token: ${{ KORIFI_TRINITY_TOKEN }}
+        token: ${{ secrets.KORIFI_TRINITY_TOKEN }}
         path: '.github.tools.sap'
 
 
