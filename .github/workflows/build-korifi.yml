@@ -19,7 +19,8 @@ jobs:
       id-token: write
 
     steps:
-    - uses: actions/checkout@v3
+    - name: 'Checkout Korifi-Trinity'
+      uses: actions/checkout@v3
       with:
         repository: unified-runtime/korifi-trinity
         ref: v${{ env.V_KORIFI }}
@@ -35,14 +36,14 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
       
-    - name: create korifi release artifacts
+    - name: Create korifi release artifacts
       env:
           VERSION: ${{ env.V_KORIFI }}
           DOCKER_REGISTRY: ${{ env.REGISTRY }}
           DOCKER_REGISTRY_USER: ${{ github.actor }}
           DOCKER_REGISTRY_PASS: ${{ secrets.GITHUB_TOKEN }}
       shell: bash
-      working-directory: .korifi
+      working-directory: '.korifi'
       run: |
         run: ./scripts/create-korifi-release.sh ${{ env.V_KORIFI }}
     
