@@ -45,6 +45,6 @@ jobs:
       shell: bash
       working-directory: '.korifi'
       run: |
-        run: ./scripts/create-korifi-release.sh ${{ env.V_KORIFI }}
+        run: ../scripts/create-korifi-release.sh ${{ env.V_KORIFI }}
     
 
