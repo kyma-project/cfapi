@@ -25,7 +25,7 @@ jobs:
         ref: v${{ env.V_KORIFI }}
         github-server-url: 'https://github.tools.sap'
         token: ${{ secrets.KORIFI_TRINITY_TOKEN }}
-        path: '.github.tools.sap'
+        path: '.korifi'
 
 
     - name: Log in to the Container registry
@@ -42,7 +42,7 @@ jobs:
           DOCKER_REGISTRY_USER: ${{ github.actor }}
           DOCKER_REGISTRY_PASS: ${{ secrets.GITHUB_TOKEN }}
       shell: bash
-      working-directory: .github.tools.sap/unified-runtime/korifi-trinity/
+      working-directory: .korifi
       run: |
         run: ./scripts/create-korifi-release.sh ${{ env.V_KORIFI }}
     
