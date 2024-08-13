@@ -35,4 +35,15 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
       
+    - name: create korifi release artifacts
+      env:
+          VERSION: ${{ env.V_KORIFI }}
+          DOCKER_REGISTRY: ${{ env.REGISTRY }}
+          DOCKER_REGISTRY_USER: ${{ github.actor }}
+          DOCKER_REGISTRY_PASS: ${{ secrets.GITHUB_TOKEN }}
+      shell: bash
+      working-directory: .github.tools.sap/unified-runtime/korifi-trinity/
+      run: |
+        run: ./scripts/create-korifi-release.sh ${{ env.V_KORIFI }}
     
+
