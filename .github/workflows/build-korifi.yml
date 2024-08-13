@@ -51,8 +51,8 @@ jobs:
       shell: bash
       run: |
         mkdir -p ./module-data/korifi-build
-        cp .korifi/values.yaml ./module-data/korifi-build/values-${{ env.V_KORIFI }}.yaml
-        cp .korifi/korifi-helm.tar.gz ./module-data/korifi-build/korifi-helm-${{ env.V_KORIFI }}.tar.gz
+        cp .korifi/release-${{ env.V_KORIFI }}/values.yaml ./module-data/korifi-build/values-${{ env.V_KORIFI }}.yaml
+        cp .korifi/release-${{ env.V_KORIFI }}/korifi-helm.tar.gz ./module-data/korifi-build/korifi-helm-${{ env.V_KORIFI }}.tar.gz
 
     
 
