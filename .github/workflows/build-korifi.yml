@@ -47,12 +47,5 @@ jobs:
       run: |
         ../scripts/create-korifi-release.sh ${{ env.V_KORIFI }}
 
-    - name: Copy korifi artifacts
-      shell: bash
-      run: |
-        mkdir -p ./module-data/korifi-build
-        cp .korifi/release-${{ env.V_KORIFI }}/values.yaml ./module-data/korifi-build/values-${{ env.V_KORIFI }}.yaml
-        cp .korifi/release-${{ env.V_KORIFI }}/korifi-helm.tar.gz ./module-data/korifi-build/korifi-helm-${{ env.V_KORIFI }}.tar.gz
-
     
 
