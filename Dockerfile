@@ -2,6 +2,7 @@
 FROM golang:1.22.1-alpine as builder
 ARG TARGETOS
 ARG TARGETARCH
+ARG V_KORIFI="0.11.2"
 
 WORKDIR /workspace
 # Copy the Go Modules manifests
@@ -50,12 +51,9 @@ RUN curl -OLf https://github.com/cert-manager/cert-manager/releases/download/v$V
 WORKDIR /workspace/module-data/gateway-api
 RUN curl -OLf https://github.com/kubernetes-sigs/gateway-api/releases/download/v$VERSION_GATEWAY_API/experimental-install.yaml
 
-WORKDIR /workspace/module-data/twuni-helm
-RUN curl -OLf https://github.com/twuni/docker-registry.helm/archive/refs/tags/v$VERSION_TWUNI.tar.gz
-
-#Some day we are going to use the OSS Korifi project
-#WORKDIR /workspace/module-data/korifi
-#RUN curl -OLf https://github.com/cloudfoundry/korifi/releases/download/v$VERSION_KORIFI/korifi-$VERSION_KORIFI.tgz
+WORKDIR /workspace/module-data/korifi
+COPY .korifi/release-${V_KORIFI}/values.yaml values-${V_KORIFI}.yaml 
+COPY .korifi/release-${V_KORIFI}/korifi-helm.tar.gz korifi-helm-${V_KORIFI}.tar.gz
 
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
