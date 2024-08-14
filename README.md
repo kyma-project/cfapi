@@ -16,6 +16,7 @@ Once installed, one could use the cf cli to connect and deploy workloads.
 ## Prerequisites
 * A Kyma cluster preconfigured with UAA as OIDC provider
 * Istio Kyma module installed
+* [Maybe] Docker registry kyma module installed
 
 ## Installation
 1. ### Kyma environment ###
@@ -61,7 +62,14 @@ Or directly with kubectl
 	kubectl apply -f https://github.com/kyma-project/istio/releases/latest/download/istio-manager.yaml
 	kubectl apply -f https://github.com/kyma-project/istio/releases/latest/download/istio-default-cr.yaml
 ```
-4. ### Deploy CF API ###
+4. ### [Maybe] deploy docker registry module
+In case you want to use an existing docker registry, you do not need to install that.
+In all other cases, see https://github.com/kyma-project/docker-registry/blob/main/docs/user/README.md
+```
+kubectl apply -f https://github.com/kyma-project/docker-registry/releases/latest/download/dockerregistry-operator.yaml
+```
+
+5. ### Deploy CF API ###
 
 Deploy the resources from a particular release version to kyma
 ```
@@ -77,14 +85,14 @@ NAME             STATE   URL
 default-cf-api   Ready   https://cfapi.cc6e362.kyma.ondemand.com
 ```
 
-5.  ### Configure CF cli ###
+6.  ### Configure CF cli ###
 
     Set cf cli to point to CF API 
 ```
 cf api https://cfapi.cc6e362.kyma.ondemand.com 
 ```
 
-6. ### CF Login ###
+7. ### CF Login ###
  
 ```
 cf login --sso
