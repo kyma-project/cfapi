@@ -42,11 +42,28 @@ Once installed, one could use the cf cli to connect and deploy workloads.
 }
 ```
 2. ### Kyma Access ###
+At the moment there is a problem that with OIDC provider set to UAA, the kubeconfig for Kyma is not working. This is well-known, solution is expected to come. 
+Here is how you could generate a working kubeconfig.
 
-Use that script to generate a stable kubeconfig: <br>
-https://github.tools.sap/unified-runtime/trinity/blob/main/scripts/tools/generate-kyma-kubeconfig.sh
-    
-Note: that step requires an UAA client (uaac), which requires Ruby runtime
+2.1. Download your kubeconfig from BTP cockpit/kyma environment
+
+2.2. Create a folder and copy that kubeconfig there, file name kubeconfig.yaml. Take the full path of that file <br>
+Example Linux: /tmp/genkubeconfig<br>
+Example Windows: C:\tmp\genkubeconfig<br>
+
+2.3. Run the command, use your user name myfirstname.mysecondname@sap.com as an argument
+```
+docker run -v /tmp/genkubeconfig:/work -ti ghcr.io/kyma-project/cfapi/genkubeconfig myfirstname.mysecondname@sap.com
+or
+docker run -v C:\tmp\genkubeconfig:/work -ti ghcr.io/kyma-project/cfapi/genkubeconfig myfirstname.mysecondname@sap.com
+```
+
+2.4. The generated kubeconfig is in /tmp/genkubeconfig/kubeconfig-sa.yaml, 
+
+2.5. [Maybe] Set it as system kubeconfing ~/.kube/config. That step is optional, depends on your system setup
+```
+cp /tmp/genkubeconfig/kubeconfig-sa.yaml ~/.kube/config
+```
 
 3. ### Istio installed ###
 
