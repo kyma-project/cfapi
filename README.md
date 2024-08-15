@@ -75,10 +75,11 @@ make install-istio
 ```
 Or directly with kubectl
 ```
-	kubectl label namespace cfapi-system istio-injection=enabled --overwrite
-	kubectl apply -f https://github.com/kyma-project/istio/releases/latest/download/istio-manager.yaml
-	kubectl apply -f https://github.com/kyma-project/istio/releases/latest/download/istio-default-cr.yaml
+kubectl label namespace cfapi-system istio-injection=enabled --overwrite
+kubectl apply -f https://github.com/kyma-project/istio/releases/latest/download/istio-manager.yaml
+kubectl apply -f https://github.com/kyma-project/istio/releases/latest/download/istio-default-cr.yaml
 ```
+
 4. ### [Maybe] deploy docker registry module
 In case you want to use an existing docker registry, you do not need to install that.
 In all other cases, see https://github.com/kyma-project/docker-registry/blob/main/docs/user/README.md
