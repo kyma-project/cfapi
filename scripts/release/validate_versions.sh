@@ -11,7 +11,7 @@ if [[ "$DESIRED_VERSION" != "$MODULE_VERSION" ]]; then
 fi
 echo "Versions match."
 
-IMAGE_TO_CHECK="${2:-europe-docker.pkg.dev/kyma-project/prod/template-operator}"
+IMAGE_TO_CHECK="${2:-europe-docker.pkg.dev/kyma-project/prod/cfapi}"
 BUMPED_IMAGE_TAG=$(grep "${IMAGE_TO_CHECK}" ../../sec-scanners-config.yaml | cut -d : -f 2)
 if [[ "$BUMPED_IMAGE_TAG" != "$DESIRED_VERSION" ]]; then
   echo "Version tag in sec-scanners-config.yaml file is incorrect!"

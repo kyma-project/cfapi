@@ -8,7 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/client-go/kubernetes"
 
-	"github.tools.sap/unified-runtime/cfapi-kyma-module/api/v1alpha1"
+	v1alpha1 "github.com/kyma-project/cfapi/api/v1alpha1"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"

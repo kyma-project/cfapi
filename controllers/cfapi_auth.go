@@ -10,12 +10,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-func (r *CFAPIReconciler) getUserClusterAdmins(ctx context.Context) (error, []rbacv1.Subject) {
+func (r *CFAPIReconciler) getUserClusterAdmins(ctx context.Context) ([]rbacv1.Subject, error) {
 	subjects := []rbacv1.Subject{}
 	crblist := &rbacv1.ClusterRoleBindingList{}
 	err := r.Client.List(ctx, crblist, client.MatchingLabels{"app": "kyma"})
 	if err != nil {
-		return err, subjects
+		return subjects, err
 	}
 	for _, crb := range crblist.Items {
 		if crb.RoleRef.Name == "cluster-admin" {
@@ -26,7 +26,7 @@ func (r *CFAPIReconciler) getUserClusterAdmins(ctx context.Context) (error, []rb
 			}
 		}
 	}
-	return nil, subjects
+	return subjects, nil
 }
 
 func toSubjectList(users []string) []rbacv1.Subject {
@@ -50,7 +50,7 @@ func (r *CFAPIReconciler) assignCfAdministrators(ctx context.Context, subjects [
 
 	if len(subjects) == 0 {
 		logger.Info("No CF administrators specified, will set kyma cluster admins as CF administrators")
-		err, _subjects = r.getUserClusterAdmins(ctx)
+		_subjects, err = r.getUserClusterAdmins(ctx)
 		if err != nil {
 			logger.Error(err, "Failed to list users having clusterrole/cluster-admin")
 			return nil

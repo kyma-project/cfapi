@@ -35,8 +35,8 @@ import (
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	"github.tools.sap/unified-runtime/cfapi-kyma-module/api/v1alpha1"
-	"github.tools.sap/unified-runtime/cfapi-kyma-module/controllers"
+	v1alpha1 "github.com/kyma-project/cfapi/api/v1alpha1"
+	controllers "github.com/kyma-project/cfapi/controllers"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -45,7 +45,7 @@ const (
 	rateLimiterFrequencyDefault = 30
 	failureBaseDelayDefault     = 1 * time.Second
 	failureMaxDelayDefault      = 1000 * time.Second
-	operatorName                = "template-operator"
+	operatorName                = "cfapi-operator"
 )
 
 var (
@@ -84,7 +84,7 @@ func main() {
 	flag.Parse()
 
 	if flagVar.printVersion {
-		msg := fmt.Sprintf("Template Operator version: %s\n", buildVersion)
+		msg := fmt.Sprintf("CFAPI Operator version: %s\n", buildVersion)
 		_, err := os.Stdout.WriteString(msg)
 		if err != nil {
 			os.Exit(1)

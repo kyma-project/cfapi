@@ -28,8 +28,8 @@ uploadFile() {
 echo "PULL_BASE_REF= ${PULL_BASE_REF}"
 
 MODULE_VERSION=${PULL_BASE_REF} make build-manifests
-echo "Generated template-operator.yaml:"
-cat template-operator.yaml
+echo "Generated cfapi-operator.yaml:"
+cat cfapi-operator.yaml
 
 MODULE_VERSION=${PULL_BASE_REF} make build-module
 echo "Generated module-template.yaml:"
@@ -39,7 +39,7 @@ echo "Fetching releases"
 CURL_RESPONSE=$(curl -w "%{http_code}" -sL \
                 -H "Accept: application/vnd.github+json" \
                 -H "Authorization: Bearer $BOT_GITHUB_TOKEN"\
-                https://api.github.com/repos/kyma-project/template-operator/releases)
+                https://api.github.com/repos/kyma-project/cfapi/releases)
 JSON_RESPONSE=$(sed '$ d' <<< "${CURL_RESPONSE}")
 HTTP_CODE=$(tail -n1 <<< "${CURL_RESPONSE}")
 if [[ "${HTTP_CODE}" != "200" ]]; then
@@ -58,10 +58,10 @@ then
 fi
 
 echo "Adding assets to Github release"
-UPLOAD_URL="https://uploads.github.com/repos/kyma-project/template-operator/releases/${RELEASE_ID}/assets"
+UPLOAD_URL="https://uploads.github.com/repos/kyma-project/cfapi/releases/${RELEASE_ID}/assets"
 
 echo "$UPLOAD_URL"
-uploadFile "template-operator.yaml" "${UPLOAD_URL}?name=template-operator.yaml"
+uploadFile "cfapi-operator.yaml" "${UPLOAD_URL}?name=cfapi-operator.yaml"
 uploadFile "module-template.yaml" "${UPLOAD_URL}?name=module-template.yaml"
 uploadFile "config/samples/default-sample-cr.yaml" "${UPLOAD_URL}?name=default-sample-cr.yaml"
 uploadFile "module-config.yaml" "${UPLOAD_URL}?name=module-config.yaml"

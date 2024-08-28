@@ -7,7 +7,7 @@ set -o pipefail
 
 RELEASE_VERSION=$1
 
-REPOSITORY=${REPOSITORY:-kyma-project/template-operator}
+REPOSITORY=${REPOSITORY:-kyma-project/cfapi-operator}
 GITHUB_URL=https://api.github.com/repos/${REPOSITORY}
 GITHUB_AUTH_HEADER="Authorization: Bearer ${GITHUB_TOKEN}"
 

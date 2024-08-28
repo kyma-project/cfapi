@@ -25,8 +25,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
-	"github.tools.sap/unified-runtime/cfapi-kyma-module/controllers"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -35,7 +33,8 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	operatorkymaprojectiov1alpha1 "github.tools.sap/unified-runtime/cfapi-kyma-module/api/v1alpha1"
+	operatorkymaprojectiov1alpha1 "github.com/kyma-project/cfapi/api/v1alpha1"
+	controllers "github.com/kyma-project/cfapi/controllers"
 	//+kubebuilder:scaffold:imports
 )
 
