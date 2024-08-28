@@ -41,12 +41,11 @@ import (
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	"github.tools.sap/unified-runtime/cfapi-kyma-module/api/v1alpha1"
-
-	"sigs.k8s.io/controller-runtime/pkg/controller"
+	v1alpha1 "github.com/kyma-project/cfapi/api/v1alpha1"
 )
 
 const (

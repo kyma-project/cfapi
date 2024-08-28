@@ -203,11 +203,11 @@ lint: ## Download & Build & Run golangci-lint against code.
 .PHONY: configure-git-origin
 configure-git-origin:
 	@git remote | grep '^origin$$' -q || \
-		git remote add origin https://github.com/kyma-project/template-operator
+		git remote add origin https://github.com/kyma-project/cfapi
 
 .PHONY: build-manifests
 build-manifests: manifests kustomize ## Install CRDs into the K8s cluster specified in ~/.kube/config.
-	$(KUSTOMIZE) build config/default > template-operator.yaml
+	$(KUSTOMIZE) build config/default > cfapi-operator.yaml
 
 DEFAULT_CR ?= $(shell pwd)/config/samples/default-sample-cr.yaml
 .PHONY: build-module

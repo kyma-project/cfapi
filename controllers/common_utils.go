@@ -42,7 +42,7 @@ const (
 func (r *CFAPIReconciler) installOneGlob(ctx context.Context, pattern string) error {
 	logger := log.FromContext(ctx)
 	logger.Info("Installing", "glob", pattern)
-	resources, err := loadOneGlob(pattern, logger)
+	resources, err := loadOneGlob(pattern)
 
 	if err != nil {
 		return err
@@ -57,15 +57,15 @@ func (r *CFAPIReconciler) installOneGlob(ctx context.Context, pattern string) er
 	return nil
 }
 
-func loadOneGlob(pattern string, logger logr.Logger) (*ManifestResources, error) {
+func loadOneGlob(pattern string) (*ManifestResources, error) {
 	filename, err := findOneGlob(pattern)
 	if err != nil {
 		return nil, err
 	}
-	return loadFile(filename, logger)
+	return loadFile(filename)
 }
 
-func loadFile(file string, logger logr.Logger) (*ManifestResources, error) {
+func loadFile(file string) (*ManifestResources, error) {
 	fileBytes, err := os.ReadFile(file)
 	if err != nil {
 		return nil, err

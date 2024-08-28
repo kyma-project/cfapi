@@ -14,7 +14,7 @@ then
   PREVIOUS_RELEASE=$(git describe --tags --abbrev=0)
 fi
 
-REPOSITORY=${REPOSITORY:-kyma-project/template-operator}
+REPOSITORY=${REPOSITORY:-kyma-project/cfapi}
 GITHUB_URL=https://api.github.com/repos/${REPOSITORY}
 GITHUB_AUTH_HEADER="Authorization: token ${GITHUB_TOKEN}"
 CHANGELOG_FILE="CHANGELOG.md"
