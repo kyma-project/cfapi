@@ -10,6 +10,7 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
+  V_KORIFI: '0.11.2'
 
 jobs:
   build:
@@ -24,6 +25,9 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
+    - name: go vet lint
+      run: make vet lint
+
     - name: Log in to the Container registry
       uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
       with:
@@ -31,8 +35,25 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: go vet lint
-      run: make vet lint
+    - name: 'Checkout Korifi-Trinity'
+      uses: actions/checkout@v3
+      with:
+        repository: unified-runtime/korifi-trinity
+        ref: v${{ env.V_KORIFI }}
+        github-server-url: 'https://github.tools.sap'
+        token: ${{ secrets.KORIFI_TRINITY_TOKEN }}
+        path: '.korifi'
+
+    - name: Create korifi release artifacts
+      env:
+          VERSION: ${{ env.V_KORIFI }}
+          DOCKER_REGISTRY: ${{ env.REGISTRY }}
+          DOCKER_REGISTRY_USER: ${{ github.actor }}
+          DOCKER_REGISTRY_PASS: ${{ secrets.GITHUB_TOKEN }}
+      shell: bash
+      working-directory: '.korifi'
+      run: |
+        ../scripts/create-korifi-release.sh ${{ env.V_KORIFI }}
       
     - name: docker build
       run: make docker-build
