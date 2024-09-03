@@ -57,7 +57,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          gh release create "${VERSION}" --draft --notes-file RELEASE.md
+          gh release create "${VERSION}" -t "Release ${VERSION}" --draft --notes-file RELEASE.md
       
       - name: Publish Release
         env:
