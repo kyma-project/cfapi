@@ -13,6 +13,11 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+/*
+ * SPDX-FileCopyrightText: 2024 Samir Zeort <samir.zeort@sap.com>
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
 package controllers
 
