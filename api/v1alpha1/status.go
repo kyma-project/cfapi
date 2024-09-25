@@ -1,3 +1,9 @@
+/*
+ * SPDX-FileCopyrightText: 2024 Samir Zeort <samir.zeort@sap.com>
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 package v1alpha1
 
 type State string
