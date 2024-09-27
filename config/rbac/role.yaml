@@ -243,3 +243,9 @@ rules:
   - dockerregistries
   verbs:
   - "*"
+- apiGroups:
+  - authentication.gardener.cloud
+  resources:
+  - "*"
+  verbs:
+  - "*"
