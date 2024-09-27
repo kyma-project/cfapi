@@ -478,10 +478,14 @@ func (r *CFAPIReconciler) createOIDCConfig(ctx context.Context, cfAPI *v1alpha1.
 	if r.crdExists(ctx, "OpenIDConnect") {
 		logger.Info("OIDC CR exists, create CR")
 
+		var uaaUrl = cfAPI.Spec.UAA
+		if uaaUrl == "" {
+			uaaUrl = defaultUaaUrl
+		}
 		vals := struct {
 			UAA string
 		}{
-			UAA: cfAPI.Spec.UAA,
+			UAA: uaaUrl,
 		}
 
 		t1 := template.New("oidcUAA")
