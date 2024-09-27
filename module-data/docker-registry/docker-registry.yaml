@@ -6,4 +6,4 @@ metadata:
 spec:
   externalAccess:
     enabled: true
-    hostPrefix: cfapi-registry
+    host: cfapi-registry
