@@ -69,11 +69,13 @@ func (r *CFAPIReconciler) assignCfAdministrators(ctx context.Context, subjects [
 		}
 	}
 
+	oids_subjects := make([]rbacv1.Subject, len(_subjects))
 	//add prefix sap.ids: for all user names without prefix
-	for _, subject := range _subjects {
+	for i, subject := range _subjects {
 		if subject.Kind == "User" && !strings.HasPrefix(subject.Name, OIDC_USER_PREFIX) {
 			subject.Name = OIDC_USER_PREFIX + subject.Name
 		}
+		oids_subjects[i] = subject
 	}
 
 	rb := &rbacv1.RoleBinding{
@@ -89,7 +91,7 @@ func (r *CFAPIReconciler) assignCfAdministrators(ctx context.Context, subjects [
 			Kind:     "ClusterRole",
 			Name:     "korifi-controllers-admin",
 		},
-		Subjects: _subjects,
+		Subjects: oids_subjects,
 	}
 
 	userNames := make([]string, len(_subjects))
