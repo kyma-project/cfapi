@@ -16,6 +16,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
+const OIDC_USER_PREFIX = "sap.ids:"
+
 func (r *CFAPIReconciler) getUserClusterAdmins(ctx context.Context) ([]rbacv1.Subject, error) {
 	subjects := []rbacv1.Subject{}
 	crblist := &rbacv1.ClusterRoleBindingList{}
@@ -64,6 +66,13 @@ func (r *CFAPIReconciler) assignCfAdministrators(ctx context.Context, subjects [
 		if len(_subjects) == 0 {
 			logger.Info("No users with kyma cluster-admin role found, no CF administrators set")
 			return nil
+		}
+	}
+
+	//add prefix sap.ids: for all user names without prefix
+	for _, subject := range _subjects {
+		if subject.Kind == "User" && !strings.HasPrefix(subject.Name, OIDC_USER_PREFIX) {
+			subject.Name = OIDC_USER_PREFIX + subject.Name
 		}
 	}
 
