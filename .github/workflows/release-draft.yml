@@ -7,7 +7,6 @@ on:
   workflow_dispatch:
     
 env:
-  V_KORIFI: '0.11.2'
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
 
@@ -29,7 +28,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           repository: unified-runtime/korifi-trinity
-          ref: v${{ env.V_KORIFI }}
+          ref: ${{ vars.KORIFI_REF }}
           github-server-url: 'https://github.tools.sap'
           token: ${{ secrets.KORIFI_TRINITY_TOKEN }}
           path: '.korifi'
@@ -43,14 +42,14 @@ jobs:
 
       - name: Create korifi release artifacts
         env:
-          VERSION: ${{ env.V_KORIFI }}
+          VERSION: ${{ vars.KORIFI_REF }}
           DOCKER_REGISTRY: ${{ env.REGISTRY }}
           DOCKER_REGISTRY_USER: ${{ github.actor }}
           DOCKER_REGISTRY_PASS: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
         working-directory: '.korifi'
         run: |
-          ../scripts/create-korifi-release.sh ${{ env.V_KORIFI }}
+          ../scripts/create-korifi-release.sh ${{ vars.KORIFI_REF }}
 
       - name: set version
         run: echo "version=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
