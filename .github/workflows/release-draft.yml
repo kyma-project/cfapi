@@ -56,9 +56,9 @@ jobs:
         id: version
   
       - name: docker build
-        run: VERSION=${{ steps.version.outputs.version }} make docker-build
+        run: VERSION=${{ steps.version.outputs.version }} KORIFI_REF=${{ vars.KORIFI_REF }} make docker-build
     
-      - name: docker-push 
+      - name: docker-push  
         run: VERSION=${{ steps.version.outputs.version }} make docker-push
       
       - name: prepare release artifacts 
