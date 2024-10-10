@@ -98,7 +98,7 @@ endif
 release: manifests kustomize
 	rm -rf release-$(VERSION)
 	mkdir -p release-$(VERSION)
-	IMG_SHA=$(shell docker inspect --format='{{index .RepoDigests 0}}' ${REGISTRY}/${IMG})
+	$(eval IMG_SHA = $(shell docker inspect --format='{{index .RepoDigests 0}}' ${REGISTRY}/${IMG}))
 	cp default-cr.yaml release-$(VERSION)/cfapi-default-cr.yaml
 	$(KUSTOMIZE) build config/crd > release-$(VERSION)/cfapi-crd.yaml
 	pushd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG_SHA) && popd
