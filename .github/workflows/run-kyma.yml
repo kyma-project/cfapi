@@ -10,7 +10,6 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
-  V_KORIFI: '0.11.2'
 
 jobs:
   build:
@@ -46,7 +45,7 @@ jobs:
 
     - name: Create korifi release artifacts
       env:
-          VERSION: ${{ env.V_KORIFI }}
+          VERSION: ${{ vars.KORIFI_GITHUB_REF }}
           DOCKER_REGISTRY: ${{ env.REGISTRY }}
           DOCKER_REGISTRY_USER: ${{ github.actor }}
           DOCKER_REGISTRY_PASS: ${{ secrets.GITHUB_TOKEN }}
