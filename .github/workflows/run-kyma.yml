@@ -1,10 +1,10 @@
 name: Run-On-Kyma
 
 on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+  #push:
+  #  branches: [ "main" ]
+  #pull_request:
+  #  branches: [ "main" ]
   workflow_dispatch:
 
 env:
@@ -38,9 +38,9 @@ jobs:
     - name: 'Checkout Korifi-Trinity'
       uses: actions/checkout@v3
       with:
-        repository: unified-runtime/korifi-trinity
-        ref: v${{ env.V_KORIFI }}
-        github-server-url: 'https://github.tools.sap'
+        repository: ${{ vars.KORIFI_GITHUB_REPOSITORY }}
+        ref: ${{ vars.KORIFI_GITHUB_REF }}
+        github-server-url: ${{ vars.KORIFI_GITHUB_SERVER }}
         token: ${{ secrets.KORIFI_TRINITY_TOKEN }}
         path: '.korifi'
 
@@ -53,7 +53,7 @@ jobs:
       shell: bash
       working-directory: '.korifi'
       run: |
-        ../scripts/create-korifi-release.sh ${{ env.V_KORIFI }}
+        ../scripts/create-korifi-release.sh ${{ vars.KORIFI_GITHUB_REF }}
       
     - name: docker build
       run: make docker-build
