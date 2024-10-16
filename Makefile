@@ -4,7 +4,7 @@ VERSION ?= 0.0.0
 #IMG ?= trinity.common.repositories.cloud.sap/kyma-module/cfapi-controller-$(VERSION)
 REGISTRY = ghcr.io
 IMG ?= kyma-project/cfapi/cfapi-controller
-KORIFI_REF ?= v0.11.2
+KORIFI_GITHUB_REF ?= v0.11.2
 
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
 ENVTEST_K8S_VERSION = 1.24.1
@@ -83,7 +83,7 @@ run: manifests generate fmt vet ## Run a controller from your host.
 
 .PHONY: docker-build
 docker-build: ## Build docker image with the manager.
-	docker build -t ${REGISTRY}/${IMG} --build-arg TARGETARCH=amd64 --build-arg V_KORIFI=${KORIFI_REF} .
+	docker build -t ${REGISTRY}/${IMG} --build-arg TARGETARCH=amd64 --build-arg V_KORIFI=${KORIFI_GITHUB_REF} .
 	docker tag ${REGISTRY}/${IMG} ${VERSION}
 
 .PHONY: docker-push

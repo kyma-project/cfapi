@@ -22,9 +22,9 @@ jobs:
     - name: 'Checkout Korifi-Trinity'
       uses: actions/checkout@v3
       with:
-        repository: unified-runtime/korifi-trinity
-        ref: ${{ vars.KORIFI_REF }}
-        github-server-url: 'https://github.tools.sap'
+        repository: ${{ vars.KORIFI_GITHUB_REPOSITORY }}
+        ref: ${{ vars.KORIFI_GITHUB_REF }}
+        github-server-url: ${{ vars.KORIFI_GITHUB_SERVER }}
         token: ${{ secrets.KORIFI_TRINITY_TOKEN }}
         path: '.korifi'
 
@@ -38,14 +38,14 @@ jobs:
       
     - name: Create korifi release artifacts
       env:
-          VERSION: ${{ vars.KORIFI_REF }}
+          VERSION: ${{ vars.KORIFI_GITHUB_REF }}
           DOCKER_REGISTRY: ${{ env.REGISTRY }}
           DOCKER_REGISTRY_USER: ${{ github.actor }}
           DOCKER_REGISTRY_PASS: ${{ secrets.GITHUB_TOKEN }}
       shell: bash
       working-directory: '.korifi'
       run: |
-        ../scripts/create-korifi-release.sh ${{ vars.KORIFI_REF }}
+        ../scripts/create-korifi-release.sh ${{ vars.KORIFI_GITHUB_REF }}
 
     
 
