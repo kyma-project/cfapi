@@ -104,6 +104,17 @@ release: manifests kustomize
 	pushd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG_SHA) && popd
 	$(KUSTOMIZE) build config/default > release-$(VERSION)/cfapi-manager.yaml
 
+##@ Kubeconfig
+.PHONY: kubeconfig
+kubeconfig: 
+	kubectl apply -f tools/kubeconfig/serviceaccount.yaml
+	kubectl wait --for=jsonpath='{.data.token}' secret/admin-serviceaccount
+	$(eval SA_TOKEN=$(kubectl get secret admin-serviceaccount -o=go-template='{{.data.token | base64decode}}'))
+	cp ~/.kube/config kubeconfig-sa.yaml 
+	yq -i ".users |= [{\"name\":\"admin-serviceaccount\", \"user\": {\"token\":\"$SA_TOKEN\"}}]" kubeconfig-sa.yaml
+	yq -i ".contexts[0].context.user |= \"admin-serviceaccount\"" kubeconfig-sa.yaml
+
+
 ##@ Deployment
 
 ifndef ignore-not-found
