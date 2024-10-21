@@ -84,7 +84,7 @@ run: manifests generate fmt vet ## Run a controller from your host.
 .PHONY: docker-build
 docker-build: ## Build docker image with the manager.
 	docker build -t ${REGISTRY}/${IMG} --build-arg TARGETARCH=amd64 --build-arg V_KORIFI=${KORIFI_GITHUB_REF} .
-	docker tag ${REGISTRY}/${IMG} ${VERSION}
+	docker tag ${REGISTRY}/${IMG} ${REGISTRY}/${IMG}:${VERSION}
 
 .PHONY: docker-push
 docker-push: ## Push docker image with the manager.

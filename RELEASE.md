@@ -1,4 +1,4 @@
-# RELEASE version 0.1.0
+# RELEASE version 0.1.1
 
 # Prerequisites
 * Kyma environment has OIDC feature, OpenIDConnect CRD, enabled mid-September 2024
