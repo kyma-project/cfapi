@@ -23,15 +23,6 @@ jobs:
     steps:
       - name: Checkout code 
         uses: actions/checkout@v3
-
-      - name: Checkout Korifi-Trinity
-        uses: actions/checkout@v3
-        with:
-          repository: ${{ vars.KORIFI_GITHUB_REPOSITORY }}
-          ref: ${{ vars.KORIFI_GITHUB_REF }}
-          github-server-url: ${{ vars.KORIFI_GITHUB_SERVER }}
-          token: ${{ secrets.KORIFI_TRINITY_TOKEN }}
-          path: '.korifi'
   
       - name: Log in to the Container registry
         uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
@@ -39,17 +30,6 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Create korifi release artifacts
-        env:
-          VERSION: ${{ vars.KORIFI_GITHUB_REF }}
-          DOCKER_REGISTRY: ${{ env.REGISTRY }}
-          DOCKER_REGISTRY_USER: ${{ github.actor }}
-          DOCKER_REGISTRY_PASS: ${{ secrets.GITHUB_TOKEN }}
-        shell: bash
-        working-directory: '.korifi'
-        run: |
-          ../scripts/create-korifi-release.sh ${{ vars.KORIFI_GITHUB_REF }}
 
       - name: set version
         run: echo "version=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
