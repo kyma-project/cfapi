@@ -2,7 +2,6 @@
 FROM golang:1.22.1-alpine as builder
 ARG TARGETOS
 ARG TARGETARCH
-ARG V_KORIFI="0.11.2"
 
 WORKDIR /workspace
 # Copy the Go Modules manifests
@@ -35,7 +34,7 @@ ENV VERSION_KPACK=0.13.4
 ENV VERSION_CERT_MANAGER=1.14.6
 ENV VERSION_GATEWAY_API=1.1.0
 ENV VERSION_TWUNI=2.2.3
-ENV VERSION_KORIFI=0.12.0
+ENV VERSION_KORIFI=0.14.0
 
 
 WORKDIR /workspace/module-data/servicebinding
@@ -52,8 +51,7 @@ WORKDIR /workspace/module-data/gateway-api
 RUN curl -OLf https://github.com/kubernetes-sigs/gateway-api/releases/download/v$VERSION_GATEWAY_API/experimental-install.yaml
 
 WORKDIR /workspace/module-data/korifi
-COPY .korifi/release-${V_KORIFI}/values.yaml values-${V_KORIFI}.yaml 
-COPY .korifi/release-${V_KORIFI}/korifi-helm.tar.gz korifi-helm-${V_KORIFI}.tar.gz
+RUN curl -OLf https://github.com/cloudfoundry/korifi/releases/download/v$VERSION_KORIFI/korifi-$VERSION_KORIFI.tgz
 
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
