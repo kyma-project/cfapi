@@ -47,9 +47,11 @@ spec:
             properties:
               appImagePullSecret:
                 type: string
-              korifiNamespace:
-                type: string
               rootNamespace:
+                type: string
+              UAA:
+                type: string
+              CFAdmins:
                 type: string
             type: object
           status:
