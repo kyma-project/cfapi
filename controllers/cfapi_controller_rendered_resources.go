@@ -27,6 +27,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"text/template"
 	"time"
 
@@ -54,7 +55,11 @@ import (
 )
 
 const (
-	defaultUaaUrl = "https://uaa.cf.eu10.hana.ondemand.com"
+	defaultUaaUrl                = "https://uaa.cf.eu10.hana.ondemand.com"
+	kymaSystemNamespace          = "kyma-system"
+	btpServiceOperatorSecretName = "sap-btp-service-operator"
+
+	uaaURLPrefix = "https://uaa.cf."
 )
 
 // CFAPIReconciler reconciles a Sample object.
@@ -414,7 +419,11 @@ func (r *CFAPIReconciler) processResources(ctx context.Context, cfAPI *v1alpha1.
 	logger.Info("Start deploying korifi ...")
 	var uaaUrl = cfAPI.Spec.UAA
 	if uaaUrl == "" {
-		uaaUrl = defaultUaaUrl
+		uaaUrl, err = r.retriveUaaUrl(ctx)
+		if err != nil {
+			logger.Error(err, "error getting UAA url")
+			return "", err
+		}
 	}
 	err = r.deployKorifi(ctx, appsDomain, korifiApiDomain, cfDomain, containerRegistry.Server, uaaUrl)
 	if err != nil {
@@ -961,6 +970,12 @@ func (r *CFAPIReconciler) deployKorifi(ctx context.Context, appsDomain, korifiAP
 		"containerRepositoryPrefix": crDomain + "/",
 		"defaultAppDomainName":      appsDomain,
 		"cfDomain":                  cfDomain,
+		"experimental": map[string]interface{}{
+			"uaa": map[string]interface{}{
+				"enable": true,
+				"url":    uaaURL,
+			},
+		},
 	}
 
 	DeepUpdate(values, values_dynamic)
@@ -968,4 +983,41 @@ func (r *CFAPIReconciler) deployKorifi(ctx context.Context, appsDomain, korifiAP
 	err = applyRelease(chart, "korifi", "korifi", values, logger)
 
 	return err
+}
+
+func (r *CFAPIReconciler) retriveUaaUrl(ctx context.Context) (string, error) {
+	logger := log.FromContext(ctx)
+
+	logger.Info("Retriever UAA url from in-cluster details")
+
+	btpServiceOperatorSecret := corev1.Secret{}
+	err := r.Client.Get(context.Background(), client.ObjectKey{
+		Namespace: kymaSystemNamespace,
+		Name:      btpServiceOperatorSecretName,
+	}, &btpServiceOperatorSecret)
+
+	if err != nil {
+		logger.Error(err, "error getting btp service operator secret")
+		return "", err
+	}
+
+	tokenUrl := string(btpServiceOperatorSecret.Data["tokenurl"])
+
+	logger.Info("Token url extracted from btp service operator secret: " + tokenUrl)
+
+	uaaURL := extractUaaURLFromTokenUrl(tokenUrl)
+
+	logger.Info("UAA url extracted from token url: " + uaaURL)
+
+	return uaaURL, nil
+}
+
+func extractUaaURLFromTokenUrl(tokenUrl string) string {
+	// input => https://worker1-q3zjpctt.authentication.eu12.hana.ondemand.com
+	// output => https://uaa.cf.eu12.hana.ondemand.com
+
+	parts := strings.Split(tokenUrl, ".")
+	parts = parts[2:]
+
+	return "https://uaa.cf" + strings.Join(parts, ".")
 }
