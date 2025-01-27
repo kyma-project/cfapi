@@ -931,19 +931,11 @@ func (r *CFAPIReconciler) deployKorifi(ctx context.Context, appsDomain, korifiAP
 		return err
 	}
 
-	values, err := loadOneYaml("./module-data/korifi/values-*.yaml")
-	if err != nil {
-		logger.Error(err, "Failed to load korifi helm chart release values")
-		return err
-	}
-
-	values_cfapi, err := loadOneYaml("./module-data/korifi/values.yaml")
+	values, err := loadOneYaml("./module-data/korifi/values.yaml")
 	if err != nil {
 		logger.Error(err, "Failed to load CFAPI values for korifi helm chart")
 		return err
 	}
-
-	DeepUpdate(values, values_cfapi)
 
 	values_dynamic := map[string]interface{}{
 		"api": map[string]interface{}{
