@@ -419,7 +419,7 @@ func (r *CFAPIReconciler) processResources(ctx context.Context, cfAPI *v1alpha1.
 	logger.Info("Start deploying korifi ...")
 	var uaaUrl = cfAPI.Spec.UAA
 	if uaaUrl == "" {
-		uaaUrl, err = r.retriveUaaUrl(ctx)
+		uaaUrl, err = r.retrieveUaaUrl(ctx)
 		if err != nil {
 			logger.Error(err, "error getting UAA url")
 			return "", err
@@ -977,10 +977,10 @@ func (r *CFAPIReconciler) deployKorifi(ctx context.Context, appsDomain, korifiAP
 	return err
 }
 
-func (r *CFAPIReconciler) retriveUaaUrl(ctx context.Context) (string, error) {
+func (r *CFAPIReconciler) retrieveUaaUrl(ctx context.Context) (string, error) {
 	logger := log.FromContext(ctx)
 
-	logger.Info("Retriever UAA url from in-cluster details")
+	logger.Info("Retrieve UAA url from in-cluster details")
 
 	btpServiceOperatorSecret := corev1.Secret{}
 	err := r.Client.Get(context.Background(), client.ObjectKey{
@@ -1011,5 +1011,5 @@ func extractUaaURLFromTokenUrl(tokenUrl string) string {
 	parts := strings.Split(tokenUrl, ".")
 	parts = parts[2:]
 
-	return "https://uaa.cf" + strings.Join(parts, ".")
+	return uaaURLPrefix + strings.Join(parts, ".")
 }
