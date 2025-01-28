@@ -964,8 +964,8 @@ func (r *CFAPIReconciler) deployKorifi(ctx context.Context, appsDomain, korifiAP
 		"cfDomain":                  cfDomain,
 		"experimental": map[string]interface{}{
 			"uaa": map[string]interface{}{
-				"enable": true,
-				"url":    uaaURL,
+				"enabled": true,
+				"url":     uaaURL,
 			},
 		},
 	}
