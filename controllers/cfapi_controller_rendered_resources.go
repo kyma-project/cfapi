@@ -55,7 +55,6 @@ import (
 )
 
 const (
-	defaultUaaUrl                = "https://uaa.cf.eu10.hana.ondemand.com"
 	kymaSystemNamespace          = "kyma-system"
 	btpServiceOperatorSecretName = "sap-btp-service-operator"
 
@@ -346,9 +345,19 @@ func (r *CFAPIReconciler) processResources(ctx context.Context, cfAPI *v1alpha1.
 		return "", err
 	}
 
+	// get uaa url
+	var uaaUrl = cfAPI.Spec.UAA
+	if uaaUrl == "" {
+		uaaUrl, err = r.retrieveUaaUrl(ctx)
+		if err != nil {
+			logger.Error(err, "error getting UAA url")
+			return "", err
+		}
+	}
+
 	// create oidc config CR if supported
 	logger.Info("Starting OIDC CR creation ...")
-	err = r.createOIDCConfig(ctx, cfAPI)
+	err = r.createOIDCConfig(ctx, cfAPI, uaaUrl)
 	if err != nil {
 		logger.Error(err, "error creating OIDC CR")
 		return "", err
@@ -417,14 +426,6 @@ func (r *CFAPIReconciler) processResources(ctx context.Context, cfAPI *v1alpha1.
 
 	// deploy korifi
 	logger.Info("Start deploying korifi ...")
-	var uaaUrl = cfAPI.Spec.UAA
-	if uaaUrl == "" {
-		uaaUrl, err = r.retrieveUaaUrl(ctx)
-		if err != nil {
-			logger.Error(err, "error getting UAA url")
-			return "", err
-		}
-	}
 	err = r.deployKorifi(ctx, appsDomain, korifiApiDomain, cfDomain, containerRegistry.Server, uaaUrl)
 	if err != nil {
 		logger.Error(err, "error during deployment of Korifi")
@@ -481,20 +482,16 @@ func (r *CFAPIReconciler) ensureDockerRegistry(ctx context.Context, cfAPI *v1alp
 	return nil
 }
 
-func (r *CFAPIReconciler) createOIDCConfig(ctx context.Context, cfAPI *v1alpha1.CFAPI) error {
+func (r *CFAPIReconciler) createOIDCConfig(ctx context.Context, cfAPI *v1alpha1.CFAPI, uaaURL string) error {
 	logger := log.FromContext(ctx)
 
 	if r.crdExists(ctx, "OpenIDConnect") {
 		logger.Info("OIDC CR exists, create CR")
 
-		var uaaUrl = cfAPI.Spec.UAA
-		if uaaUrl == "" {
-			uaaUrl = defaultUaaUrl
-		}
 		vals := struct {
 			UAA string
 		}{
-			UAA: uaaUrl,
+			UAA: uaaURL,
 		}
 
 		t1 := template.New("oidcUAA")
