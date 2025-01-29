@@ -51,8 +51,8 @@ kubectl apply -f https://github.com/kyma-project/docker-registry/releases/latest
 Deploy the resources from a particular release /in the example below 0.0.9/ version to kyma
 ```
 kubectl create namespace cfapi-system
-kubectl apply -f https://github.com/kyma-project/cfapi/releases/download/0.0.9/cfapi-manager.yaml
-kubectl apply -f https://github.com/kyma-project/cfapi/releases/download/0.0.9/cfapi-default-cr.yaml
+kubectl apply -f https://github.com/kyma-project/cfapi/releases/download/0.2.0/cfapi-manager.yaml
+kubectl apply -f https://github.com/kyma-project/cfapi/releases/download/0.2.0/cfapi-default-cr.yaml
 ```
 
   Wait for a Ready state of the CFAPI resource and read the CF URL 
