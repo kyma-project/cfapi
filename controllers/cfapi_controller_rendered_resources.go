@@ -592,11 +592,18 @@ func (r *CFAPIReconciler) createDNSEntries(ctx context.Context, korifiAPI, appsD
 	}, &ingress)
 
 	if err != nil {
-		logger.Error(err, "error getting ingress hostname")
+		logger.Error(err, "error getting ingress service")
 		return err
 	}
 
 	hostname := ingress.Status.LoadBalancer.Ingress[0].Hostname
+
+	if hostname == "" {
+		logger.Error(err, "hostname not found in ingress service, will try to use IP")
+		hostname = ingress.Status.LoadBalancer.Ingress[0].IP
+	}
+
+	log.Log.Info("hostname to use for dns entries: " + hostname)
 
 	// create dns entries
 	vals := struct {
