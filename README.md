@@ -10,15 +10,21 @@ Once installed, one could use the cf cli to connect and deploy workloads.
 | Property | Optional | Default | Description |
 |-----|-----|-----|-----|
 | RootNamespace | Optional | cf | Root namespace for CF resources |
-| AppImagePullSecret | Optional | By default a localregistry will be deployed and used for application images | Dockerregistry secret pointing to a custom docker registry |
-| UAA | Optional | "https://uaa.cf.eu10.hana.ondemand.com" |  UAA URL to be used for authentication |
+| AppImagePullSecret | Optional | By default a local DockerRegistry will be deployed and used | Dockerregistry secret pointing to a docker registry for application images|
+| UAA | Optional | In case of a SAP managed Kyma, the UAA will be derived from the BTP service operator config |  UAA URL to be used for authentication |
 | CFAdmins | Optional | By default Kyma cluster-admins will become CF admins | List of users, which will become CF administrators.A user is expected in format sap.ids:\<sap email\> example sap.ids:samir.zeort@sap.com  |
 
+## Dependencies
+* **Istio Kyma Module**
 
-## Prerequisites
-* A Kyma cluster
-* Istio Kyma module installed
-* [Maybe] Docker registry kyma module installed
+  That is normally installed on a SAP managed Kyma
+* **Docker Registry**
+  
+  That is an external docker registry needed for storing/loading application images. If not specified in the CFAPI CR, the CFAPI kyma module deploys a local registry (Dockerregistry CR) which is defined in the docker-registry kyma module, see https://github.com/kyma-project/docker-registry. The local docker registry is not suitable for large-scale productive setups.
+* **UAA**
+
+  A running UAA server is a must for CFAPI installation. In case of SAP managed Kyma, the UAA is already installed so no additional installation required.
+  
 
 ## Installation
 1. ### Setup a Kyma environment ###
@@ -27,11 +33,6 @@ Once installed, one could use the cf cli to connect and deploy workloads.
 
     If Istio Kyma module is not installed, you can do it with:
 
-*make* from this repository
-```
-make install-istio
-```
-Or directly with kubectl
 ```
 kubectl label namespace cfapi-system istio-injection=enabled --overwrite
 kubectl apply -f https://github.com/kyma-project/istio/releases/latest/download/istio-manager.yaml
@@ -47,11 +48,11 @@ kubectl apply -f https://github.com/kyma-project/docker-registry/releases/latest
 
 4. ### Deploy CF API ###
 
-Deploy the resources from a particular release /in the example below 0.0.9/ version to kyma
+Deploy the resources from a particular release /in the example below 0.2.0/ version to kyma
 ```
 kubectl create namespace cfapi-system
-kubectl apply -f https://github.com/kyma-project/cfapi/releases/download/0.0.9/cfapi-manager.yaml
-kubectl apply -f https://github.com/kyma-project/cfapi/releases/download/0.0.9/cfapi-default-cr.yaml
+kubectl apply -f https://github.com/kyma-project/cfapi/releases/download/0.2.0/cfapi-manager.yaml
+kubectl apply -f https://github.com/kyma-project/cfapi/releases/download/0.2.0/cfapi-default-cr.yaml
 ```
 
   Wait for a Ready state of the CFAPI resource and read the CF URL 

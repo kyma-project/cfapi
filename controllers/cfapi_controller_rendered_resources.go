@@ -27,6 +27,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"text/template"
 	"time"
 
@@ -54,7 +55,10 @@ import (
 )
 
 const (
-	defaultUaaUrl = "https://uaa.cf.eu10.hana.ondemand.com"
+	kymaSystemNamespace          = "kyma-system"
+	btpServiceOperatorSecretName = "sap-btp-service-operator"
+
+	uaaURLPrefix = "https://uaa.cf."
 )
 
 // CFAPIReconciler reconciles a Sample object.
@@ -341,9 +345,19 @@ func (r *CFAPIReconciler) processResources(ctx context.Context, cfAPI *v1alpha1.
 		return "", err
 	}
 
+	// get uaa url
+	var uaaUrl = cfAPI.Spec.UAA
+	if uaaUrl == "" {
+		uaaUrl, err = r.retrieveUaaUrl(ctx)
+		if err != nil {
+			logger.Error(err, "error getting UAA url")
+			return "", err
+		}
+	}
+
 	// create oidc config CR if supported
 	logger.Info("Starting OIDC CR creation ...")
-	err = r.createOIDCConfig(ctx, cfAPI)
+	err = r.createOIDCConfig(ctx, cfAPI, uaaUrl)
 	if err != nil {
 		logger.Error(err, "error creating OIDC CR")
 		return "", err
@@ -412,10 +426,6 @@ func (r *CFAPIReconciler) processResources(ctx context.Context, cfAPI *v1alpha1.
 
 	// deploy korifi
 	logger.Info("Start deploying korifi ...")
-	var uaaUrl = cfAPI.Spec.UAA
-	if uaaUrl == "" {
-		uaaUrl = defaultUaaUrl
-	}
 	err = r.deployKorifi(ctx, appsDomain, korifiApiDomain, cfDomain, containerRegistry.Server, uaaUrl)
 	if err != nil {
 		logger.Error(err, "error during deployment of Korifi")
@@ -472,20 +482,16 @@ func (r *CFAPIReconciler) ensureDockerRegistry(ctx context.Context, cfAPI *v1alp
 	return nil
 }
 
-func (r *CFAPIReconciler) createOIDCConfig(ctx context.Context, cfAPI *v1alpha1.CFAPI) error {
+func (r *CFAPIReconciler) createOIDCConfig(ctx context.Context, cfAPI *v1alpha1.CFAPI, uaaURL string) error {
 	logger := log.FromContext(ctx)
 
 	if r.crdExists(ctx, "OpenIDConnect") {
 		logger.Info("OIDC CR exists, create CR")
 
-		var uaaUrl = cfAPI.Spec.UAA
-		if uaaUrl == "" {
-			uaaUrl = defaultUaaUrl
-		}
 		vals := struct {
 			UAA string
 		}{
-			UAA: uaaUrl,
+			UAA: uaaURL,
 		}
 
 		t1 := template.New("oidcUAA")
@@ -583,11 +589,18 @@ func (r *CFAPIReconciler) createDNSEntries(ctx context.Context, korifiAPI, appsD
 	}, &ingress)
 
 	if err != nil {
-		logger.Error(err, "error getting ingress hostname")
+		logger.Error(err, "error getting ingress service")
 		return err
 	}
 
 	hostname := ingress.Status.LoadBalancer.Ingress[0].Hostname
+
+	if hostname == "" {
+		logger.Error(err, "hostname not found in ingress service, will try to use IP")
+		hostname = ingress.Status.LoadBalancer.Ingress[0].IP
+	}
+
+	log.Log.Info("hostname to use for dns entries: " + hostname)
 
 	// create dns entries
 	vals := struct {
@@ -920,7 +933,7 @@ func getStatusFromSample(objectInstance *v1alpha1.CFAPI) v1alpha1.CFAPIStatus {
 func (r *CFAPIReconciler) deployKorifi(ctx context.Context, appsDomain, korifiAPIDomain, cfDomain, crDomain, uaaURL string) error {
 	logger := log.FromContext(ctx)
 
-	helmfile, err := findOneGlob("./module-data/korifi/korifi-helm-*.tar.gz")
+	helmfile, err := findOneGlob("./module-data/korifi/korifi-*.tgz")
 	if err != nil {
 		logger.Error(err, "Failed to find korifi helm chart under dir module-data/korifi")
 		return err
@@ -931,19 +944,11 @@ func (r *CFAPIReconciler) deployKorifi(ctx context.Context, appsDomain, korifiAP
 		return err
 	}
 
-	values, err := loadOneYaml("./module-data/korifi/values-*.yaml")
-	if err != nil {
-		logger.Error(err, "Failed to load korifi helm chart release values")
-		return err
-	}
-
-	values_cfapi, err := loadOneYaml("./module-data/korifi/values.yaml")
+	values, err := loadOneYaml("./module-data/korifi/values.yaml")
 	if err != nil {
 		logger.Error(err, "Failed to load CFAPI values for korifi helm chart")
 		return err
 	}
-
-	DeepUpdate(values, values_cfapi)
 
 	values_dynamic := map[string]interface{}{
 		"api": map[string]interface{}{
@@ -961,6 +966,12 @@ func (r *CFAPIReconciler) deployKorifi(ctx context.Context, appsDomain, korifiAP
 		"containerRepositoryPrefix": crDomain + "/",
 		"defaultAppDomainName":      appsDomain,
 		"cfDomain":                  cfDomain,
+		"experimental": map[string]interface{}{
+			"uaa": map[string]interface{}{
+				"enabled": true,
+				"url":     uaaURL,
+			},
+		},
 	}
 
 	DeepUpdate(values, values_dynamic)
@@ -968,4 +979,41 @@ func (r *CFAPIReconciler) deployKorifi(ctx context.Context, appsDomain, korifiAP
 	err = applyRelease(chart, "korifi", "korifi", values, logger)
 
 	return err
+}
+
+func (r *CFAPIReconciler) retrieveUaaUrl(ctx context.Context) (string, error) {
+	logger := log.FromContext(ctx)
+
+	logger.Info("Retrieve UAA url from in-cluster details")
+
+	btpServiceOperatorSecret := corev1.Secret{}
+	err := r.Client.Get(context.Background(), client.ObjectKey{
+		Namespace: kymaSystemNamespace,
+		Name:      btpServiceOperatorSecretName,
+	}, &btpServiceOperatorSecret)
+
+	if err != nil {
+		logger.Error(err, "error getting btp service operator secret")
+		return "", err
+	}
+
+	tokenUrl := string(btpServiceOperatorSecret.Data["tokenurl"])
+
+	logger.Info("Token url extracted from btp service operator secret: " + tokenUrl)
+
+	uaaURL := extractUaaURLFromTokenUrl(tokenUrl)
+
+	logger.Info("UAA url extracted from token url: " + uaaURL)
+
+	return uaaURL, nil
+}
+
+func extractUaaURLFromTokenUrl(tokenUrl string) string {
+	// input => https://worker1-q3zjpctt.authentication.eu12.hana.ondemand.com
+	// output => https://uaa.cf.eu12.hana.ondemand.com
+
+	parts := strings.Split(tokenUrl, ".")
+	parts = parts[2:]
+
+	return uaaURLPrefix + strings.Join(parts, ".")
 }

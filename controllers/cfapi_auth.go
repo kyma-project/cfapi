@@ -12,7 +12,6 @@ import (
 
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -21,7 +20,7 @@ const OIDC_USER_PREFIX = "sap.ids:"
 func (r *CFAPIReconciler) getUserClusterAdmins(ctx context.Context) ([]rbacv1.Subject, error) {
 	subjects := []rbacv1.Subject{}
 	crblist := &rbacv1.ClusterRoleBindingList{}
-	err := r.Client.List(ctx, crblist, client.MatchingLabels{"app": "kyma"})
+	err := r.Client.List(ctx, crblist)
 	if err != nil {
 		return subjects, err
 	}
