@@ -1,0 +1,13 @@
+name: Publish Release Workflow
+
+on:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: [ self-hosted ]
+
+    steps:  
+      - name: set version
+        run: curl https://github.wdf.sap.corp/status
+        id: version
