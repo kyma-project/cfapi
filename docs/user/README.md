@@ -5,5 +5,5 @@ This module will deploy a CF API, that could be used as a CF implementation on t
 
 ## Useful Links 
 * [Custom Resource Configuration](./CR-Config.md)
-* [Setup on Kyma 2025](/Setup-Kyma2025.md)
+* [Setup on Kyma 2025](./Setup-Kyma2025.md)
 
