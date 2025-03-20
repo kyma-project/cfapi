@@ -1,77 +1,26 @@
-## How to enable CF API on a productive BTP landscape
+## CFAPI Custom Resource Configuration
 
 
-1. ### Kyma environment ###
+### Root Namespace ###
+Default value is "cf", recommended is not to change that. The CF API will create all CF resources under that namespace. Namespaces in Kubernetes are flat, but the CF API will create a hierarchy starting from that root namespace. 
 
-    You need a Kyma environment which is configured with UAA as an OIDC provider, with following parameters
-``` yaml
-{
-  "administrators": [
-    "sap.ids:myfirstname.mysecondname@sap.com"
-  ],
-  "autoScalerMax": 3,
-  "autoScalerMin": 3,
-  "oidc": {
-    "clientID": "cf",
-    "groupsClaim": "",
-    "issuerURL": "https://uaa.cf.eu10.hana.ondemand.com/oauth/token",
-    "signingAlgs": [
-      "RS256"
-    ],
-    "usernameClaim": "user_name",
-    "usernamePrefix": "sap.ids:"
-  }
-}
-```
-
-2. ### Kyma Access ###
-
-    Use that script to generate a stable kubeconfig: <br>
-    https://github.tools.sap/unified-runtime/trinity/blob/main/scripts/tools/generate-kyma-kubeconfig.sh
-    
-    Note: that step requires an UAA client (uaac), which requires Ruby runtime
+### AppImagePullSecret ###
+Application docker images are created with kpack and a docker registry is required to store the images. 
+That is a name of a dockersecret for the application docker registry. The secret is expected to contain registry credentials with write permissions. 
+By default that value is empty and in this case the CFAPI will deploy a local docker registry which is not suitable for productive, but just for a trial scenarios.
 
 
-3. ### Istio installed ###
+### UAA ###
+The CF implementation normally needs a UAA server to handle users and authorizations. That is an external dependency and the module will not install UAA, but rather expects that the UAA server is already installed. 
+The configuration setting is actually a valid URL of a running UAA server.
 
-    If Istio Kyma module is not installed, you can do it with:
+By default, if not specified, the CF API will try to find an installed SAP BTP Service Operator and will imply the UAA URL from the operator's configuration.
+That is valid normally for SAP BTP managed Kyma environment.
+In case of non-managed Kyma, the UAA server is expected to be installed and running. How to install and run UAA is out-of-scope for this product. 
 
-*make* from this repository
-```
-make install-istio
-```
-Or directly with kubectl
-```
-	kubectl label namespace cfapi-system istio-injection=enabled --overwrite
-	kubectl apply -f https://github.com/kyma-project/istio/releases/latest/download/istio-manager.yaml
-	kubectl apply -f https://github.com/kyma-project/istio/releases/latest/download/istio-default-cr.yaml
-```
+### CFAdmins ###
+That is a comma separated list of users which will assume CF admin role. 
+By default, if not specified, all cluster-admins of the kyma cluster will become CF admins.
 
-4. ### Deploy CF API ###
 
-    Deploy the resources from a particular release version to kyma
-```
-kubectl apply -f cfapi-crd.yaml
-kubectl apply -f cfapi-manager.yaml
-kubectl apply -f cfapi-default-cr.yaml
-```
 
-  Wait for a Ready state of the CFAPI resource and read the CF URL 
-```
-kubectl get -n cfapi-system cfapi
-NAME             STATE   URL
-default-cf-api   Ready   https://cfapi.cc6e362.kyma.ondemand.com
-```
-
-5.  ### Configure CF cli ###
-
-    Set cf cli to point to CF API 
-```
-cf api https://cfapi.cc6e362.kyma.ondemand.com 
-```
-
-6. ### CF Login ###
- 
-```
-cf login --sso
-```
