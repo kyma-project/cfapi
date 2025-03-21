@@ -1,8 +1,0 @@
-name: kyma-project.io/module/cfapi
-channel: {{.Channel}}
-version: {{.Version}}
-defaultCR: default-cr.yaml
-manifest: config/manager/manager.yaml
-annotations:
-  "operator.kyma-project.io/doc-url": "https://github.com/kyma-project/cfapi/blob/main/README.md"
-moduleRepo: https://github.com/kyma-project/cfapi.git
