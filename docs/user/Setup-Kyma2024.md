@@ -1,5 +1,8 @@
-## How to enable CF API on a productive BTP landscape
+## Enable CF API on Kyma (until September 2024)
 
+0. ### Prerequisites ###
+You have a Kyma environment, created before September 2024, which Kyma has no CRD of type
+authentication.gardener.cloud/OpenIDConnect
 
 1. ### Kyma environment ###
 
