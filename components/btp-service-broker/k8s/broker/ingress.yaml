@@ -1,0 +1,17 @@
+kind: HTTPRoute
+apiVersion: gateway.networking.k8s.io/v1beta1
+metadata:
+  name: btp-service-broker
+spec:
+  parentRefs:
+  - group: gateway.networking.k8s.io
+    kind: Gateway
+    name: korifi
+    namespace: korifi-gateway
+  hostnames:
+  - btp-service-broker.cluster.local
+  rules:
+  - backendRefs:
+    - kind: Service
+      name: btp-service-broker-svc
+      port: 8080

@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: server-config
+data:
+  server_config.yaml: |
+    internalPort: 8080
+    idleTimeout: 900
+    readTimeout: 900
+    readHeaderTimeout: 10
+    writeTimeout: 900
+    rootNamespace: cfapi-system

@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: btp-service-broker
+  namespace: cfapi-system
+  labels:
+    app: btp-service-broker
+spec:
+  selector:
+    matchLabels:
+      app: btp-service-broker
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: btp-service-broker
+    spec:
+      containers:
+      - image: broker:latest
+        imagePullPolicy: Always
+        name: btp-service-broker
+        ports:
+        - containerPort: 8080
+          name: web
+        volumeMounts:
+        - mountPath: /etc/server-config
+          name: server-config
+          readOnly: true
+        - mountPath: /etc/sm-client-config
+          name: sm-client-config
+          readOnly: true
+        volumes:
+        - configMap:
+            name: server-config
+          name: server-config
+        - name: sm-client-config
+          secret:
+            secretName: service-manager
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8081
+          initialDelaySeconds: 15
+          periodSeconds: 20
+          timeoutSeconds: 3
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8081
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          requests:
+            memory: 64Mi
+            cpu: 100m
+          limits:
+            memory: 512Mi
+      serviceAccountName: manager
+      terminationGracePeriodSeconds: 10
