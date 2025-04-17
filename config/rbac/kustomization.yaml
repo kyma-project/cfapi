@@ -7,3 +7,12 @@ resources:
 - service_account.yaml
 - role.yaml
 - role_binding.yaml
+
+patches:
+  - patch: |
+      - op: add
+        path: "/metadata/labels"
+        value: 
+          app.kubernetes.io/component: cfapi-rbac
+    target:
+      name: *

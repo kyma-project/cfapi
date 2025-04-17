@@ -8,9 +8,18 @@ namespace: cfapi-system
 namePrefix: cfapi-
 
 # Labels to add to all resources and selectors.
+#labels:
+#  app.kubernetes.io/component: cfapi-operator.kyma-project.io
+
 labels:
-  app.kubernetes.io/component: cfapi-manager.kyma-project.io
-  
+- includeTemplates: true
+  pairs:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: cfapi-operator
+    app.kubernetes.io/part-of: cfapi-operator
+    app.kubernetes.io/version: main
+    kyma-project.io/module: cfapi
+    
 resources:
 - ../crd
 - ../rbac
