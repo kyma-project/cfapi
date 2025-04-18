@@ -5,17 +5,10 @@ resources:
 - bases/operator.kyma-project.io_cfapis.yaml
 #+kubebuilder:scaffold:crdkustomizeresource
 
-patches:
-  - patch: |
-      - op: add
-        path: "/metadata/labels"
-        value: 
-          app.kubernetes.io/component: cfapi-operator.kyma-project.io
-    target:
-      group: apiextensions.k8s.io
-      version: v1
-      kind: CustomResourceDefinition
-      
+labels:
+- pairs:
+    app.kubernetes.io/component: cfapi-operator.kyma-project.io
+        
 patchesStrategicMerge:
 # [WEBHOOK] To enable webhook, uncomment all the sections with [WEBHOOK] prefix.
 # patches here are for enabling the conversion webhook for each CRD

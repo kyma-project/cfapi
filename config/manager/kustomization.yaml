@@ -1,5 +1,12 @@
 resources:
 - manager.yaml
+
+labels:
+- includeSelectors: true
+  includeTemplates: true
+  pairs:
+    app.kubernetes.io/component: cfapi-operator.kyma-project.io
+    
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 images:
