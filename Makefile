@@ -99,10 +99,8 @@ release: manifests kustomize
 	mkdir -p release-$(VERSION)
 	$(eval IMG_SHA = $(shell docker inspect --format='{{index .RepoDigests 0}}' ${REGISTRY}/${IMG}))
 	cp default-cr.yaml release-$(VERSION)/cfapi-default-cr.yaml
-	pushd config/manager
-	$(KUSTOMIZE) edit set image controller=$(IMG_SHA)
-	$(KUSTOMIZE) edit set label app.kubernetes.io/version:$(VERSION)
-	popd
+	pushd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG_SHA) && popd
+	pushd config/manager && $(KUSTOMIZE) edit add label app.kubernetes.io/version:$(VERSION) --force --without-selector --include-templates && popd
 	$(KUSTOMIZE) build config/default > release-$(VERSION)/cfapi-manager.yaml
 
 ##@ Kubeconfig
