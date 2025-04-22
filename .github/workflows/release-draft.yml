@@ -65,7 +65,6 @@ jobs:
         shell: bash
         run: |
           gh release upload "${VERSION}" "./release-${VERSION}/cfapi-default-cr.yaml"
-          gh release upload "${VERSION}" "./release-${VERSION}/cfapi-crd.yaml"
           gh release upload "${VERSION}" "./release-${VERSION}/cfapi-manager.yaml"
       
   

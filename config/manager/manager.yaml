@@ -1,21 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: manager
+  name: operator
   namespace: cfapi-system
   labels:
-    control-plane: manager
+    control-plane: operator
+    app.kubernetes.io/component: cfapi-operator.kyma-project.io
 spec:
   selector:
     matchLabels:
-      control-plane: manager
+      control-plane: operator
   replicas: 1
   template:
     metadata:
       annotations:
-        kubectl.kubernetes.io/default-container: manager
+        kubectl.kubernetes.io/default-container: operator
       labels:
-        control-plane: manager
+        control-plane: operator
     spec:
       securityContext:
         runAsNonRoot: true
@@ -31,7 +32,7 @@ spec:
         - /manager
         image: controller:latest
         imagePullPolicy: Always
-        name: manager
+        name: operator
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
@@ -56,5 +57,5 @@ spec:
             cpu: 100m
           limits:
             memory: 512Mi
-      serviceAccountName: manager
+      serviceAccountName: operator
       terminationGracePeriodSeconds: 10
