@@ -1,0 +1,11 @@
+labels:
+- pairs:
+    app.kubernetes.io/component: cfapi-operator.kyma-project.io
+    control-plane: operator
+
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: cfapi-system
+resources:
+- ./namespace.yaml
