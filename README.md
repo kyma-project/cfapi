@@ -6,6 +6,8 @@
 CF API Kyma Module is providing a CF API to run on top of Kyma, using the open source [Korifi](https://github.com/cloudfoundry/korifi) project
 Once installed, one could use the cf cli to connect and deploy workloads. 
 
+ ![CF on Kyma Overview](/docs/user/cfapi-kyma.drawio.png)
+
 ## Custom Resource (CR) Specification
 | Property | Optional | Default | Description |
 |-----|-----|-----|-----|
@@ -20,7 +22,7 @@ Once installed, one could use the cf cli to connect and deploy workloads.
   That is normally installed on a SAP managed Kyma
 * **Docker Registry**
   
-  That is an external docker registry needed for storing/loading application images. If not specified in the CFAPI CR, the CFAPI kyma module deploys a local registry (Dockerregistry CR) which is defined in the docker-registry kyma module, see https://github.com/kyma-project/docker-registry. The local docker registry is not suitable for large-scale productive setups.
+  That is an external docker registry needed for storing/loading application images. If not specified in the CFAPI CR, the CFAPI kyma module deploys a local registry (Dockerregistry CR) which is managed by docker-registry kyma module, see https://github.com/kyma-project/docker-registry. The local docker registry is not suitable for large-scale productive setups.
 * **UAA**
 
   A running UAA server is a must for CFAPI installation. In case of SAP managed Kyma, the UAA is already installed so no additional installation required.
@@ -42,6 +44,7 @@ kubectl apply -f https://github.com/kyma-project/istio/releases/latest/download/
 3. ### [Maybe] deploy docker registry module
 In case you want to use an existing docker registry, you do not need to install that.
 In all other cases, see https://github.com/kyma-project/docker-registry/blob/main/docs/user/README.md
+Installing docker registry operator:
 ```
 kubectl apply -f https://github.com/kyma-project/docker-registry/releases/latest/download/dockerregistry-operator.yaml
 ```
@@ -50,7 +53,6 @@ kubectl apply -f https://github.com/kyma-project/docker-registry/releases/latest
 
 Deploy the resources from a particular release /in the example below 0.2.0/ version to kyma
 ```
-kubectl create namespace cfapi-system
 kubectl apply -f https://github.com/kyma-project/cfapi/releases/download/0.2.0/cfapi-manager.yaml
 kubectl apply -f https://github.com/kyma-project/cfapi/releases/download/0.2.0/cfapi-default-cr.yaml
 ```
