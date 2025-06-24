@@ -1,5 +1,5 @@
 # Build the manager binary
-FROM golang:1.22.1-alpine as builder
+FROM golang:1.22.1-alpine AS builder
 ARG TARGETOS
 ARG TARGETARCH
 
@@ -39,7 +39,7 @@ ENV VERSION_KORIFI=0.14.0
 
 WORKDIR /workspace/module-data/servicebinding
 RUN curl -OLf https://github.com/servicebinding/runtime/releases/download/v$VERSION_SERVICEBINDING/servicebinding-runtime-v$VERSION_SERVICEBINDING.yaml
-RUN curl -OLf https://github.com/servicebinding/runtime/releases/download/v$VERSION_SERVICEBINDING/servicebinding-workloadresourcemappings-v$VERSION_SERVICEBINDING.yaml 
+RUN curl -OLf https://github.com/servicebinding/runtime/releases/download/v$VERSION_SERVICEBINDING/servicebinding-workloadresourcemappings-v$VERSION_SERVICEBINDING.yaml
 
 WORKDIR /workspace/module-data/kpack
 RUN curl -OLf https://github.com/buildpacks-community/kpack/releases/download/v$VERSION_KPACK/release-$VERSION_KPACK.yaml
@@ -51,7 +51,7 @@ WORKDIR /workspace/module-data/gateway-api
 RUN curl -OLf https://github.com/kubernetes-sigs/gateway-api/releases/download/v$VERSION_GATEWAY_API/experimental-install.yaml
 
 WORKDIR /workspace/module-data/korifi
-RUN curl -OLf https://github.com/cloudfoundry/korifi/releases/download/v$VERSION_KORIFI/korifi-$VERSION_KORIFI.tgz
+COPY korifi-local/release-output/korifi-*.tgz .
 
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
@@ -59,7 +59,7 @@ FROM gcr.io/distroless/static:nonroot
 WORKDIR /
 COPY --from=builder /workspace/manager .
 COPY --from=builder --chown=65532:65532  /workspace/module-data module-data/
-COPY --chown=65532:65532 module-data module-data/ 
+COPY --chown=65532:65532 module-data module-data/
 USER 65532:65532
 
 ENTRYPOINT ["/manager"]
