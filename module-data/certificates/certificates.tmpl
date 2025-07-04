@@ -1,0 +1,104 @@
+{{ define "certificates" }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: korifi
+---
+apiVersion: cert.gardener.cloud/v1alpha1
+kind: Certificate
+metadata:
+  name: korifi-api-ingress-cert
+  namespace: korifi
+spec:
+  commonName: {{ .CFDomain }}
+  dnsNames:
+  - "{{ .KorifiAPIDomain }}"
+  - "*.{{ .AppsDomain }}"
+  secretRef:
+    name: korifi-api-ingress-cert
+    namespace: korifi
+---
+apiVersion: cert.gardener.cloud/v1alpha1
+kind: Certificate
+metadata:
+  name: korifi-workloads-ingress-cert
+  namespace: korifi
+spec:
+  commonName: {{ .CFDomain }}
+  dnsNames:
+  - "*.{{ .AppsDomain }}"
+  secretRef:
+    name: korifi-workloads-ingress-cert
+    namespace: korifi
+---
+apiVersion: cert.gardener.cloud/v1alpha1
+kind: Certificate
+metadata:
+  name: korifi-api-internal-cert
+  namespace: korifi
+spec:
+  commonName: korifi-api-svc.korifi
+  dnsNames:
+  - korifi-api-svc.korifi.svc.cluster.local
+  isCA: true
+  issuerRef:
+    name: kim-snatch-kyma
+    namespace: kyma-system
+  secretRef:
+    name: korifi-api-internal-cert
+    namespace: korifi
+---
+apiVersion: cert.gardener.cloud/v1alpha1
+kind: Certificate
+metadata:
+  name: korifi-controllers-webhook-cert
+  namespace: korifi
+spec:
+  commonName: korifi-controllers-webhook-service.korifi
+  dnsNames:
+  - korifi-controllers-webhook-service.korifi.svc
+  - korifi-controllers-webhook-service.korifi.svc.cluster.local
+  isCA: true
+  issuerRef:
+    name: kim-snatch-kyma
+    namespace: kyma-system
+  secretRef:
+    name: korifi-controllers-webhook-cert
+    namespace: korifi
+---
+apiVersion: cert.gardener.cloud/v1alpha1
+kind: Certificate
+metadata:
+  name: korifi-kpack-image-builder-webhook-cert
+  namespace: korifi
+spec:
+  commonName: korifi-kpack-image-builder-webhook-service.korifi
+  dnsNames:
+  - korifi-kpack-image-builder-webhook-service.korifi.svc
+  - korifi-kpack-image-builder-webhook-service.korifi.svc.cluster.local
+  isCA: true
+  issuerRef:
+    name: kim-snatch-kyma
+    namespace: kyma-system
+  secretRef:
+    name: korifi-kpack-image-builder-webhook-cert
+    namespace: korifi
+---
+apiVersion: cert.gardener.cloud/v1alpha1
+kind: Certificate
+metadata:
+  name: korifi-statefulset-runner-webhook-cert
+  namespace: korifi
+spec:
+  commonName: korifi-statefulset-runner-webhook-service.korifi
+  dnsNames:
+  - korifi-statefulset-runner-webhook-service.korifi.svc
+  - korifi-statefulset-runner-webhook-service.korifi.svc.cluster.local
+  isCA: true
+  issuerRef:
+    name: kim-snatch-kyma
+    namespace: kyma-system
+  secretRef:
+    name: korifi-statefulset-runner-webhook-cert
+    namespace: korifi
+{{ end }}
