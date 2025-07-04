@@ -1,0 +1,11 @@
+broker:
+  image: ghcr.io/kyma-project/cfapi/cfapi-broker
+  imagePullSecret: dockerregistry-config
+  port: 8080
+  resourceNamespace: cfapi-system
+  credentials:
+    username: broker-user
+    password: broker-password
+
+korifi:
+  rootNamespace: cf

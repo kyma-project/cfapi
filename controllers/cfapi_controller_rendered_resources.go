@@ -70,6 +70,7 @@ type CFAPIReconciler struct {
 	record.EventRecorder
 	FinalState         v1alpha1.State
 	FinalDeletionState v1alpha1.State
+	BrokerImage        string
 }
 
 type ManifestResources struct {
@@ -195,7 +196,6 @@ func (r *CFAPIReconciler) HandleProcessingState(ctx context.Context, objectInsta
 	status := getStatusFromSample(objectInstance)
 
 	url, err := r.processResources(ctx, objectInstance)
-
 	if err != nil {
 		// stay in Processing state if FinalDeletionState is set to Processing
 		if !objectInstance.GetDeletionTimestamp().IsZero() && r.FinalDeletionState == v1alpha1.StateProcessing {
@@ -218,7 +218,6 @@ func (r *CFAPIReconciler) HandleProcessingState(ctx context.Context, objectInsta
 func (r *CFAPIReconciler) HandleErrorState(ctx context.Context, objectInstance *v1alpha1.CFAPI) error {
 	status := getStatusFromSample(objectInstance)
 	url, err := r.processResources(ctx, objectInstance)
-
 	if err != nil {
 		return err
 	}
@@ -346,7 +345,7 @@ func (r *CFAPIReconciler) processResources(ctx context.Context, cfAPI *v1alpha1.
 	}
 
 	// get uaa url
-	var uaaUrl = cfAPI.Spec.UAA
+	uaaUrl := cfAPI.Spec.UAA
 	if uaaUrl == "" {
 		uaaUrl, err = r.retrieveUaaUrl(ctx)
 		if err != nil {
@@ -415,16 +414,44 @@ func (r *CFAPIReconciler) processResources(ctx context.Context, cfAPI *v1alpha1.
 	}
 	logger.Info("dns entries created")
 
-	var subjects = toSubjectList(cfAPI.Spec.CFAdmins)
+	subjects := toSubjectList(cfAPI.Spec.CFAdmins)
 	err = r.assignCfAdministrators(ctx, subjects, cfAPI.Spec.RootNamespace)
 	if err != nil {
 		logger.Error(err, "Failed to assing CF administrators")
 		return "", err
 	}
 
+	logger.Info("Start deploying the BTP service broker...")
+	err = r.deployServiceBroker(ctx)
+	if err != nil {
+		logger.Error(err, "error during deployment of BTP service broker")
+		return "", err
+	}
+	logger.Info("BTP service broker deployed")
+
 	logger.Info("CFAPI reconciled successfully")
 
 	return "https://" + korifiApiDomain, nil
+}
+
+func (r *CFAPIReconciler) deployServiceBroker(ctx context.Context) error {
+	logger := log.FromContext(ctx)
+
+	chart, err := loader.Load("./module-data/btp-service-broker/helm")
+	if err != nil {
+		logger.Error(err, "error loading BTP service broker helm chart")
+		return err
+	}
+
+	values := map[string]any{
+		"broker": map[string]any{
+			"image": r.BrokerImage,
+		},
+	}
+
+	err = applyRelease(chart, "cfapi-system", "btp-service-broker", values, logger)
+
+	return err
 }
 
 func (r *CFAPIReconciler) ensureDockerRegistry(ctx context.Context, cfAPI *v1alpha1.CFAPI) error {
@@ -470,7 +497,6 @@ func (r *CFAPIReconciler) createOIDCConfig(ctx context.Context, cfAPI *v1alpha1.
 		t1 := template.New("oidcUAA")
 
 		t2, err := t1.ParseFiles("./module-data/oidc/oidc-uaa-experimental.tmpl")
-
 		if err != nil {
 			logger.Error(err, "error during parsing of oidc template")
 			return err
@@ -479,7 +505,6 @@ func (r *CFAPIReconciler) createOIDCConfig(ctx context.Context, cfAPI *v1alpha1.
 		buf := &bytes.Buffer{}
 
 		err = t2.ExecuteTemplate(buf, "oidcUAA", vals)
-
 		if err != nil {
 			logger.Error(err, "error during execution of oidc template")
 			return err
@@ -488,7 +513,6 @@ func (r *CFAPIReconciler) createOIDCConfig(ctx context.Context, cfAPI *v1alpha1.
 		s := buf.String()
 
 		resourceObjs, err := parseManifestStringToObjects(s)
-
 		if err != nil {
 			logger.Error(err, "error during parsing of twuni tls route")
 			return nil
@@ -518,7 +542,6 @@ func (r *CFAPIReconciler) getAppContainerRegistry(ctx context.Context, cfAPI *v1
 			Namespace: "korifi",
 			Name:      cfAPI.Spec.AppImagePullSecret,
 		}, &secret)
-
 		if err != nil {
 			logger.Error(err, "error getting app container registry secret")
 			return ContainerRegistry{}, err
@@ -538,7 +561,6 @@ func (r *CFAPIReconciler) getAppContainerRegistry(ctx context.Context, cfAPI *v1
 		Namespace: "cfapi-system",
 		Name:      "dockerregistry-config-external",
 	}, &secret)
-
 	if err != nil {
 		logger.Error(err, "error getting app container registry secret")
 		return ContainerRegistry{}, err
@@ -560,7 +582,6 @@ func (r *CFAPIReconciler) createDNSEntries(ctx context.Context, korifiAPI, appsD
 		Namespace: "korifi-gateway",
 		Name:      "korifi-istio",
 	}, &ingress)
-
 	if err != nil {
 		logger.Error(err, "error getting ingress service")
 		return err
@@ -604,7 +625,6 @@ func (r *CFAPIReconciler) createDNSEntries(ctx context.Context, korifiAPI, appsD
 	s := buf.String()
 
 	resourceObjs, err := parseManifestStringToObjects(s)
-
 	if err != nil {
 		logger.Error(err, "error during parsing of dns entries")
 		return nil
@@ -633,7 +653,6 @@ func (r *CFAPIReconciler) createDockerSecret(ctx context.Context, name, namespac
 	}
 
 	secretData, err := json.Marshal(conf)
-
 	if err != nil {
 		logger.Error(err, "error marshalling docker registry config")
 		return err
@@ -649,7 +668,6 @@ func (r *CFAPIReconciler) createDockerSecret(ctx context.Context, name, namespac
 	}
 
 	err = r.Client.Create(context.Background(), &secret)
-
 	if err != nil {
 		logger.Error(err, "error creating "+name+" secret in ns "+namespace)
 		return err
@@ -688,7 +706,6 @@ func (r *CFAPIReconciler) generateCertificates(ctx context.Context, cfDomain, ap
 	s := buf.String()
 
 	resourceObjs, err := parseManifestStringToObjects(s)
-
 	if err != nil {
 		logger.Error(err, "error during parsing of ingress certificates")
 		return nil
@@ -760,7 +777,6 @@ func (r *CFAPIReconciler) getWildcardDomain() (string, error) {
 		Namespace: "kyma-system",
 		Name:      "kyma-gateway",
 	}, u)
-
 	if err != nil {
 		return "", err
 	}
@@ -768,7 +784,6 @@ func (r *CFAPIReconciler) getWildcardDomain() (string, error) {
 	uc := u.UnstructuredContent()
 
 	servers, found, err := unstructured.NestedSlice(uc, "spec", "servers")
-
 	if err != nil {
 		return "", err
 	}
@@ -802,7 +817,6 @@ func (r *CFAPIReconciler) createNamespaces(ctx context.Context, appContainerRegi
 
 			err = r.patchDockerSecret(ctx, "cfapi-app-registry", ns, appContainerRegistry.Server,
 				appContainerRegistry.User, appContainerRegistry.Pass)
-
 			if err != nil {
 				logger.Error(err, "error patching image pull secret")
 				return err
@@ -810,7 +824,6 @@ func (r *CFAPIReconciler) createNamespaces(ctx context.Context, appContainerRegi
 		} else {
 			err = r.createDockerSecret(ctx, "cfapi-app-registry", ns, appContainerRegistry.Server,
 				appContainerRegistry.User, appContainerRegistry.Pass)
-
 			if err != nil {
 				logger.Error(err, "error creating image pull secret")
 				return err
@@ -835,7 +848,6 @@ func (r *CFAPIReconciler) installGatewayAPI(ctx context.Context) error {
 		Namespace: "istio-system",
 		Name:      "istiod",
 	}, deploy)
-
 	if err != nil {
 		logger.Error(err, "error getting istiod deployment")
 		return err
@@ -937,7 +949,6 @@ func (r *CFAPIReconciler) retrieveUaaUrl(ctx context.Context) (string, error) {
 		Namespace: kymaSystemNamespace,
 		Name:      btpServiceOperatorSecretName,
 	}, &btpServiceOperatorSecret)
-
 	if err != nil {
 		logger.Error(err, "error getting btp service operator secret")
 		return "", err
