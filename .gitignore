@@ -1,4 +1,6 @@
 bin
+testbin
+cover.out
 cfapi-operator.yaml
 development/assets/secrets/ssl
 development/release-output/

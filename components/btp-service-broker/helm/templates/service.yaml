@@ -1,0 +1,18 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: btp-service-broker
+    app.kubernetes.io/component: cfapi-broker.kyma-project.io
+  name: btp-service-broker
+  namespace: {{ .Release.Namespace }}
+spec:
+  ports:
+  - port: {{ .Values.broker.port }}
+    protocol: TCP
+    targetPort: {{ .Values.broker.port }}
+  selector:
+    app: btp-service-broker
+    app.kubernetes.io/component: cfapi-broker.kyma-project.io
+  type: ClusterIP

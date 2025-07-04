@@ -1,0 +1,11 @@
+apiVersion: vendir.k14s.io/v1alpha1
+directories:
+- contents:
+  - git:
+      commitTitle: fix rbac version (#533)
+      sha: c0e130c3ee002d1e6105dc318d9ad136178427eb
+      tags:
+      - v0.7.9
+    path: sap-btp-service-operator
+  path: vendor
+kind: LockConfig

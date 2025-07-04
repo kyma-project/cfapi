@@ -1,0 +1,20 @@
+apiVersion: korifi.cloudfoundry.org/v1alpha1
+kind: CFServiceBroker
+metadata:
+  namespace: {{ .Values.korifi.rootNamespace }}
+  name: btp-service-broker
+spec:
+  credentials:
+    name: btp-service-broker-credentials
+  name: BTP
+  url: http://btp-service-broker.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.broker.port }}
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: btp-service-broker-credentials
+  namespace: {{ .Values.korifi.rootNamespace }}
+type: Opaque
+data:
+  credentials: {{ .Values.broker.credentials | toJson | b64enc | quote }}

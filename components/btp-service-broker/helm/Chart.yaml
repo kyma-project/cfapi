@@ -1,0 +1,5 @@
+apiVersion: v2
+name: btp-service-broker
+description: A Helm chart to deploy the BTP service broker
+type: application
+version: 0.0.0-dev

@@ -1,0 +1,100 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/component: cfapi-broker.kyma-project.io
+  name: btp-service-broker
+  namespace: {{ .Release.Namespace }}
+imagePullSecrets:
+- name: {{ .Values.broker.imagePullSecret }}
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/component: cfapi-broker.kyma-project.io
+  name: btp-service-broker
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - get
+- apiGroups:
+  - ""
+  resources:
+  - serviceaccounts
+  verbs:
+  - get
+- apiGroups:
+  - services.cloud.sap.com
+  resources:
+  - servicebindings
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - services.cloud.sap.com
+  resources:
+  - serviceinstances
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/component: cfapi-broker.kyma-project.io
+  name: btp-service-broker-service-catalog-access
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/component: cfapi-broker.kyma-project.io
+  name: btp-service-broker
+  namespace: {{ .Release.Namespace }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: btp-service-broker
+subjects:
+- kind: ServiceAccount
+  name: btp-service-broker
+  namespace: cfapi-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/component: cfapi-broker.kyma-project.io
+  name: btp-service-broker-service-catalog-access
+  namespace: kyma-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: btp-service-broker-service-catalog-access
+subjects:
+- kind: ServiceAccount
+  name: btp-service-broker
+  namespace: {{ .Release.Namespace }}

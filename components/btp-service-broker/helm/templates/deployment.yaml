@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: btp-service-broker
+    app.kubernetes.io/component: cfapi-broker.kyma-project.io
+  name: btp-service-broker
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: btp-service-broker
+      app.kubernetes.io/component: cfapi-broker.kyma-project.io
+  template:
+    metadata:
+      labels:
+        app: btp-service-broker
+        app.kubernetes.io/component: cfapi-broker.kyma-project.io
+    spec:
+      containers:
+      - image: "{{ .Values.broker.image }}"
+        imagePullPolicy: Always
+        name: btp-service-broker
+        env:
+        - name: BROKER_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: btp-service-broker-credentials
+              key: BROKER_USERNAME
+        - name: BROKER_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: btp-service-broker-credentials
+              key: BROKER_PASSWORD
+        ports:
+        - containerPort: {{ .Values.broker.port }}
+          name: web
+        resources:
+          limits:
+            memory: 512Mi
+          requests:
+            cpu: 100m
+            memory: 64Mi
+        volumeMounts:
+        - mountPath: /etc/config
+          name: btp-service-broker-config
+          readOnly: true
+      volumes:
+      - configMap:
+          name: btp-service-broker-config
+        name: btp-service-broker-config
+      serviceAccountName: btp-service-broker
+      terminationGracePeriodSeconds: 10

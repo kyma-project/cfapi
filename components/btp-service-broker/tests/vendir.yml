@@ -1,0 +1,15 @@
+apiVersion: vendir.k14s.io/v1alpha1
+kind: Config
+directories:
+- path: vendor
+  contents:
+  - path: sap-btp-service-operator
+    git:
+      url: https://github.com/SAP/sap-btp-service-operator.git
+      depth: 1
+      refSelection:
+        semver:
+          constraints: ">=0.7.9"
+    includePaths:
+      - config/crd/bases/*.yaml
+    newRootPath: config/crd/bases

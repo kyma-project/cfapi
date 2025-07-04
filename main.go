@@ -80,6 +80,9 @@ func init() { //nolint:gochecknoinits
 //nolint:gochecknoglobals
 var buildVersion = "not_provided"
 
+//nolint:gochecknoglobals
+var brokerImage = "not_provided"
+
 func main() {
 	flagVar := defineFlagVar()
 	opts := zap.Options{
@@ -128,6 +131,7 @@ func main() {
 		EventRecorder:      mgr.GetEventRecorderFor(operatorName),
 		FinalState:         v1alpha1.State(flagVar.finalState),
 		FinalDeletionState: v1alpha1.State(flagVar.finalDeletionState),
+		BrokerImage:        brokerImage,
 	}).SetupWithManager(mgr, rateLimiter); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Sample")
 		os.Exit(1)

@@ -1,5 +1,4 @@
-# Build the manager binary
-FROM golang:1.22.1-alpine as builder
+FROM golang:1.24-alpine as builder
 ARG TARGETOS
 ARG TARGETARCH
 
@@ -11,22 +10,23 @@ COPY go.sum go.sum
 COPY main.go main.go
 COPY api api/
 COPY controllers controllers/
+COPY module-data module-data/
 
 # cache deps before building and copying source so that we don't need to re-download as much
 # and so that source changes don't invalidate our downloaded layer
 RUN go mod download
 
-RUN GO111MODULE=on go get github.com/mikefarah/yq/v3
 RUN apk add curl
 
 ARG TAG_default_tag=from_dockerfile
+ARG BROKER_IMAGE
 
 # Build
 # the GOARCH has not a default value to allow the binary be built according to the host where the command
 # was called. For example, if we call make docker-build in a local env which has the Apple Silicon M1 SO
 # the docker BUILDPLATFORM arg will be linux/arm64 when for Apple x86 it will be linux/amd64. Therefore,
 # by leaving it empty we can ensure that the container and binary shipped on it will have the same platform.
-RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -ldflags="-X 'main.buildVersion=${TAG_default_tag}'" -a -o manager main.go
+RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -ldflags="-X 'main.buildVersion=${TAG_default_tag}'" -ldflags="-X 'main.brokerImage=${BROKER_IMAGE}'"-a -o manager main.go
 
 
 ENV VERSION_KPACK=0.17.0
@@ -41,6 +41,9 @@ RUN curl -OLf https://github.com/kubernetes-sigs/gateway-api/releases/download/v
 
 WORKDIR /workspace/module-data/korifi
 RUN curl -OLf https://github.com/cloudfoundry/korifi/releases/download/v$VERSION_KORIFI/korifi-$VERSION_KORIFI.tgz
+
+WORKDIR /workspace/module-data/btp-service-broker
+COPY components/btp-service-broker/helm helm
 
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details

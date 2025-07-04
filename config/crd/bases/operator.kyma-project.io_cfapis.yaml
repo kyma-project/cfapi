@@ -47,11 +47,13 @@ spec:
             properties:
               appImagePullSecret:
                 type: string
+              cfadmins:
+                items:
+                  type: string
+                type: array
               rootNamespace:
                 type: string
-              UAA:
-                type: string
-              CFAdmins:
+              uaa:
                 type: string
             type: object
           status:
