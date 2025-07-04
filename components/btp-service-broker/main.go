@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -14,13 +15,13 @@ import (
 	"github.com/kyma-project/cfapi/routing"
 	"github.com/kyma-project/cfapi/service_manager"
 	"github.com/kyma-project/cfapi/tools"
-	
+
+	"go.uber.org/zap/zapcore"
 	corev1 "k8s.io/api/core/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"go.uber.org/zap/zapcore"
 )
 
 func init() {
@@ -33,7 +34,7 @@ func main() {
 	if err != nil {
 		panic(fmt.Sprintf("error creating new zap logger: %v", err))
 	}
-	
+
 	routerBuilder := routing.NewRouterBuilder()
 	routerBuilder.UseMiddleware(
 		middleware.HTTPLogging,
@@ -50,17 +51,28 @@ func main() {
 		fmt.Println(err, "failed to create k8s client")
 		os.Exit(1)
 	}
-	
-	smConfig, err := config.LoadServiceManagerClientConfig()
+
+	btpServiceOperatorSecret := corev1.Secret{}
+	err = k8sClient.Get(context.Background(), client.ObjectKey{
+		Namespace: "kyma-system",
+		Name:      "sap-btp-service-operator",
+	}, &btpServiceOperatorSecret)
+
 	if err != nil {
-		fmt.Println(err, "failed to create sm client")
+		fmt.Println(err, "error getting btp service operator secret/sap-btp-service-operator in ns kyma-system")
 		os.Exit(1)
 	}
-	smClient := service_manager.NewClient(smConfig)
+
+	serviceManager := &service_manager.ServiceManager{
+		SmUrl:        string(btpServiceOperatorSecret.Data["sm_url"]),
+		TokenUrl:     string(btpServiceOperatorSecret.Data["tokenurl"]),
+		ClientId:     string(btpServiceOperatorSecret.Data["clientid"]),
+		ClientSecret: string(btpServiceOperatorSecret.Data["clientsecret"]),
+	}
 
 	handlers := []routing.Routable{
 		handlers.NewHello(),
-		handlers.NewCatalog(smClient),
+		handlers.NewCatalog(serviceManager),
 		handlers.NewServiceIntances(k8sClient, serverConfig.RootNamespace),
 		handlers.NewServiceBindings(k8sClient, serverConfig.RootNamespace),
 	}

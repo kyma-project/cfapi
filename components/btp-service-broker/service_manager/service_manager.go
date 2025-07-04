@@ -10,30 +10,17 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/kyma-project/cfapi/config"
 	"github.com/kyma-project/cfapi/osbapi"
 )
 
-type Client interface {
-	GetCatalog(context.Context) (osbapi.Catalog, error)
+type ServiceManager struct {
+	SmToken      Token
+	SmUrl        string
+	TokenUrl     string
+	ClientId     string
+	ClientSecret string
 }
 
-type client struct {
-	smToken      Token
-	smUrl        string
-	tokenUrl     string
-	clientId     string
-	clientSecret string
-}
-
-func NewClient(config *config.ServiceManager) Client {
-	return &client{
-		smUrl:        config.SmUrl,
-		tokenUrl:     config.TokenUrl,
-		clientId:     config.ClientId,
-		clientSecret: config.ClientSecret,
-	}
-}
 
 type Token struct {
 	AccessToken string `json:"access_token"`
@@ -123,18 +110,18 @@ type ServicePlan struct {
 	} `json:"labels"`
 }
 
-func (s *client) request(url string, data interface{}) error {
+func (s *ServiceManager) request(url string, data interface{}) error {
 	err := s.ensureToken()
 	if err != nil {
 		return err
 	}
 
-	request, err := http.NewRequest("GET", s.smUrl+url, nil)
+	request, err := http.NewRequest("GET", s.SmUrl+url, nil)
 	if err != nil {
 		return err
 	}
 
-	request.Header.Add("Authorization", "Bearer "+s.smToken.AccessToken)
+	request.Header.Add("Authorization", "Bearer "+s.SmToken.AccessToken)
 	response, err := http.DefaultClient.Do(request)
 	if err != nil {
 		return err
@@ -162,7 +149,7 @@ func (s *client) request(url string, data interface{}) error {
 	return nil
 }
 
-func (s *client) GetCatalog(ctx context.Context) (osbapi.Catalog, error) {
+func (s *ServiceManager) GetCatalog(ctx context.Context) (osbapi.Catalog, error) {
 	logger := logr.FromContextOrDiscard(ctx).WithName("sm-client.getcatalog")
 	offerings, err := s.getServiceOfferings()
 	if err != nil {
@@ -210,7 +197,7 @@ func (s *client) GetCatalog(ctx context.Context) (osbapi.Catalog, error) {
 	return catalog, nil
 }
 
-func (s *client) getServiceOfferings() ([]ServiceOffering, error) {
+func (s *ServiceManager) getServiceOfferings() ([]ServiceOffering, error) {
 	offeringResponse := &ServiceOfferingResponse{}
 	err := s.request("/v1/service_offerings", offeringResponse)
 	if err != nil {
@@ -221,7 +208,7 @@ func (s *client) getServiceOfferings() ([]ServiceOffering, error) {
 }
 
 // Returns map service-offering-id to service plans
-func (s *client) getServicePlans() (map[string][]ServicePlan, error) {
+func (s *ServiceManager) getServicePlans() (map[string][]ServicePlan, error) {
 	plansResponse := &ServicePlanResponse{}
 	err := s.request("/v1/service_plans", plansResponse)
 	if err != nil {
@@ -239,11 +226,11 @@ func (s *client) getServicePlans() (map[string][]ServicePlan, error) {
 	return result, nil
 }
 
-func (s *client) getAuthToken() (Token, error) {
-	response, err := http.PostForm(s.tokenUrl+"/oauth/token", url.Values{
+func (s *ServiceManager) getAuthToken() (Token, error) {
+	response, err := http.PostForm(s.TokenUrl+"/oauth/token", url.Values{
 		"grant_type":    {"client_credentials"},
-		"client_id":     {s.clientId},
-		"client_secret": {s.clientSecret},
+		"client_id":     {s.ClientId},
+		"client_secret": {s.ClientSecret},
 	})
 	if err != nil {
 		return Token{}, err
@@ -266,12 +253,12 @@ func (s *client) getAuthToken() (Token, error) {
 	return token, nil
 }
 
-func (s *client) ensureToken() error {
-	if !s.smToken.Expired() {
+func (s *ServiceManager) ensureToken() error {
+	if !s.SmToken.Expired() {
 		return nil
 	}
 
 	var err error
-	s.smToken, err = s.getAuthToken()
+	s.SmToken, err = s.getAuthToken()
 	return err
 }

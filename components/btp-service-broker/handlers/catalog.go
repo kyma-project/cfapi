@@ -9,10 +9,10 @@ import (
 )
 
 type Catalog struct {
-	smClient service_manager.Client
+	smClient *service_manager.ServiceManager
 }
 
-func NewCatalog(smClient service_manager.Client) *Catalog {
+func NewCatalog(smClient *service_manager.ServiceManager) *Catalog {
 	return &Catalog{smClient: smClient}
 }
 

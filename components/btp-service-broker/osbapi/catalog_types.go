@@ -69,5 +69,5 @@ type ServiceBindingSchema struct {
 }
 
 type InputParametersSchema struct {
-	parameters map[string]any `json:"parameters"`
+	Parameters map[string]any `json:"parameters"`
 }
