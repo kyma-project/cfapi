@@ -29,23 +29,14 @@ ARG TAG_default_tag=from_dockerfile
 RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -ldflags="-X 'main.buildVersion=${TAG_default_tag}'" -a -o manager main.go
 
 
-ENV VERSION_SERVICEBINDING=0.4.0
 ENV VERSION_KPACK=0.13.4
-ENV VERSION_CERT_MANAGER=1.14.6
 ENV VERSION_GATEWAY_API=1.1.0
 ENV VERSION_TWUNI=2.2.3
 ENV VERSION_KORIFI=0.14.0
 
 
-WORKDIR /workspace/module-data/servicebinding
-RUN curl -OLf https://github.com/servicebinding/runtime/releases/download/v$VERSION_SERVICEBINDING/servicebinding-runtime-v$VERSION_SERVICEBINDING.yaml
-RUN curl -OLf https://github.com/servicebinding/runtime/releases/download/v$VERSION_SERVICEBINDING/servicebinding-workloadresourcemappings-v$VERSION_SERVICEBINDING.yaml
-
 WORKDIR /workspace/module-data/kpack
 RUN curl -OLf https://github.com/buildpacks-community/kpack/releases/download/v$VERSION_KPACK/release-$VERSION_KPACK.yaml
-
-WORKDIR /workspace/module-data/cert-manager
-RUN curl -OLf https://github.com/cert-manager/cert-manager/releases/download/v$VERSION_CERT_MANAGER/cert-manager.yaml
 
 WORKDIR /workspace/module-data/gateway-api
 RUN curl -OLf https://github.com/kubernetes-sigs/gateway-api/releases/download/v$VERSION_GATEWAY_API/experimental-install.yaml
