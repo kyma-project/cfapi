@@ -373,13 +373,6 @@ func (r *CFAPIReconciler) processResources(ctx context.Context, cfAPI *v1alpha1.
 	}
 	logger.Info("Gateway API installed")
 
-	// install cert manager
-	err = r.installOneGlob(ctx, "./module-data/cert-manager/cert-manager.yaml")
-	if err != nil {
-		logger.Error(err, "error installing cert manager")
-		return "", err
-	}
-
 	// create needed namespaces
 	logger.Info("Start creating namespaces ...")
 	err = r.createNamespaces(ctx, containerRegistry)
@@ -391,7 +384,7 @@ func (r *CFAPIReconciler) processResources(ctx context.Context, cfAPI *v1alpha1.
 
 	// generate ingress certificates
 	logger.Info("Start generating ingress certificates ...")
-	err = r.generateIngressCertificates(ctx, cfDomain, appsDomain, korifiApiDomain)
+	err = r.generateCertificates(ctx, cfDomain, appsDomain, korifiApiDomain)
 	if err != nil {
 		logger.Error(err, "problem generating ingress certificates")
 		return "", err
@@ -403,26 +396,6 @@ func (r *CFAPIReconciler) processResources(ctx context.Context, cfAPI *v1alpha1.
 		logger.Error(err, "error installing kpack")
 		return "", err
 	}
-
-	err = r.installOneGlob(ctx, "./module-data/servicebinding/servicebinding-runtime-v*.yaml")
-	if err != nil {
-		logger.Error(err, "error installing servicebindig runtime")
-		return "", err
-	}
-	err = r.installOneGlob(ctx, "./module-data/servicebinding/servicebinding-workloadresourcemappings-v*.yaml")
-	if err != nil {
-		logger.Error(err, "error installing servicebindig workloadresourcemappings")
-		return "", err
-	}
-
-	// create buildkit secret
-	logger.Info("Start creating buildkit secret ...")
-	err = r.createBuildkitSecret(ctx, containerRegistry)
-	if err != nil {
-		logger.Error(err, "error creating buildkit secret")
-		return "", err
-	}
-	logger.Info("buildkit secret created")
 
 	// deploy korifi
 	logger.Info("Start deploying korifi ...")
@@ -647,34 +620,6 @@ func (r *CFAPIReconciler) createDNSEntries(ctx context.Context, korifiAPI, appsD
 	return nil
 }
 
-func (r *CFAPIReconciler) createBuildkitSecret(ctx context.Context, appContainerRegistry ContainerRegistry) error {
-	logger := log.FromContext(ctx)
-
-	secretExists := r.secretExists("cfapi-system", "buildkit")
-
-	if secretExists {
-		logger.Info("buildkit secret already exists, patching it")
-
-		err := r.patchDockerSecret(ctx, "buildkit", "cfapi-system", appContainerRegistry.Server,
-			appContainerRegistry.User, appContainerRegistry.Pass)
-
-		if err != nil {
-			logger.Error(err, "error patching buildkit secret")
-			return err
-		}
-	} else {
-		err := r.createDockerSecret(ctx, "buildkit", "cfapi-system", appContainerRegistry.Server,
-			appContainerRegistry.User, appContainerRegistry.Pass)
-
-		if err != nil {
-			logger.Error(err, "error creating buildkit secret")
-			return err
-		}
-	}
-
-	return nil
-}
-
 func (r *CFAPIReconciler) createDockerSecret(ctx context.Context, name, namespace, server, username, password string) error {
 	logger := log.FromContext(ctx)
 
@@ -713,7 +658,7 @@ func (r *CFAPIReconciler) createDockerSecret(ctx context.Context, name, namespac
 	return nil
 }
 
-func (r *CFAPIReconciler) generateIngressCertificates(ctx context.Context, cfDomain, appsDomain, korifiApiDomain string) error {
+func (r *CFAPIReconciler) generateCertificates(ctx context.Context, cfDomain, appsDomain, korifiApiDomain string) error {
 	logger := log.FromContext(ctx)
 
 	vals := struct {
@@ -726,9 +671,8 @@ func (r *CFAPIReconciler) generateIngressCertificates(ctx context.Context, cfDom
 		KorifiAPIDomain: korifiApiDomain,
 	}
 
-	t1 := template.New("ingressCerts")
-	t2, err := t1.ParseFiles("./module-data/ingress-certificates/ingress-certificates.tmpl")
-
+	t1 := template.New("certificates")
+	t2, err := t1.ParseFiles("./module-data/certificates/certificates.tmpl")
 	if err != nil {
 		logger.Error(err, "error during parsing of ingress certificates template")
 		return err
@@ -736,8 +680,7 @@ func (r *CFAPIReconciler) generateIngressCertificates(ctx context.Context, cfDom
 
 	buf := &bytes.Buffer{}
 
-	err = t2.ExecuteTemplate(buf, "ingressCerts", vals)
-
+	err = t2.ExecuteTemplate(buf, "certificates", vals)
 	if err != nil {
 		logger.Error(err, "error during execution of ingress certificates template")
 		return err
@@ -760,16 +703,19 @@ func (r *CFAPIReconciler) generateIngressCertificates(ctx context.Context, cfDom
 	}
 
 	// wait for respective secrets to be created
-	err = r.waitForSecret("korifi", "korifi-api-ingress-cert")
-	if err != nil {
-		logger.Error(err, "error waiting for secret korifi-api-ingress-cert")
-		return err
-	}
-
-	err = r.waitForSecret("korifi", "korifi-workloads-ingress-cert")
-	if err != nil {
-		logger.Error(err, "error waiting for secret korifi-workloads-ingress-cert")
-		return err
+	for _, secretName := range []string{
+		"korifi-api-ingress-cert",
+		"korifi-api-internal-cert",
+		"korifi-workloads-ingress-cert",
+		"korifi-controllers-webhook-cert",
+		"korifi-kpack-image-builder-webhook-cert",
+		"korifi-statefulset-runner-webhook-cert",
+	} {
+		err = r.waitForSecret("korifi", secretName)
+		if err != nil {
+			logger.Error(err, "error waiting for secret "+secretName)
+			return err
+		}
 	}
 
 	return nil
@@ -951,6 +897,7 @@ func (r *CFAPIReconciler) deployKorifi(ctx context.Context, appsDomain, korifiAP
 	}
 
 	values_dynamic := map[string]interface{}{
+		"generateInternalCertificates": false,
 		"api": map[string]interface{}{
 			"apiServer": map[string]interface{}{
 				"url": korifiAPIDomain,
