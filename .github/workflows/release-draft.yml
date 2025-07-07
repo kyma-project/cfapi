@@ -49,23 +49,35 @@ jobs:
       
       - name: prepare release artifacts 
         run:  VERSION=${{ steps.version.outputs.version }} make release
-  
-      - name: Create draft release
-        env:
-          VERSION: ${{ steps.version.outputs.version }}
-          GITHUB_TOKEN: ${{ github.token }}
-        shell: bash
-        run: |
-          gh release create "${VERSION}" --title "CFAPI Kyma Module" --draft --notes-file RELEASE.md
+        
+      - name: broker build
+        working-directory: 'components/btp-service-broker'
+        run: VERSION=${{ steps.version.outputs.version }} make docker-build
 
-      - name: Upload release artifacts
-        env:
-          VERSION: ${{ steps.version.outputs.version }}
-          GITHUB_TOKEN: ${{ github.token }}
-        shell: bash
-        run: |
-          gh release upload "${VERSION}" "./release-${VERSION}/cfapi-default-cr.yaml"
-          gh release upload "${VERSION}" "./release-${VERSION}/cfapi-crd.yaml"
-          gh release upload "${VERSION}" "./release-${VERSION}/cfapi-manager.yaml"
+      - name: broker push
+        working-directory: 'components/btp-service-broker'
+        run: VERSION=${{ steps.version.outputs.version }} make docker-push
+
+      - name: broker release
+        working-directory: 'components/btp-service-broker'
+        run:  VERSION=${{ steps.version.outputs.version }} make release
+        
+#      - name: Create draft release
+#        env:
+#          VERSION: ${{ steps.version.outputs.version }}
+#          GITHUB_TOKEN: ${{ github.token }}
+#        shell: bash
+#        run: |
+#          gh release create "${VERSION}" --title "CFAPI Kyma Module" --draft --notes-file RELEASE.md
+
+#      - name: Upload release artifacts
+#        env:
+#          VERSION: ${{ steps.version.outputs.version }}
+#          GITHUB_TOKEN: ${{ github.token }}
+#        shell: bash
+#        run: |
+#          gh release upload "${VERSION}" "./release-${VERSION}/cfapi-default-cr.yaml"
+#          gh release upload "${VERSION}" "./release-${VERSION}/cfapi-crd.yaml"
+#          gh release upload "${VERSION}" "./release-${VERSION}/cfapi-manager.yaml"
       
   
