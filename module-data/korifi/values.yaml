@@ -11,6 +11,10 @@ defaultAppDomainName: null
 eksContainerRegistryRoleARN: ""
 generateIngressCertificates: false
 logLevel: info
+experimental:
+  managedServices:
+    enabled: true
+    trustInsecureBrokers: true
 networking:
   gatewayClass: istio
 Secrets: []

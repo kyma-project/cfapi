@@ -1,12 +1,12 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: btp-service-broker-rolebinding
+  name: btp-service-broker
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: btp-service-broker-role
+  name: btp-service-broker
 subjects:
 - kind: ServiceAccount
-  name: btp-service-broker-serviceaccount
+  name: btp-service-broker
   namespace: cfapi-system

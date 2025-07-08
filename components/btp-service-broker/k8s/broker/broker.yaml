@@ -2,7 +2,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: btp-service-broker
-  namespace: cfapi-system
   labels:
     app: btp-service-broker
 spec:
@@ -55,5 +54,5 @@ spec:
             cpu: 100m
           limits:
             memory: 512Mi
-      serviceAccountName: manager
+      serviceAccountName: btp-service-broker
       terminationGracePeriodSeconds: 10

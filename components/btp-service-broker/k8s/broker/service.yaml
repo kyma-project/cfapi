@@ -3,7 +3,7 @@ kind: Service
 metadata:
   labels:
     app: btp-service-broker
-  name: btp-service-broker-svc
+  name: btp-service-broker
 spec:
   ports:
   - port: 8080
