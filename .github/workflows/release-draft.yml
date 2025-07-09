@@ -80,5 +80,6 @@ jobs:
           gh release upload "${VERSION}" "./release-${VERSION}/cfapi-crd.yaml"
           gh release upload "${VERSION}" "./release-${VERSION}/cfapi-manager.yaml"
           gh release upload "${VERSION}" "./components/btp-service-broker/release-${VERSION}/btp-service-broker.yaml"
+          gh release upload "${VERSION}" "./components/btp-service-broker/release-${VERSION}/cf-service-broker.yaml"
       
   

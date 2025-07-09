@@ -100,6 +100,7 @@ release: manifests kustomize
 	$(eval IMG_SHA = $(shell docker inspect --format='{{index .RepoDigests 0}}' ${REGISTRY}/${IMG}))
 	pushd k8s/broker && $(KUSTOMIZE) edit set image broker=$(IMG_SHA) && popd
 	$(KUSTOMIZE) build k8s/default > release-$(VERSION)/btp-service-broker.yaml
+	cp k8s/cf-service-broker.yaml release-$(VERSION)
 
 ##@ Kubeconfig
 .PHONY: kubeconfig
