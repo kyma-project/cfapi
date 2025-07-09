@@ -1,0 +1,11 @@
+apiVersion: korifi.cloudfoundry.org/v1alpha1
+kind: CFServiceBroker
+metadata:
+  name: bridge-broker
+  namespace: cf 
+spec:
+  name: bridge-broker
+  url: "btp-service-broker.cfapi-system.svc.cluster.local:8080"
+  credentials:
+    username:
+    password:

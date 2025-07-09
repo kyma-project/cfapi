@@ -25,29 +25,10 @@ spec:
         - mountPath: /etc/server-config
           name: server-config
           readOnly: true
-        - mountPath: /etc/sm-client-config
-          name: sm-client-config
-          readOnly: true
         volumes:
         - configMap:
             name: server-config
           name: server-config
-        - name: sm-client-config
-          secret:
-            secretName: service-manager
-        livenessProbe:
-          httpGet:
-            path: /healthz
-            port: 8081
-          initialDelaySeconds: 15
-          periodSeconds: 20
-          timeoutSeconds: 3
-        readinessProbe:
-          httpGet:
-            path: /readyz
-            port: 8081
-          initialDelaySeconds: 5
-          periodSeconds: 10
         resources:
           requests:
             memory: 64Mi

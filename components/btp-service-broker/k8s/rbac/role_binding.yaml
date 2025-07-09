@@ -4,7 +4,7 @@ metadata:
   name: btp-service-broker
 roleRef:
   apiGroup: rbac.authorization.k8s.io
-  kind: Role
+  kind: ClusterRole
   name: btp-service-broker
 subjects:
 - kind: ServiceAccount
