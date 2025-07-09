@@ -671,8 +671,7 @@ func (r *CFAPIReconciler) generateCertificates(ctx context.Context, cfDomain, ap
 		KorifiAPIDomain: korifiApiDomain,
 	}
 
-	t1 := template.New("certificates")
-	t2, err := t1.ParseFiles("./module-data/certificates/certificates.tmpl")
+	t2, err := template.ParseFiles("./module-data/certificates/certificates.tmpl")
 	if err != nil {
 		logger.Error(err, "error during parsing of ingress certificates template")
 		return err
@@ -680,7 +679,7 @@ func (r *CFAPIReconciler) generateCertificates(ctx context.Context, cfDomain, ap
 
 	buf := &bytes.Buffer{}
 
-	err = t2.ExecuteTemplate(buf, "certificates", vals)
+	err = t2.ExecuteTemplate(buf, t2.Name(), vals)
 	if err != nil {
 		logger.Error(err, "error during execution of ingress certificates template")
 		return err
@@ -735,7 +734,7 @@ func (r *CFAPIReconciler) waitForSecret(namespace, name string) error {
 		}
 
 		logger.Info("secret " + name + " not found, retrying...")
-		time.Sleep(1 * time.Minute)
+		time.Sleep(10 * time.Second)
 
 		now := time.Now()
 

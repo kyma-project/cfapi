@@ -1,0 +1,32 @@
+apiVersion: cert.gardener.cloud/v1alpha1
+kind: Certificate
+metadata:
+  name: kyma-gateway-certs
+  namespace: kyma-system
+spec:
+  commonName: "*.kind-127-0-0-1.nip.io"
+  isCA: true
+  secretRef:
+    name: kyma-gateway-certs
+    namespace: istio-system
+
+---
+apiVersion: networking.istio.io/v1
+kind: Gateway
+metadata:
+  name: kyma-gateway
+  namespace: kyma-system
+spec:
+  selector:
+    app: istio-ingressgateway
+    istio: ingressgateway
+  servers:
+  - hosts:
+    - '*.kind-127-0-0-1.nip.io'
+    port:
+      name: https
+      number: 8443
+      protocol: HTTPS
+    tls:
+      credentialName: kyma-gateway-certs
+      mode: SIMPLE

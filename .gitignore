@@ -1,0 +1,4 @@
+bin
+cfapi-operator.yaml
+development/assets/secrets/ssl
+development/release-output/
