@@ -1,3 +1,12 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: bridge-broker-secret
+  namespace: cf
+type: Opaque
+data: 
+  credentials: eyJ1c2VybmFtZSI6InVzciIsInBhc3N3b3JkIjoicHNzIn0=
+---
 apiVersion: korifi.cloudfoundry.org/v1alpha1
 kind: CFServiceBroker
 metadata:
@@ -5,7 +14,6 @@ metadata:
   namespace: cf 
 spec:
   name: bridge-broker
-  url: "btp-service-broker.cfapi-system.svc.cluster.local:8080"
+  url: "http://btp-service-broker.cfapi-system.svc.cluster.local:8080"
   credentials:
-    username:
-    password:
+    name: bridge-broker-secret
