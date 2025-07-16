@@ -1,13 +1,11 @@
 #!/bin/bash
 
-set -euo pipefail
+set -xeuo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="$SCRIPT_DIR/.."
 KORIFI_DIR="$ROOT_DIR/../korifi"
 CLOUD_PROVIDER_KIND_DIR="$ROOT_DIR/../cloud-provider-kind"
-export UAA_URL="https://uaa.cf.sap.hana.ondemand.com"
-OIDC_PREFIX="sap.ids"
 
 export VERSION="$(uuidgen)"
 
@@ -31,22 +29,11 @@ KYMA_TLS_PORT=8443
 KYMA_GW_TLS_PORT=31443
 KORIFI_GW_TLS_PORT=32443
 
+source "$SCRIPT_DIR/tools/common.sh"
+export UAA_URL
+
 tmp_dir="$(mktemp -d)"
 trap "rm -rf $tmp_dir" EXIT
-
-uuidgen() {
-  # macos uuidgen generates upper-cased UUIDs. In order to make the script work
-  # on both Linux and MacOS, ensure those are lowercased
-  bash -c 'uuidgen | tr "[:upper:]" "[:lower:]"'
-}
-
-retry() {
-  until $@; do
-    echo -n .
-    sleep 1
-  done
-  echo
-}
 
 download_uaa_ca_pem() {
   openssl s_client -showcerts -connect ${UAA_URL#https://}:443 </dev/null >"$SSL_DIR/ca.pem"
@@ -284,7 +271,6 @@ install_cfapi() {
     kubectl patch deployment -n cfapi-system cfapi-operator -p '{"spec": {"template": {"spec": {"imagePullSecrets": [{"name": "dockerregistry-config"}]}}}}'
 
     cat "$SCRIPT_DIR/assets/cf-api.yaml" | envsubst | kubectl apply -f -
-
     kubectl -n cfapi-system wait --for=jsonpath='{.status.state}'=Ready cfapis/default-cf-api --timeout=10m
   }
   popd
@@ -331,7 +317,30 @@ install_load_balancer() {
     kubectl apply -f -
 }
 
+install_btp_operator() {
+  plan_id="$(btp --format=json list services/plans | jq -r '.[] | select(.name=="service-operator-access") | .id')"
+  instance_id="$(btp --format=json list services/instances | jq -r ".[] | select(.service_plan_id==\"$plan_id\") | .id")"
+  credentials="$(btp --format=json list services/bindings | jq -r ".[] | select(.service_instance_id==\"$instance_id\") | .credentials")"
+
+  kubectl --namespace kyma-system delete secret sap-btp-manager --ignore-not-found
+  kubectl --namespace kyma-system create secret generic sap-btp-manager \
+    --from-literal=sm_url="$(jq --raw-output '.sm_url' <<<"$credentials")" \
+    --from-literal=tokenurl="$(jq --raw-output '.url' <<<"$credentials")" \
+    --from-literal=clientid="$(jq --raw-output '.clientid' <<<"$credentials")" \
+    --from-literal=clientsecret="$(jq --raw-output '.clientsecret' <<<"$credentials")" \
+    --from-literal=cluster_id="3690e037-73fb-4d2d-9df0-5a8cb4382985"
+  kubectl --namespace kyma-system label secret sap-btp-manager "app.kubernetes.io/managed-by=kcp-kyma-environment-broker"
+
+  echo "************************************************"
+  echo " Installing the BTP Operator Module "
+  echo "************************************************"
+  kubectl apply -f https://github.com/kyma-project/btp-manager/releases/latest/download/btp-manager.yaml
+  kubectl apply -f https://github.com/kyma-project/btp-manager/releases/latest/download/btp-operator-default-cr.yaml -n kyma-system
+}
+
 main() {
+  login
+
   ensure_kind_cluster cfapi
   create_default_admins
 
@@ -341,6 +350,7 @@ main() {
   install_docker_registry
   install_metrics_server
   install_load_balancer
+  install_btp_operator
 
   build_korifi_release_chart
   install_cfapi
