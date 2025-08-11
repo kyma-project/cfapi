@@ -70,7 +70,6 @@ type CFAPIReconciler struct {
 	record.EventRecorder
 	FinalState         v1alpha1.State
 	FinalDeletionState v1alpha1.State
-	BrokerImage        string
 }
 
 type ManifestResources struct {
@@ -443,13 +442,7 @@ func (r *CFAPIReconciler) deployServiceBroker(ctx context.Context) error {
 		return err
 	}
 
-	values := map[string]any{
-		"broker": map[string]any{
-			"image": r.BrokerImage,
-		},
-	}
-
-	err = applyRelease(chart, "cfapi-system", "btp-service-broker", values, logger)
+	err = applyRelease(chart, "cfapi-system", "btp-service-broker", map[string]any{}, logger)
 
 	return err
 }

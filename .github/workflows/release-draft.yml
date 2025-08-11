@@ -5,7 +5,7 @@ on:
     tags:
       - 'v*'
   workflow_dispatch:
-    
+
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
@@ -21,7 +21,7 @@ jobs:
       id-token: write
 
     steps:
-      - name: Checkout code 
+      - name: Checkout code
         uses: actions/checkout@v3
 
       - name: golangci-lint
@@ -40,16 +40,26 @@ jobs:
       - name: set version
         run: echo "version=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
         id: version
-  
-      - name: docker build
-        run: VERSION=${{ steps.version.outputs.version }} KORIFI_REF=${{ vars.KORIFI_GITHUB_REF }} make docker-build
-    
-      - name: docker-push  
+
+      - name: docker build (broker)
+        run: VERSION=${{ steps.version.outputs.version }} make -C components/btp-service-broker docker-build
+
+      - name: docker-push (broker)
+        run: VERSION=${{ steps.version.outputs.version }} make -C components/btp-service-broker docker-push
+
+      - name: prepare release artifacts (broker)
+        run: VERSION=${{ steps.version.outputs.version }} make -C components/btp-service-broker release
+
+      - name: docker build (operator)
+        run: VERSION=${{ steps.version.outputs.version }} make docker-build
+
+      - name: docker-push (operator)
         run: VERSION=${{ steps.version.outputs.version }} make docker-push
-      
-      - name: prepare release artifacts 
-        run:  VERSION=${{ steps.version.outputs.version }} make release
-  
+
+      - name: prepare release artifacts
+        run: |
+          VERSION=${{ steps.version.outputs.version }} make release
+
       - name: Create draft release
         env:
           VERSION: ${{ steps.version.outputs.version }}
@@ -66,5 +76,3 @@ jobs:
         run: |
           gh release upload "${VERSION}" "./release-${VERSION}/cfapi-default-cr.yaml"
           gh release upload "${VERSION}" "./release-${VERSION}/cfapi-manager.yaml"
-      
-  

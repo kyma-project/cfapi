@@ -4,7 +4,6 @@ VERSION ?= 0.0.0
 #IMG ?= trinity.common.repositories.cloud.sap/kyma-module/cfapi-controller-$(VERSION)
 REGISTRY = ghcr.io
 IMG ?= kyma-project/cfapi/cfapi-controller
-BROKER_IMAGE ?= kyma-project/cfapi/cfapi-broker
 
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
 ENVTEST_K8S_VERSION = 1.24.1
@@ -83,7 +82,7 @@ run: manifests generate fmt vet ## Run a controller from your host.
 
 .PHONY: docker-build
 docker-build: ## Build docker image with the manager.
-	docker build -t ${REGISTRY}/${IMG} --build-arg TARGETARCH=amd64 --build-arg BROKER_IMAGE=${BROKER_IMAGE} .
+	docker build -t ${REGISTRY}/${IMG} --build-arg TARGETARCH=amd64 .
 	docker tag ${REGISTRY}/${IMG} ${REGISTRY}/${IMG}:${VERSION}
 
 .PHONY: docker-push
@@ -104,13 +103,14 @@ release: manifests kustomize
 	pushd config/manager && $(KUSTOMIZE) edit add label app.kubernetes.io/version:$(VERSION) --force --without-selector --include-templates && popd
 	$(KUSTOMIZE) build config/default > release-$(VERSION)/cfapi-manager.yaml
 
+
 ##@ Kubeconfig
 .PHONY: kubeconfig
-kubeconfig: 
+kubeconfig:
 	kubectl apply -f tools/kubeconfig/serviceaccount.yaml
 	kubectl wait --for=jsonpath='{.data.token}' secret/admin-serviceaccount
 	$(eval SA_TOKEN=$(kubectl get secret admin-serviceaccount -o=go-template='{{.data.token | base64decode}}'))
-	cp ~/.kube/config kubeconfig-sa.yaml 
+	cp ~/.kube/config kubeconfig-sa.yaml
 	yq -i ".users |= [{\"name\":\"admin-serviceaccount\", \"user\": {\"token\":\"$SA_TOKEN\"}}]" kubeconfig-sa.yaml
 	yq -i ".contexts[0].context.user |= \"admin-serviceaccount\"" kubeconfig-sa.yaml
 
@@ -148,7 +148,7 @@ uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified 
 	$(KUSTOMIZE) build config/crd | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
 
 .PHONY: system-namespace
-system-namespace: 
+system-namespace:
 	kubectl create namespace cfapi-system --dry-run=client -o yaml | kubectl apply -f -
 
 .PHONY: deploy

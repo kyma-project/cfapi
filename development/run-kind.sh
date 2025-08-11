@@ -252,23 +252,25 @@ install_cfapi() {
 
   pushd $ROOT_DIR
   {
-    make -C "components/btp-service-broker" docker-build IMAGE="$REGISTRY_URL/cfapi/cfapi-broker:$VERSION"
-    docker push "$REGISTRY_URL/cfapi/cfapi-broker:$VERSION"
+    make -C "components/btp-service-broker" docker-build REGISTRY=$REGISTRY_URL VERSION=$VERSION
+    make -C "components/btp-service-broker" docker-push REGISTRY=$REGISTRY_URL VERSION=$VERSION
+    make -C "components/btp-service-broker" release REGISTRY=$REGISTRY_URL VERSION=$VERSION
+    broker_incluster_image="$IN_CLUSTER_REGISTRY_URL/kyma-project/cfapi/cfapi-broker:$VERSION"
+    broker_incluster_image=$broker_incluster_image yq -i 'with(.broker; .image=env(broker_incluster_image))' components/btp-service-broker/release/helm/values.yaml
 
-    make docker-build REGISTRY=$REGISTRY_URL VERSION=$VERSION IMG="cfapi/cfapi-controller" BROKER_IMAGE="$IN_CLUSTER_REGISTRY_URL/cfapi/cfapi-broker:$VERSION"
-
-    cf_api_operator_image="$REGISTRY_URL/cfapi/cfapi-controller:$VERSION"
+    make docker-build REGISTRY=$REGISTRY_URL VERSION=$VERSION
+    cf_api_operator_image="$REGISTRY_URL/kyma-project/cfapi/cfapi-controller:$VERSION"
     docker build \
       --build-arg VERSION="$VERSION" \
       --build-arg REGISTRY="$REGISTRY_URL" \
-      --build-arg IMG="cfapi/cfapi-controller" \
+      --build-arg IMG="kyma-project/cfapi/cfapi-controller" \
       -t "$cf_api_operator_image" \
       -f "$SCRIPT_DIR/assets/Dockerfile" .
 
     docker push "$cf_api_operator_image"
 
     make build-manifests
-    cf_api_operator_incluster_image="$IN_CLUSTER_REGISTRY_URL/cfapi/cfapi-controller:$VERSION"
+    cf_api_operator_incluster_image="$IN_CLUSTER_REGISTRY_URL/kyma-project/cfapi/cfapi-controller:$VERSION"
     sed -i "s|image: .*|image: $cf_api_operator_incluster_image|" cfapi-operator.yaml
     kubectl apply -f cfapi-operator.yaml
     kubectl patch deployment -n cfapi-system cfapi-operator -p '{"spec": {"template": {"spec": {"imagePullSecrets": [{"name": "dockerregistry-config"}]}}}}'
