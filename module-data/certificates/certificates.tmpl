@@ -1,16 +1,10 @@
-{{ define "certificates" }}
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: korifi
----
 apiVersion: cert.gardener.cloud/v1alpha1
 kind: Certificate
 metadata:
   name: korifi-api-ingress-cert
   namespace: korifi
 spec:
-  commonName: {{ .CFDomain }}
+  commonName: "{{ .CFDomain }}"
   dnsNames:
   - "{{ .KorifiAPIDomain }}"
   - "*.{{ .AppsDomain }}"
@@ -24,7 +18,7 @@ metadata:
   name: korifi-workloads-ingress-cert
   namespace: korifi
 spec:
-  commonName: {{ .CFDomain }}
+  commonName: "{{ .CFDomain }}"
   dnsNames:
   - "*.{{ .AppsDomain }}"
   secretRef:
@@ -101,4 +95,3 @@ spec:
   secretRef:
     name: korifi-statefulset-runner-webhook-cert
     namespace: korifi
-{{ end }}

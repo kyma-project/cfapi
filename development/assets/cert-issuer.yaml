@@ -1,0 +1,16 @@
+apiVersion: cert.gardener.cloud/v1alpha1
+kind: Issuer
+metadata:
+  namespace: kyma-system
+  name: default-issuer
+spec:
+  selfSigned: {}
+
+---
+apiVersion: cert.gardener.cloud/v1alpha1
+kind: Issuer
+metadata:
+  namespace: kyma-system
+  name: kim-snatch-kyma
+spec:
+  selfSigned: {}
