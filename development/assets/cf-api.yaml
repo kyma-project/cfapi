@@ -1,0 +1,9 @@
+apiVersion: operator.kyma-project.io/v1alpha1
+kind: CFAPI
+metadata:
+  name: default-cf-api
+  namespace: cfapi-system
+spec:
+  rootNamespace: cf
+  uaa: $UAA_URL
+  appImagePullSecret: cfapi-registry-secret
