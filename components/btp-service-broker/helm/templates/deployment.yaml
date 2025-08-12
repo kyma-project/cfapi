@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   labels:
     app: btp-service-broker
-    app.kubernetes.io/component: cfapi-broker.kyma-project.io
+    app.kubernetes.io/component: btp-service-broker.cfapi.kyma-project.io
   name: btp-service-broker
   namespace: {{ .Release.Namespace }}
 spec:
@@ -11,12 +11,12 @@ spec:
   selector:
     matchLabels:
       app: btp-service-broker
-      app.kubernetes.io/component: cfapi-broker.kyma-project.io
+      app.kubernetes.io/component: btp-service-broker.cfapi.kyma-project.io
   template:
     metadata:
       labels:
         app: btp-service-broker
-        app.kubernetes.io/component: cfapi-broker.kyma-project.io
+        app.kubernetes.io/component: btp-service-broker.cfapi.kyma-project.io
     spec:
       containers:
       - image: "{{ .Values.broker.image }}"

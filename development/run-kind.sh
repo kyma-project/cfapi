@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -xeuo pipefail
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="$SCRIPT_DIR/.."
@@ -255,7 +255,7 @@ install_cfapi() {
     make -C "components/btp-service-broker" docker-build REGISTRY=$REGISTRY_URL VERSION=$VERSION
     make -C "components/btp-service-broker" docker-push REGISTRY=$REGISTRY_URL VERSION=$VERSION
     make -C "components/btp-service-broker" release REGISTRY=$REGISTRY_URL VERSION=$VERSION
-    broker_incluster_image="$IN_CLUSTER_REGISTRY_URL/kyma-project/cfapi/cfapi-broker:$VERSION"
+    broker_incluster_image="$IN_CLUSTER_REGISTRY_URL/kyma-project/cfapi/btp-service-broker:$VERSION"
     broker_incluster_image=$broker_incluster_image yq -i 'with(.broker; .image=env(broker_incluster_image))' components/btp-service-broker/release/helm/values.yaml
 
     make docker-build REGISTRY=$REGISTRY_URL VERSION=$VERSION
