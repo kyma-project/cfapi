@@ -1,7 +1,8 @@
 ENVTEST_K8S_VERSION = 1.24.1
 REGISTRY = ghcr.io
-IMG ?= kyma-project/cfapi/btp-service-broker
-VERSION ?= 0.0.0
+IMG = kyma-project/cfapi/btp-service-broker
+VERSION = 0.0.0
+RELEASE_DIR =release/$(VERSION)
 
 
 .PHONY: test
@@ -10,7 +11,7 @@ test: envtest
 
 .PHONY: docker-build
 docker-build:
-	docker build -t ${REGISTRY}/${IMG} .
+	docker build --build-arg VERSION=${VERSION} -t ${REGISTRY}/${IMG} .
 	docker tag ${REGISTRY}/${IMG} ${REGISTRY}/${IMG}:${VERSION}
 
 .PHONY: docker-push
@@ -22,11 +23,10 @@ endif
 
 .PHONY: release
 release: bin/yq
-	rm -rf release
-	mkdir -p release
-	$(eval IMG_SHA = $(shell docker inspect --format='{{index .RepoDigests 0}}' ${REGISTRY}/${IMG}))
-	cp -a helm release
-	IMG_SHA=$(IMG_SHA) yq -i 'with(.broker; .image=env(IMG_SHA))' release/helm/values.yaml
+	rm -rf $(RELEASE_DIR)
+	mkdir -p $(RELEASE_DIR)
+	cp -a helm $(RELEASE_DIR)
+	IMG_SHA=$(shell docker inspect --format='{{index .RepoDigests 0}}' ${REGISTRY}/${IMG}) yq -i 'with(.broker; .image=env(IMG_SHA))' $(RELEASE_DIR)/helm/values.yaml
 
 ##@ Tools
 

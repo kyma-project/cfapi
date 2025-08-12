@@ -1,4 +1,4 @@
-FROM golang:1.24-alpine as builder
+FROM golang:1.24-alpine AS builder
 ARG TARGETOS
 ARG TARGETARCH
 
@@ -19,6 +19,7 @@ RUN go mod download
 RUN apk add curl
 
 ARG TAG_default_tag=from_dockerfile
+ARG BTP_SERVICE_BROKER_RELEASE_DIR
 
 # Build
 # the GOARCH has not a default value to allow the binary be built according to the host where the command
@@ -31,6 +32,7 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -ldflags
 ENV VERSION_KPACK=0.17.0
 ENV VERSION_GATEWAY_API=1.3.0
 ENV VERSION_KORIFI=0.16.0
+ENV BTP_SERVICE_BROKER_RELEASE_DIR=${BTP_SERVICE_BROKER_RELEASE_DIR}
 
 WORKDIR /workspace/module-data/kpack
 RUN curl -OLf https://github.com/buildpacks-community/kpack/releases/download/v$VERSION_KPACK/release-$VERSION_KPACK.yaml
@@ -42,7 +44,7 @@ WORKDIR /workspace/module-data/korifi
 RUN curl -OLf https://github.com/cloudfoundry/korifi/releases/download/v$VERSION_KORIFI/korifi-$VERSION_KORIFI.tgz
 
 WORKDIR /workspace/module-data/btp-service-broker
-COPY components/btp-service-broker/release/helm helm
+COPY $BTP_SERVICE_BROKER_RELEASE_DIR/helm helm
 
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details

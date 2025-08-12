@@ -1,9 +1,13 @@
 # Image URL to use all building/pushing image targets
 #IMG ?= controller:latest
-VERSION ?= 0.0.0
+VERSION = 0.0.0
 #IMG ?= trinity.common.repositories.cloud.sap/kyma-module/cfapi-controller-$(VERSION)
 REGISTRY = ghcr.io
 IMG ?= kyma-project/cfapi/cfapi-controller
+
+RELEASE_DIR ?= release/$(VERSION)
+CFAPI_RELEASE_DIR ?= $(RELEASE_DIR)/cfapi
+BTP_SERVICE_BROKER_RELEASE_DIR ?= $(RELEASE_DIR)/btp-service-broker
 
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
 ENVTEST_K8S_VERSION = 1.24.1
@@ -82,7 +86,7 @@ run: manifests generate fmt vet ## Run a controller from your host.
 
 .PHONY: docker-build
 docker-build: ## Build docker image with the manager.
-	docker build -t ${REGISTRY}/${IMG} --build-arg TARGETARCH=amd64 .
+	docker build -t ${REGISTRY}/${IMG} --build-arg TARGETARCH=amd64 --build-arg BTP_SERVICE_BROKER_RELEASE_DIR=$(BTP_SERVICE_BROKER_RELEASE_DIR) .
 	docker tag ${REGISTRY}/${IMG} ${REGISTRY}/${IMG}:${VERSION}
 
 .PHONY: docker-push
@@ -90,18 +94,34 @@ docker-push: ## Push docker image with the manager.
 ifneq (,$(GCR_DOCKER_PASSWORD))
 	docker login $(IMG_REGISTRY) -u oauth2accesstoken --password $(GCR_DOCKER_PASSWORD)
 endif
-	docker push --all-tags ${REGISTRY}/${IMG}
+	docker push ${REGISTRY}/${IMG}:${VERSION}
 
 ##@ Release
+
 .PHONY: release
 release: manifests kustomize
-	rm -rf release-$(VERSION)
-	mkdir -p release-$(VERSION)
-	$(eval IMG_SHA = $(shell docker inspect --format='{{index .RepoDigests 0}}' ${REGISTRY}/${IMG}))
-	cp default-cr.yaml release-$(VERSION)/cfapi-default-cr.yaml
-	pushd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG_SHA) && popd
-	pushd config/manager && $(KUSTOMIZE) edit add label app.kubernetes.io/version:$(VERSION) --force --without-selector --include-templates && popd
-	$(KUSTOMIZE) build config/default > release-$(VERSION)/cfapi-manager.yaml
+	make btp-service-broker-release cfapi-release
+
+btp-service-broker-release:
+	rm -rf $(BTP_SERVICE_BROKER_RELEASE_DIR)
+	mkdir -p $(BTP_SERVICE_BROKER_RELEASE_DIR)
+	make -C components/btp-service-broker docker-build
+	make -C components/btp-service-broker docker-push
+	make -C components/btp-service-broker release RELEASE_DIR=$(shell pwd)/$(BTP_SERVICE_BROKER_RELEASE_DIR)
+
+cfapi-release:
+	rm -rf $(CFAPI_RELEASE_DIR)
+	mkdir -p $(CFAPI_RELEASE_DIR)
+	make docker-build
+	make docker-push
+
+	$(shell mkdir -p $(RELEASE_DIR)/tmp && cp -a config $(RELEASE_DIR)/tmp)
+
+	cp default-cr.yaml $(CFAPI_RELEASE_DIR)/cfapi-default-cr.yaml
+
+	pushd $(RELEASE_DIR)/tmp/config/manager && $(KUSTOMIZE) edit set image controller=$(shell docker inspect --format='{{index .RepoDigests 0}}' ${REGISTRY}/${IMG}) && popd
+	pushd $(RELEASE_DIR)/tmp/config/manager && $(KUSTOMIZE) edit add label app.kubernetes.io/version:$(VERSION) --force --without-selector --include-templates && popd
+	$(KUSTOMIZE) build $(RELEASE_DIR)/tmp/config/default > $(CFAPI_RELEASE_DIR)/cfapi-operator.yaml
 
 
 ##@ Kubeconfig
@@ -216,10 +236,6 @@ lint: ## Download & Build & Run golangci-lint against code.
 configure-git-origin:
 	@git remote | grep '^origin$$' -q || \
 		git remote add origin https://github.com/kyma-project/cfapi
-
-.PHONY: build-manifests
-build-manifests: manifests kustomize ## Install CRDs into the K8s cluster specified in ~/.kube/config.
-	$(KUSTOMIZE) build config/default > cfapi-operator.yaml
 
 DEFAULT_CR ?= $(shell pwd)/config/samples/default-sample-cr.yaml
 .PHONY: build-module
