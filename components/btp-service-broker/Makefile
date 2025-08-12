@@ -1,6 +1,6 @@
 ENVTEST_K8S_VERSION = 1.24.1
 REGISTRY = ghcr.io
-IMG ?= kyma-project/cfapi/cfapi-broker
+IMG ?= kyma-project/cfapi/btp-service-broker
 VERSION ?= 0.0.0
 
 

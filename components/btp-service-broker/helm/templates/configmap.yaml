@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   labels:
-    app.kubernetes.io/component: cfapi-broker.kyma-project.io
+    app.kubernetes.io/component: btp-service-broker.cfapi.kyma-project.io
   name: btp-service-broker-config
   namespace: {{ .Release.Namespace }}
 data:

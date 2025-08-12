@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   labels:
-    app.kubernetes.io/component: cfapi-broker.kyma-project.io
+    app.kubernetes.io/component: btp-service-broker.cfapi.kyma-project.io
   name: btp-service-broker
   namespace: {{ .Release.Namespace }}
 imagePullSecrets:
@@ -13,7 +13,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   labels:
-    app.kubernetes.io/component: cfapi-broker.kyma-project.io
+    app.kubernetes.io/component: btp-service-broker.cfapi.kyma-project.io
   name: btp-service-broker
 rules:
 - apiGroups:
@@ -57,7 +57,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   labels:
-    app.kubernetes.io/component: cfapi-broker.kyma-project.io
+    app.kubernetes.io/component: btp-service-broker.cfapi.kyma-project.io
   name: btp-service-broker-service-catalog-access
 rules:
 - apiGroups:
@@ -71,7 +71,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   labels:
-    app.kubernetes.io/component: cfapi-broker.kyma-project.io
+    app.kubernetes.io/component: btp-service-broker.cfapi.kyma-project.io
   name: btp-service-broker
   namespace: {{ .Release.Namespace }}
 roleRef:
@@ -87,7 +87,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   labels:
-    app.kubernetes.io/component: cfapi-broker.kyma-project.io
+    app.kubernetes.io/component: btp-service-broker.cfapi.kyma-project.io
   name: btp-service-broker-service-catalog-access
   namespace: kyma-system
 roleRef:
