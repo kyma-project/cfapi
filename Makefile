@@ -40,9 +40,6 @@ endif
 SHELL = /usr/bin/env bash -o pipefail
 .SHELLFLAGS = -ec
 
-.PHONY: all
-all: build
-
 ##@ General
 
 # The help target prints out all targets with their descriptions organized
@@ -56,21 +53,17 @@ all: build
 # More info on the awk command:
 # http://linuxcommand.org/lc3_adv_awk.php
 
-.PHONY: help
 help: ## Display this help.
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
 ##@ Development
 
-.PHONY: manifests
 manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
 	$(CONTROLLER_GEN) crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 
-.PHONY: generate
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
-.PHONY: test
 test: manifests generate fmt vet envtest
 	make -C components/btp-service-broker fmt vet
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" go run github.com/onsi/ginkgo/v2/ginkgo -r --output-interceptor-mode=none --randomize-all --randomize-suites
@@ -87,7 +80,6 @@ endif
 
 ##@ Release
 
-.PHONY: release
 release: manifests kustomize
 	make btp-service-broker-release cfapi-release
 
@@ -147,18 +139,17 @@ $(ENVTEST): $(LOCALBIN)
 ##@ Checks
 
 ########## static code checks ###########
-.PHONY: fmt
 fmt: ## Run go fmt against code.
 	go fmt ./...
 
-.PHONY: vet
 vet: ## Run go vet against code.
 	go vet ./...
 
-GOLANG_CI_LINT = $(LOCALBIN)/golangci-lint
-GOLANG_CI_LINT_VERSION ?= v1.56.2
-.PHONY: lint
-lint: ## Download & Build & Run golangci-lint against code.
-	GOBIN=$(LOCALBIN) go install github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLANG_CI_LINT_VERSION)
-	$(LOCALBIN)/golangci-lint run
+lint: golangci-lint
 
+bin/golangci-lint:
+	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+
+golangci-lint: bin/golangci-lint
+	make -C components/btp-service-broker lint
+	golangci-lint run

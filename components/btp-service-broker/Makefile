@@ -38,6 +38,8 @@ fmt: ## Run go fmt against code.
 vet: ## Run go vet against code.
 	go vet ./...
 
+lint: golangci-lint
+
 ## Location to install dependencies to
 LOCALBIN ?= $(shell pwd)/bin
 $(LOCALBIN):
@@ -61,3 +63,9 @@ vendir: bin/vendir
 
 bin/yq: bin
 	go install github.com/mikefarah/yq/v4@latest
+
+bin/golangci-lint:
+	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+
+golangci-lint: bin/golangci-lint
+	golangci-lint run
