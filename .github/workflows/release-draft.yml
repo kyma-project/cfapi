@@ -11,6 +11,24 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
+  linter:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+    - uses: actions/setup-go@v5
+      with:
+        go-version: 'stable'
+    - name: Run linters
+      run: make lint
+
   build:
     runs-on: [ ubuntu-latest ]
 
@@ -23,12 +41,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-
-      - name: golangci-lint
-        uses: golangci/golangci-lint-action@v6.1.0
-        with:
-          version: v1.60
-          args: --timeout=10m
 
       - name: Log in to the Container registry
         uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
@@ -43,7 +55,7 @@ jobs:
 
       - name: prepare release artifacts
         run: |
-          VERSION=${{ steps.version.outputs.version }} make release
+          VERSION=${{ steps.version.outputs.version }} make release VERSION=${VERSION}
 
       - name: Create draft release
         env:
@@ -51,7 +63,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          gh release create "${VERSION}" --title "CFAPI Kyma Module" --draft --notes-file RELEASE.md
+          gh release create "${VERSION}" --title "CFAPI Kyma Module ${VERSION}" --draft
 
       - name: Upload release artifacts
         env:

@@ -1,9 +1,0 @@
-name: kyma-project.io/module/cfapi
-channel: experimental
-version: 0.2.0
-defaultCR: cfapi-default-cr.yaml
-manifest: cfapi-manager.yaml
-annotations:
-  "operator.kyma-project.io/doc-url": "https://github.com/kyma-project/cfapi/blob/main/README.md"
-moduleRepo: https://github.com/kyma-project/cfapi.git
-moduleSecurityScanConfig: false
