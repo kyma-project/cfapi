@@ -71,25 +71,14 @@ generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
 .PHONY: test
-test: manifests generate fmt vet envtest ## Run tests.
-	ACK_GINKGO_DEPRECATIONS=1.16.5 KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" go test ./... -coverprofile cover.out
+test: manifests generate fmt vet envtest
+	make -C components/btp-service-broker fmt vet
+	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" go run github.com/onsi/ginkgo/v2/ginkgo -r --output-interceptor-mode=none --randomize-all --randomize-suites
 
-##@ Build
-
-.PHONY: build
-build: generate fmt vet lint ## Build manager binary.
-	go build -o bin/manager main.go
-
-.PHONY: run
-run: manifests generate fmt vet ## Run a controller from your host.
-	go run ./main.go
-
-.PHONY: docker-build
 docker-build: ## Build docker image with the manager.
 	docker build -t ${REGISTRY}/${IMG} --build-arg TARGETARCH=amd64 --build-arg BTP_SERVICE_BROKER_RELEASE_DIR=$(BTP_SERVICE_BROKER_RELEASE_DIR) .
 	docker tag ${REGISTRY}/${IMG} ${REGISTRY}/${IMG}:${VERSION}
 
-.PHONY: docker-push
 docker-push: ## Push docker image with the manager.
 ifneq (,$(GCR_DOCKER_PASSWORD))
 	docker login $(IMG_REGISTRY) -u oauth2accesstoken --password $(GCR_DOCKER_PASSWORD)
@@ -124,65 +113,6 @@ cfapi-release:
 	$(KUSTOMIZE) build $(RELEASE_DIR)/tmp/config/default > $(CFAPI_RELEASE_DIR)/cfapi-operator.yaml
 
 
-##@ Kubeconfig
-.PHONY: kubeconfig
-kubeconfig:
-	kubectl apply -f tools/kubeconfig/serviceaccount.yaml
-	kubectl wait --for=jsonpath='{.data.token}' secret/admin-serviceaccount
-	$(eval SA_TOKEN=$(kubectl get secret admin-serviceaccount -o=go-template='{{.data.token | base64decode}}'))
-	cp ~/.kube/config kubeconfig-sa.yaml
-	yq -i ".users |= [{\"name\":\"admin-serviceaccount\", \"user\": {\"token\":\"$SA_TOKEN\"}}]" kubeconfig-sa.yaml
-	yq -i ".contexts[0].context.user |= \"admin-serviceaccount\"" kubeconfig-sa.yaml
-
-
-##@ Deployment
-
-ifndef ignore-not-found
-  ignore-not-found = false
-endif
-
-.PHONY: provision
-provision: kyma
-	${KYMA} provision --ci k3d
-	kubectl create namespace cfapi-system
-
-.PHONY: install-istio
-install-istio: system-namespace
-	kubectl label namespace cfapi-system istio-injection=enabled --overwrite
-	kubectl apply -f https://github.com/kyma-project/istio/releases/latest/download/istio-manager.yaml
-	kubectl apply -f module-data/istio/istio-default-cr.yaml
-
-.PHONY: install-istio-experimental
-install-istio-experimental: system-namespace
-	kubectl label namespace cfapi-system istio-injection=enabled --overwrite
-	kubectl apply -f https://github.com/kyma-project/istio/releases/latest/download/istio-manager-experimental.yaml
-	kubectl apply -f module-data/istio/istio-default-cr-experimental.yaml
-
-
-.PHONY: install
-install: manifests kustomize ## Install CRDs into the K8s cluster specified in ~/.kube/config.
-	$(KUSTOMIZE) build config/crd | kubectl apply -f -
-
-.PHONY: uninstall
-uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
-	$(KUSTOMIZE) build config/crd | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
-
-.PHONY: system-namespace
-system-namespace:
-	kubectl create namespace cfapi-system --dry-run=client -o yaml | kubectl apply -f -
-
-.PHONY: deploy
-deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
-	cd config/manager && $(KUSTOMIZE) edit set image controller=${REGISTRY}/${IMG}
-	$(KUSTOMIZE) build config/default | kubectl apply -f -
-
-.PHONY: deploy-cr
-deploy-cr: manifests
-	kubectl apply -f default-cr.yaml
-
-.PHONY: undeploy
-undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
-	$(KUSTOMIZE) build config/default | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
 
 ##@ Tools
 
@@ -232,40 +162,3 @@ lint: ## Download & Build & Run golangci-lint against code.
 	GOBIN=$(LOCALBIN) go install github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLANG_CI_LINT_VERSION)
 	$(LOCALBIN)/golangci-lint run
 
-.PHONY: configure-git-origin
-configure-git-origin:
-	@git remote | grep '^origin$$' -q || \
-		git remote add origin https://github.com/kyma-project/cfapi
-
-DEFAULT_CR ?= $(shell pwd)/config/samples/default-sample-cr.yaml
-.PHONY: build-module
-build-module: kyma build-manifests configure-git-origin ## Build the Module and push it to a registry defined in MODULE_REGISTRY
-	#################################################################
-	## Building module with:
-	# - image: ${IMG}
-	# - channel: ${MODULE_CHANNEL}
-	# - name: kyma-project.io/module/$(MODULE_NAME)
-	# - version: $(MODULE_VERSION)
-	echo "running alpha create"
-	@$(KYMA) alpha create module --path . --output=module-template.yaml --module-config-file=module-config.yaml $(MODULE_CREATION_FLAGS)
-
-########## Kyma CLI ###########
-KYMA_STABILITY ?= unstable
-
-# $(call os_error, os-type, os-architecture)
-define os_error
-$(error Error: unsuported platform OS_TYPE:$1, OS_ARCH:$2; to mitigate this problem set variable KYMA with absolute path to kyma-cli binary compatible with your operating system and architecture)
-endef
-
-KYMA_FILE_NAME ?= $(shell ./scripts/local/get_kyma_file_name.sh)
-KYMA ?= $(LOCALBIN)/kyma-$(KYMA_STABILITY)
-
-.PHONY: kyma
-kyma: $(LOCALBIN) $(KYMA) ## Download kyma CLI locally if necessary.
-$(KYMA):
-	#################################################################
-	$(if $(KYMA_FILE_NAME),,$(call os_error, ${OS_TYPE}, ${OS_ARCH}))
-	## Downloading Kyma CLI: https://storage.googleapis.com/kyma-cli-$(KYMA_STABILITY)/$(KYMA_FILE_NAME)
-	test -f $@ || curl -s -Lo $(KYMA) https://storage.googleapis.com/kyma-cli-$(KYMA_STABILITY)/$(KYMA_FILE_NAME)
-	chmod 0100 $(KYMA)
-	${KYMA} version -c

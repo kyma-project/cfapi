@@ -6,8 +6,8 @@ RELEASE_DIR =release/$(VERSION)
 
 
 .PHONY: test
-test: envtest
-	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" ginkgo -r -coverprofile cover.out
+test: envtest fmt vet
+	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" go run github.com/onsi/ginkgo/v2/ginkgo -r --output-interceptor-mode=none --randomize-all --randomize-suites
 
 .PHONY: docker-build
 docker-build:
@@ -29,6 +29,14 @@ release: bin/yq
 	IMG_SHA=$(shell docker inspect --format='{{index .RepoDigests 0}}' ${REGISTRY}/${IMG}) yq -i 'with(.broker; .image=env(IMG_SHA))' $(RELEASE_DIR)/helm/values.yaml
 
 ##@ Tools
+########## static code checks ###########
+.PHONY: fmt
+fmt: ## Run go fmt against code.
+	go fmt ./...
+
+.PHONY: vet
+vet: ## Run go vet against code.
+	go vet ./...
 
 ## Location to install dependencies to
 LOCALBIN ?= $(shell pwd)/bin
