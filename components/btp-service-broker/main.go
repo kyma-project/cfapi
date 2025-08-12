@@ -20,6 +20,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+//nolint:gochecknoglobals
+var buildVersion = "not_provided"
+
 func init() {
 	utilruntime.Must(btpv1.AddToScheme(scheme.Scheme))
 }
@@ -44,6 +47,7 @@ func loadConfig() (config, error) {
 }
 
 func main() {
+	slog.Info("Starting BTP Service Broker", "version", buildVersion)
 	serverConfig, err := loadConfig()
 	if err != nil {
 		slog.Error("Failed to load configuration", "error", err)

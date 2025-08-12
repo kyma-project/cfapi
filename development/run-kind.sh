@@ -19,11 +19,12 @@ SECRET_DIR="$SCRIPT_DIR/assets/secrets"
 SSL_DIR="$SECRET_DIR/ssl"
 mkdir -p "$SSL_DIR"
 
-RELEASE_OUTPUT_DIR="$SCRIPT_DIR/release-output"
-RELEASE_ARTIFACTS_DIR="$RELEASE_OUTPUT_DIR/korifi-$VERSION"
+rm -rf "$ROOT_DIR/release"
+RELEASE_OUTPUT_DIR="$ROOT_DIR/release/$VERSION"
+KORIFI_RELEASE_ARTIFACTS_DIR="$RELEASE_OUTPUT_DIR/korifi-$VERSION"
 
 rm -rf "$RELEASE_OUTPUT_DIR"
-mkdir -p "$RELEASE_ARTIFACTS_DIR"
+mkdir -p "$KORIFI_RELEASE_ARTIFACTS_DIR"
 
 KYMA_TLS_PORT=8443
 KYMA_GW_TLS_PORT=31443
@@ -208,9 +209,9 @@ build_korifi() {
 
   kbld_file="scripts/assets/korifi-kbld.yml"
 
-  values_file=""$RELEASE_ARTIFACTS_DIR"/values.yaml"
+  values_file=""$KORIFI_RELEASE_ARTIFACTS_DIR"/values.yaml"
 
-  CHART_VERSION="0.0.0-$VERSION" yq -i 'with(.; .version=env(CHART_VERSION))' "$RELEASE_ARTIFACTS_DIR/Chart.yaml"
+  CHART_VERSION="0.0.0-$VERSION" yq -i 'with(.; .version=env(CHART_VERSION))' "$KORIFI_RELEASE_ARTIFACTS_DIR/Chart.yaml"
   yq "with(.sources[]; .docker.buildx.rawOptions += [\"--build-arg\", \"version=$VERSION\"])" $kbld_file |
     kbld \
       --images-annotation=false \
@@ -231,7 +232,7 @@ build_korifi() {
 build_korifi_release_chart() {
   pushd "$KORIFI_DIR"
   {
-    cp -a helm/korifi/* "$RELEASE_ARTIFACTS_DIR"
+    cp -a helm/korifi/* "$KORIFI_RELEASE_ARTIFACTS_DIR"
     build_korifi
   }
   popd
@@ -252,14 +253,12 @@ install_cfapi() {
 
   pushd $ROOT_DIR
   {
-    make -C "components/btp-service-broker" docker-build REGISTRY=$REGISTRY_URL VERSION=$VERSION
-    make -C "components/btp-service-broker" docker-push REGISTRY=$REGISTRY_URL VERSION=$VERSION
-    make -C "components/btp-service-broker" release REGISTRY=$REGISTRY_URL VERSION=$VERSION
-    broker_incluster_image="$IN_CLUSTER_REGISTRY_URL/kyma-project/cfapi/btp-service-broker:$VERSION"
-    broker_incluster_image=$broker_incluster_image yq -i 'with(.broker; .image=env(broker_incluster_image))' components/btp-service-broker/release/helm/values.yaml
+    make release REGISTRY=$REGISTRY_URL VERSION=$VERSION
 
-    make docker-build REGISTRY=$REGISTRY_URL VERSION=$VERSION
-    cf_api_operator_image="$REGISTRY_URL/kyma-project/cfapi/cfapi-controller:$VERSION"
+    broker_incluster_image="$IN_CLUSTER_REGISTRY_URL/kyma-project/cfapi/btp-service-broker:$VERSION"
+    broker_incluster_image=$broker_incluster_image yq -i 'with(.broker; .image=env(broker_incluster_image))' release/$VERSION/btp-service-broker/helm/values.yaml
+
+    cf_api_operator_image="$REGISTRY_URL/kyma-project/cfapi/cfapi-controller:$VERSION-kind"
     docker build \
       --build-arg VERSION="$VERSION" \
       --build-arg REGISTRY="$REGISTRY_URL" \
@@ -269,10 +268,9 @@ install_cfapi() {
 
     docker push "$cf_api_operator_image"
 
-    make build-manifests
-    cf_api_operator_incluster_image="$IN_CLUSTER_REGISTRY_URL/kyma-project/cfapi/cfapi-controller:$VERSION"
-    sed -i "s|image: .*|image: $cf_api_operator_incluster_image|" cfapi-operator.yaml
-    kubectl apply -f cfapi-operator.yaml
+    cf_api_operator_incluster_image="$IN_CLUSTER_REGISTRY_URL/kyma-project/cfapi/cfapi-controller:$VERSION-kind"
+    sed -i "s|image: .*|image: $cf_api_operator_incluster_image|" release/$VERSION/cfapi/cfapi-operator.yaml
+    kubectl apply -f release/$VERSION/cfapi/cfapi-operator.yaml
     kubectl patch deployment -n cfapi-system cfapi-operator -p '{"spec": {"template": {"spec": {"imagePullSecrets": [{"name": "dockerregistry-config"}]}}}}'
 
     cat "$SCRIPT_DIR/assets/cf-api.yaml" | envsubst | kubectl apply -f -
