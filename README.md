@@ -4,7 +4,7 @@
 
 ## Overview
 CF API Kyma Module is providing a CF API to run on top of Kyma, using the open source [Korifi](https://github.com/cloudfoundry/korifi) project
-Once installed, one could use the cf cli to connect and deploy workloads. 
+Once installed, one could use the cf cli to connect and deploy workloads.
 
 ## Custom Resource (CR) Specification
 | Property | Optional | Default | Description |
@@ -19,12 +19,11 @@ Once installed, one could use the cf cli to connect and deploy workloads.
 
   That is normally installed on a SAP managed Kyma
 * **Docker Registry**
-  
+
   That is an external docker registry needed for storing/loading application images. If not specified in the CFAPI CR, the CFAPI kyma module deploys a local registry (Dockerregistry CR) which is defined in the docker-registry kyma module, see https://github.com/kyma-project/docker-registry. The local docker registry is not suitable for large-scale productive setups.
 * **UAA**
 
   A running UAA server is a must for CFAPI installation. In case of SAP managed Kyma, the UAA is already installed so no additional installation required.
-  
 
 ## Installation
 1. ### Setup a Kyma environment ###
@@ -39,7 +38,7 @@ kubectl apply -f https://github.com/kyma-project/istio/releases/latest/download/
 kubectl apply -f https://github.com/kyma-project/istio/releases/latest/download/istio-default-cr.yaml
 ```
 
-3. ### [Maybe] deploy docker registry module
+3. ### Optionally deploy docker registry module
 In case you want to use an existing docker registry, you do not need to install that.
 In all other cases, see https://github.com/kyma-project/docker-registry/blob/main/docs/user/README.md
 ```
@@ -51,11 +50,11 @@ kubectl apply -f https://github.com/kyma-project/docker-registry/releases/latest
 Deploy the resources from a particular release /in the example below 0.2.0/ version to kyma
 ```
 kubectl create namespace cfapi-system
-kubectl apply -f https://github.com/kyma-project/cfapi/releases/download/0.2.0/cfapi-manager.yaml
-kubectl apply -f https://github.com/kyma-project/cfapi/releases/download/0.2.0/cfapi-default-cr.yaml
+kubectl apply -f https://github.com/kyma-project/cfapi/releases/latest/download/cfapi-operator.yaml
+kubectl apply -f https://github.com/kyma-project/cfapi/releases/latest/download/cfapi-default-cr.yaml
 ```
 
-  Wait for a Ready state of the CFAPI resource and read the CF URL 
+  Wait for a Ready state of the CFAPI resource and read the CF URL
 ```
 kubectl get -n cfapi-system cfapi
 NAME             STATE   URL
@@ -64,15 +63,40 @@ default-cf-api   Ready   https://cfapi.cc6e362.kyma.ondemand.com
 
 5.  ### CF login ###
 
-    Set cf cli to point to CF API 
+    Set cf cli to point to CF API
 ```
-cf login --sso -a https://cfapi.cc6e362.kyma.ondemand.com 
+cf login --sso -a https://cfapi.cc6e362.kyma.ondemand.com
 ```
 
-   
 ## Usage
 
-Use CF cli to deploy applications as on a normal CF. The buildpacks used are native community buildpacks. 
+Use CF cli to deploy applications as on a normal CF. The buildpacks used are native community buildpacks.
+
+### Consuming BTP Managed Services
+
+The CFAPI module installs a service broker that allows users consume BTP managed services in their applications. To view available services, run
+
+```
+cf service-access
+```
+
+By default the services are not enabled. To enable a service (for example `xsuaa`), run
+
+```
+cf enable-service-access xsuaa -p application
+```
+
+The service above is now available in the marketplace:
+
+```
+cf marketplace
+Getting all service offerings from marketplace in org org / space space
+
+offering   plans         description                                                          broker
+xsuaa      application   Manage application authorizations and trust to identity providers.   BTP
+```
+
+See the [documentation](https://docs.cloudfoundry.org/devguide/services/managing-services.html) on how to create a service instance and bind applications to instances.
 
 ## Development
 
