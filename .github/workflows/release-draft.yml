@@ -8,7 +8,6 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
   linter:
@@ -54,8 +53,10 @@ jobs:
         id: version
 
       - name: prepare release artifacts
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
         run: |
-          VERSION=${{ steps.version.outputs.version }} make release VERSION=${VERSION}
+          make release VERSION=${VERSION} REGISTRY=${REGISTRY}
 
       - name: Create draft release
         env:
@@ -63,7 +64,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          gh release create "${VERSION}" --title "CFAPI Kyma Module ${VERSION}" --draft
+          gh release create "${VERSION}" --draft
 
       - name: Upload release artifacts
         env:
