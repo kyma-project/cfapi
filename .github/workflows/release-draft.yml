@@ -85,7 +85,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          gh release create "${VERSION}" --draft
+          gh release create "${VERSION}" --draft --title "${VERSION}"
 
       - name: Upload release artifacts
         env:
