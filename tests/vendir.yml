@@ -13,3 +13,9 @@ directories:
     includePaths:
       - manifests/charts/base/files/crd-all.gen.yaml
     newRootPath: manifests/charts/base/files
+  - path: docker-registry
+    githubRelease:
+      slug: kyma-project/docker-registry
+      latest: true
+      disableAutoChecksumValidation: true
+      assetNames: ["dockerregistry-operator.yaml"]

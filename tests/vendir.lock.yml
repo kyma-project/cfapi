@@ -7,5 +7,9 @@ directories:
       tags:
       - 1.27.0
     path: istio
+  - githubRelease:
+      tag: 0.8.0
+      url: https://api.github.com/repos/kyma-project/docker-registry/releases/234139018
+    path: docker-registry
   path: vendor
 kind: LockConfig

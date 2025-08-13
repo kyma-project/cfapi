@@ -97,13 +97,6 @@ func main() {
 		os.Exit(0)
 	}
 
-	rateLimiter := controllers.RateLimiter{
-		Burst:           flagVar.rateLimiterBurst,
-		Frequency:       flagVar.rateLimiterFrequency,
-		BaseDelay:       flagVar.failureBaseDelay,
-		FailureMaxDelay: flagVar.failureMaxDelay,
-	}
-
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
@@ -129,7 +122,7 @@ func main() {
 		EventRecorder:      mgr.GetEventRecorderFor(operatorName),
 		FinalState:         v1alpha1.State(flagVar.finalState),
 		FinalDeletionState: v1alpha1.State(flagVar.finalDeletionState),
-	}).SetupWithManager(mgr, rateLimiter); err != nil {
+	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Sample")
 		os.Exit(1)
 	}

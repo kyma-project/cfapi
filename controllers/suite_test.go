@@ -27,6 +27,8 @@ import (
 	"testing"
 	"time"
 
+	"istio.io/api/networking/v1alpha3"
+	istiogw "istio.io/client-go/pkg/apis/networking/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -34,7 +36,9 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"istio.io/istio/pkg/kube"
 	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -75,18 +79,12 @@ var _ = BeforeSuite(func() {
 	ctx, cancel = context.WithCancel(context.Background())
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
 
-	rateLimiter := controllers.RateLimiter{
-		Burst:           rateLimiterBurstDefault,
-		Frequency:       rateLimiterFrequencyDefault,
-		BaseDelay:       failureBaseDelayDefault,
-		FailureMaxDelay: failureMaxDelayDefault,
-	}
-
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{
 		CRDDirectoryPaths: []string{
 			filepath.Join("..", "config", "crd", "bases"),
-			filepath.Join("..", "vendir", "vendor", "istio", "crd-all.gen.yaml"),
+			filepath.Join("..", "tests", "vendor", "istio", "crd-all.gen.yaml"),
+			filepath.Join("..", "tests", "vendor", "docker-registry", "dockerregistry-operator.yaml"),
 		},
 		ErrorIfCRDPathMissing: true,
 	}
@@ -121,7 +119,7 @@ var _ = BeforeSuite(func() {
 		FinalDeletionState: operatorkymaprojectiov1alpha1.StateDeleting,
 	}
 
-	err = reconciler.SetupWithManager(k8sManager, rateLimiter)
+	err = reconciler.SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
 	go func() {
@@ -135,6 +133,8 @@ var _ = BeforeSuite(func() {
 			Name: "kyma-system",
 		},
 	})).To(Succeed())
+
+	createKymaGateway(ctx, cfg)
 })
 
 var _ = AfterSuite(func() {
@@ -144,3 +144,28 @@ var _ = AfterSuite(func() {
 	err := testEnv.Stop()
 	Expect(err).NotTo(HaveOccurred())
 })
+
+func createKymaGateway(ctx context.Context, config *rest.Config) {
+	istioClient, err := kube.NewClient(kube.NewClientConfigForRestConfig(config), "")
+	Expect(err).NotTo(HaveOccurred())
+
+	_, err = istioClient.Istio().NetworkingV1beta1().Gateways("kyma-system").Create(ctx, &istiogw.Gateway{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "kyma-system",
+			Name:      "kyma-gateway",
+		},
+		Spec: v1alpha3.Gateway{
+			Servers: []*v1alpha3.Server{{
+				Hosts: []string{
+					"*.kind-127-0-0-1.nip.io",
+				},
+				Port: &v1alpha3.Port{
+					Number:   8443,
+					Protocol: "HTTPS",
+					Name:     "https",
+				},
+			}},
+		},
+	}, metav1.CreateOptions{})
+	Expect(err).NotTo(HaveOccurred())
+}

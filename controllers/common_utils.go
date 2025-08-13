@@ -14,23 +14,13 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"golang.org/x/time/rate"
 	errors2 "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/sets"
 	yamlUtil "k8s.io/apimachinery/pkg/util/yaml"
-	"k8s.io/client-go/util/workqueue"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/ratelimiter"
 	"sigs.k8s.io/yaml"
 )
-
-type RateLimiter struct {
-	Burst           int
-	Frequency       int
-	BaseDelay       time.Duration
-	FailureMaxDelay time.Duration
-}
 
 const (
 	requeueInterval = time.Hour * 1
@@ -43,7 +33,6 @@ func (r *CFAPIReconciler) installOneGlob(ctx context.Context, pattern string) er
 	logger := log.FromContext(ctx)
 	logger.Info("Installing", "glob", pattern)
 	resources, err := loadOneGlob(pattern)
-
 	if err != nil {
 		return err
 	}
@@ -128,16 +117,6 @@ func parseManifestStringToObjects(manifest string) (*ManifestResources, error) {
 
 		objects.Items = append(objects.Items, &unstructuredObj)
 	}
-}
-
-// TemplateRateLimiter implements a rate limiter for a client-go.workqueue.  It has
-// both an overall (token bucket) and per-item (exponential) rate limiting.
-func TemplateRateLimiter(failureBaseDelay time.Duration, failureMaxDelay time.Duration,
-	frequency int, burst int,
-) ratelimiter.RateLimiter {
-	return workqueue.NewMaxOfRateLimiter(
-		workqueue.NewItemExponentialFailureRateLimiter(failureBaseDelay, failureMaxDelay),
-		&workqueue.BucketRateLimiter{Limiter: rate.NewLimiter(rate.Limit(frequency), burst)})
 }
 
 // getResourcesFromLocalPath returns resources from the dirPath in unstructured format.

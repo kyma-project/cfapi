@@ -47,7 +47,6 @@ import (
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -118,19 +117,11 @@ func init() { //nolint:gochecknoinits
 // +kubebuilder:rbac:groups="apps",resources=deployments,verbs=create;patch;delete
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *CFAPIReconciler) SetupWithManager(mgr ctrl.Manager, rateLimiter RateLimiter) error {
+func (r *CFAPIReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	r.Config = mgr.GetConfig()
 
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&v1alpha1.CFAPI{}).
-		WithOptions(controller.Options{
-			RateLimiter: TemplateRateLimiter(
-				rateLimiter.BaseDelay,
-				rateLimiter.FailureMaxDelay,
-				rateLimiter.Frequency,
-				rateLimiter.Burst,
-			),
-		}).
 		Complete(r)
 }
 

@@ -19,7 +19,6 @@ func (r *CFAPIReconciler) crdExists(ctx context.Context, kind string) bool {
 
 	crds := &v1.CustomResourceDefinitionList{}
 	err := r.Client.List(ctx, crds)
-
 	if err != nil {
 		logger.Error(err, "error listing CRDs")
 		return false
@@ -58,7 +57,6 @@ func (r *CFAPIReconciler) patchDockerSecret(ctx context.Context, name, namespace
 	}
 
 	secretData, err := json.Marshal(conf)
-
 	if err != nil {
 		logger.Error(err, "error marshalling docker registry config")
 		return err
@@ -74,7 +72,6 @@ func (r *CFAPIReconciler) patchDockerSecret(ctx context.Context, name, namespace
 	}
 
 	err = r.Client.Patch(context.Background(), &secret, client.MergeFrom(&corev1.Secret{}))
-
 	if err != nil {
 		logger.Error(err, "error patching "+name+" secret in ns "+namespace)
 		return err
