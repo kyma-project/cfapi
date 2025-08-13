@@ -65,8 +65,7 @@ generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
 test: manifests generate fmt vet envtest
-	make -C components/btp-service-broker fmt vet
-	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" go run github.com/onsi/ginkgo/v2/ginkgo -r --output-interceptor-mode=none --randomize-all --randomize-suites
+	make -C components/btp-service-broker fmt vet test
 
 docker-build: ## Build docker image with the manager.
 	docker build -t ${REGISTRY}/${IMG} --build-arg TARGETARCH=amd64 --build-arg BTP_SERVICE_BROKER_RELEASE_DIR=$(BTP_SERVICE_BROKER_RELEASE_DIR) .
