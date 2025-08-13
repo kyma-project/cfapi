@@ -7,7 +7,7 @@ export GOBIN = $(shell pwd)/bin
 export PATH := $(shell pwd)/bin:$(PATH)
 
 test: fmt vet bin/setup-envtest
-	KUBEBUILDER_ASSETS="$(shell setup-envtest use -p path)" go run github.com/onsi/ginkgo/v2/ginkgo -r --output-interceptor-mode=none --randomize-all --randomize-suites
+	KUBEBUILDER_ASSETS="$(shell bin/setup-envtest use -p path)" go run github.com/onsi/ginkgo/v2/ginkgo -r --output-interceptor-mode=none --randomize-all --randomize-suites
 
 docker-build:
 	docker build --build-arg VERSION=${VERSION} -t ${REGISTRY}/${IMG} .
