@@ -1,0 +1,15 @@
+apiVersion: vendir.k14s.io/v1alpha1
+kind: Config
+directories:
+- path: vendor
+  contents:
+  - path: istio
+    git:
+      url: https://github.com/istio/istio
+      depth: 1
+      refSelection:
+        semver:
+          constraints: ">=1.27.0"
+    includePaths:
+      - manifests/charts/base/files/crd-all.gen.yaml
+    newRootPath: manifests/charts/base/files

@@ -1,0 +1,11 @@
+apiVersion: vendir.k14s.io/v1alpha1
+directories:
+- contents:
+  - git:
+      commitTitle: Handle deadlock between CNI startup and plugin (#56972) (#57297)...
+      sha: 7359d8be2504f2b191f7d94156af08e6590d2d1c
+      tags:
+      - 1.27.0
+    path: istio
+  path: vendor
+kind: LockConfig

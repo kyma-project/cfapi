@@ -40,8 +40,8 @@ manifests: bin/controller-gen ## Generate WebhookConfiguration, ClusterRole and 
 generate: bin/controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
 	controller-gen object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
-test: manifests generate fmt vet
-	make -C components/btp-service-broker fmt vet test
+test: manifests generate fmt vet bin/testbin
+	KUBEBUILDER_ASSETS="$(shell bin/setup-envtest use -p path)" go run github.com/onsi/ginkgo/v2/ginkgo -r --output-interceptor-mode=none --randomize-all --randomize-suites
 
 docker-build: ## Build docker image with the manager.
 	docker build -t ${REGISTRY}/${IMG} --build-arg TARGETARCH=amd64 --build-arg BTP_SERVICE_BROKER_RELEASE_DIR=$(BTP_SERVICE_BROKER_RELEASE_DIR) .
@@ -88,6 +88,9 @@ lint: fmt vet golangci-lint
 bin:
 	mkdir -p bin
 
+bin/testbin: bin/setup-envtest
+	mkdir -p bin/testbin
+
 clean-bin:
 	# envtest binaries lack the write permissions, chmod them before deleting
 	find . -name "testbin" -type d -exec chmod -R +w '{}' \;
@@ -107,3 +110,12 @@ bin/kustomize: bin
 
 bin/controller-gen: bin
 	go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.14.0
+
+bin/setup-envtest: bin/testbin
+	go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
+
+bin/vendir: bin
+	go install carvel.dev/vendir/cmd/vendir@latest
+
+vendir-update-dependencies: bin/vendir
+	vendir sync --chdir vendir
