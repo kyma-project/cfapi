@@ -1,9 +1,7 @@
 # Image URL to use all building/pushing image targets
-#IMG ?= controller:latest
 VERSION = 0.0.0
-#IMG ?= trinity.common.repositories.cloud.sap/kyma-module/cfapi-controller-$(VERSION)
 REGISTRY = ghcr.io
-IMG ?= kyma-project/cfapi/cfapi-controller
+IMG = kyma-project/cfapi/cfapi-controller
 
 RELEASE_DIR ?= release/$(VERSION)
 CFAPI_RELEASE_DIR ?= $(RELEASE_DIR)/cfapi
@@ -57,27 +55,25 @@ endif
 
 ##@ Release
 
-release: manifests bin/kustomize
-	make btp-service-broker-release cfapi-release
+release: bin/kustomize manifests btp-service-broker-release cfapi-release
 
 btp-service-broker-release:
 	rm -rf $(BTP_SERVICE_BROKER_RELEASE_DIR)
 	mkdir -p $(BTP_SERVICE_BROKER_RELEASE_DIR)
-	make -C components/btp-service-broker docker-build
-	make -C components/btp-service-broker docker-push
-	make -C components/btp-service-broker release RELEASE_DIR=$(shell pwd)/$(BTP_SERVICE_BROKER_RELEASE_DIR)
+	make -C components/btp-service-broker docker-build REGISTRY=$(REGISTRY) VERSION=$(VERSION)
+	make -C components/btp-service-broker docker-push REGISTRY=$(REGISTRY) VERSION=$(VERSION)
+	make -C components/btp-service-broker release REGISTRY=$(REGISTRY) RELEASE_DIR=$(shell pwd)/$(BTP_SERVICE_BROKER_RELEASE_DIR)
 
-cfapi-release: bin/kustomize
+cfapi-release: bin/kustomize docker-build docker-push
 	rm -rf $(CFAPI_RELEASE_DIR)
 	mkdir -p $(CFAPI_RELEASE_DIR)
-	make docker-build
-	make docker-push
 
 	$(shell mkdir -p $(RELEASE_DIR)/tmp && cp -a config $(RELEASE_DIR)/tmp)
 
 	cp default-cr.yaml $(CFAPI_RELEASE_DIR)/cfapi-default-cr.yaml
 
-	pushd $(RELEASE_DIR)/tmp/config/manager && kustomize edit set image controller=$(shell docker inspect --format='{{index .RepoDigests 0}}' ${REGISTRY}/${IMG}) && popd
+	$(eval IMG_SHA = $(shell docker inspect --format='{{index .RepoDigests 0}}' ${REGISTRY}/${IMG}))
+	pushd $(RELEASE_DIR)/tmp/config/manager && kustomize edit set image controller=$(IMG_SHA) && popd
 	pushd $(RELEASE_DIR)/tmp/config/manager && kustomize edit add label app.kubernetes.io/version:$(VERSION) --force --without-selector --include-templates && popd
 	kustomize build $(RELEASE_DIR)/tmp/config/default > $(CFAPI_RELEASE_DIR)/cfapi-operator.yaml
 
