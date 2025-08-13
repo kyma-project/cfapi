@@ -9,30 +9,8 @@ RELEASE_DIR ?= release/$(VERSION)
 CFAPI_RELEASE_DIR ?= $(RELEASE_DIR)/cfapi
 BTP_SERVICE_BROKER_RELEASE_DIR ?= $(RELEASE_DIR)/btp-service-broker
 
-# ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
-ENVTEST_K8S_VERSION = 1.24.1
-
-# Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
-ifeq (,$(shell go env GOBIN))
-GOBIN=$(shell go env GOPATH)/bin
-else
-GOBIN=$(shell go env GOBIN)
-endif
-
-# Credentials used for authenticating into the module registry
-# see `kyma alpha mod create --help for more info`
-
-# This will change the flags of the `kyma alpha module create` command in case we spot credentials
-# Otherwise we will assume http-based local registries without authentication (e.g. for k3d)
-ifneq (,$(PROW_JOB_ID))
-GCP_ACCESS_TOKEN=$(shell gcloud auth application-default print-access-token)
-MODULE_CREATION_FLAGS=--registry $(MODULE_REGISTRY) --module-archive-version-overwrite -c oauth2accesstoken:$(GCP_ACCESS_TOKEN)
-else ifeq (,$(MODULE_CREDENTIALS))
-# when built locally we should not include security content.
-MODULE_CREATION_FLAGS=--registry $(MODULE_REGISTRY) --module-archive-version-overwrite --insecure --sec-scanners-config=sec-scanners-config-local.yaml
-else
-MODULE_CREATION_FLAGS=--registry $(MODULE_REGISTRY) --module-archive-version-overwrite -c $(MODULE_CREDENTIALS)
-endif
+export GOBIN = $(shell pwd)/bin
+export PATH := $(shell pwd)/bin:$(PATH)
 
 # Setting SHELL to bash allows bash commands to be executed by recipes.
 # This is a requirement for 'setup-envtest.sh' in the test target.
@@ -58,13 +36,13 @@ help: ## Display this help.
 
 ##@ Development
 
-manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
-	$(CONTROLLER_GEN) crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+manifests: bin/controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
+	controller-gen crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 
-generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
-	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
+generate: bin/controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
+	controller-gen object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
-test: manifests generate fmt vet envtest
+test: manifests generate fmt vet
 	make -C components/btp-service-broker fmt vet test
 
 docker-build: ## Build docker image with the manager.
@@ -79,7 +57,7 @@ endif
 
 ##@ Release
 
-release: manifests kustomize
+release: manifests bin/kustomize
 	make btp-service-broker-release cfapi-release
 
 btp-service-broker-release:
@@ -89,7 +67,7 @@ btp-service-broker-release:
 	make -C components/btp-service-broker docker-push
 	make -C components/btp-service-broker release RELEASE_DIR=$(shell pwd)/$(BTP_SERVICE_BROKER_RELEASE_DIR)
 
-cfapi-release:
+cfapi-release: bin/kustomize
 	rm -rf $(CFAPI_RELEASE_DIR)
 	mkdir -p $(CFAPI_RELEASE_DIR)
 	make docker-build
@@ -99,56 +77,37 @@ cfapi-release:
 
 	cp default-cr.yaml $(CFAPI_RELEASE_DIR)/cfapi-default-cr.yaml
 
-	pushd $(RELEASE_DIR)/tmp/config/manager && $(KUSTOMIZE) edit set image controller=$(shell docker inspect --format='{{index .RepoDigests 0}}' ${REGISTRY}/${IMG}) && popd
-	pushd $(RELEASE_DIR)/tmp/config/manager && $(KUSTOMIZE) edit add label app.kubernetes.io/version:$(VERSION) --force --without-selector --include-templates && popd
-	$(KUSTOMIZE) build $(RELEASE_DIR)/tmp/config/default > $(CFAPI_RELEASE_DIR)/cfapi-operator.yaml
+	pushd $(RELEASE_DIR)/tmp/config/manager && kustomize edit set image controller=$(shell docker inspect --format='{{index .RepoDigests 0}}' ${REGISTRY}/${IMG}) && popd
+	pushd $(RELEASE_DIR)/tmp/config/manager && kustomize edit add label app.kubernetes.io/version:$(VERSION) --force --without-selector --include-templates && popd
+	kustomize build $(RELEASE_DIR)/tmp/config/default > $(CFAPI_RELEASE_DIR)/cfapi-operator.yaml
 
-
-
-##@ Tools
-
-## Location to install dependencies to
-LOCALBIN ?= $(shell pwd)/bin
-$(LOCALBIN):
-	mkdir -p $(LOCALBIN)
-
-########## Kustomize ###########
-KUSTOMIZE ?= $(LOCALBIN)/kustomize
-KUSTOMIZE_VERSION ?= v5.6.0
-.PHONY: kustomize
-kustomize: $(KUSTOMIZE) ## Download & Build kustomize locally if necessary.
-$(KUSTOMIZE): $(LOCALBIN)
-	GOBIN=$(LOCALBIN) go install sigs.k8s.io/kustomize/kustomize/v5@$(KUSTOMIZE_VERSION)
-
-########## controller-gen ###########
-CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
-CONTROLLER_TOOLS_VERSION ?= v0.14.0
-.PHONY: controller-gen
-controller-gen: $(CONTROLLER_GEN) ## Download & Build controller-gen locally if necessary.
-$(CONTROLLER_GEN): $(LOCALBIN)
-	GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_TOOLS_VERSION)
-
-########## envtest ###########
-ENVTEST ?= $(LOCALBIN)/setup-envtest
-.PHONY: envtest
-envtest: $(ENVTEST) ## Download & Build envtest-setup locally if necessary.
-$(ENVTEST): $(LOCALBIN)
-	GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
-
-##@ Checks
-
-########## static code checks ###########
 fmt: ## Run go fmt against code.
 	go fmt ./...
 
 vet: ## Run go vet against code.
 	go vet ./...
 
-lint: golangci-lint
+lint: fmt vet golangci-lint
 
-bin/golangci-lint:
+bin:
+	mkdir -p bin
+
+clean-bin:
+	# envtest binaries lack the write permissions, chmod them before deleting
+	find . -name "testbin" -type d -exec chmod -R +w '{}' \;
+	# globstar (e.g. in rm -f **/bin/*) isn't available in the version of bash packaged with MacOS
+	find . -wholename '*/testbin/*' -delete
+	find . -wholename '*/bin/*' -delete
+
+bin/golangci-lint: bin
 	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 
 golangci-lint: bin/golangci-lint
 	make -C components/btp-service-broker lint
 	golangci-lint run
+
+bin/kustomize: bin
+	go install sigs.k8s.io/kustomize/kustomize/v5@latest
+
+bin/controller-gen: bin
+	go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.14.0
