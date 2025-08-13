@@ -2,8 +2,6 @@ module github.com/kyma-project/cfapi
 
 go 1.24.4
 
-toolchain go1.24.5
-
 require (
 	github.com/go-logr/logr v1.4.3
 	github.com/onsi/ginkgo/v2 v2.23.4
