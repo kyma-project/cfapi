@@ -2,5 +2,7 @@ bin
 testbin
 cover.out
 development/assets/secrets/ssl
+development/release-output
+cfapi-operator.yaml
 
 release

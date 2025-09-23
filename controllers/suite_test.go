@@ -29,6 +29,7 @@ import (
 
 	"istio.io/api/networking/v1alpha3"
 	istiogw "istio.io/client-go/pkg/apis/networking/v1beta1"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -117,6 +118,7 @@ var _ = BeforeSuite(func() {
 		EventRecorder:      k8sManager.GetEventRecorderFor("tests"),
 		FinalState:         operatorkymaprojectiov1alpha1.StateReady,
 		FinalDeletionState: operatorkymaprojectiov1alpha1.StateDeleting,
+		ModuleDataPath:     "../module-data",
 	}
 
 	err = reconciler.SetupWithManager(k8sManager)
@@ -133,8 +135,51 @@ var _ = BeforeSuite(func() {
 			Name: "kyma-system",
 		},
 	})).To(Succeed())
+	Expect(k8sClient.Create(ctx, &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "cfapi-system",
+		},
+	})).To(Succeed())
+	Expect(k8sClient.Create(ctx, &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "istio-system",
+		},
+	})).To(Succeed())
 
 	createKymaGateway(ctx, cfg)
+
+	Expect(k8sClient.Create(ctx, &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "kyma-system",
+			Name:      "sap-btp-service-operator",
+		},
+		StringData: map[string]string{
+			"tokenurl": "https://my-token.example.org",
+		},
+	})).To(Succeed())
+
+	Expect(k8sClient.Create(ctx, &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "istio-system",
+			Name:      "istiod",
+		},
+		Spec: appsv1.DeploymentSpec{
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{"istio": "pilot"},
+			},
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{"istio": "pilot"},
+				},
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{{
+						Name:  "discovery",
+						Image: "europe-docker.pkg.dev/kyma-project/prod/external/istio/pilot:1.27.1-distroless",
+					}},
+				},
+			},
+		},
+	})).To(Succeed())
 })
 
 var _ = AfterSuite(func() {

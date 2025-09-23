@@ -27,6 +27,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"path/filepath"
 	"strings"
 	"text/template"
 	"time"
@@ -69,6 +70,7 @@ type CFAPIReconciler struct {
 	record.EventRecorder
 	FinalState         v1alpha1.State
 	FinalDeletionState v1alpha1.State
+	ModuleDataPath     string
 }
 
 type ManifestResources struct {
@@ -380,7 +382,7 @@ func (r *CFAPIReconciler) processResources(ctx context.Context, cfAPI *v1alpha1.
 	}
 	logger.Info("ingress certificates generated")
 
-	err = r.installOneGlob(ctx, "./module-data/kpack/release-*.yaml")
+	err = r.installOneGlob(ctx, r.moduleDataPath("kpack/release-*.yaml"))
 	if err != nil {
 		logger.Error(err, "error installing kpack")
 		return "", err
@@ -427,7 +429,7 @@ func (r *CFAPIReconciler) processResources(ctx context.Context, cfAPI *v1alpha1.
 func (r *CFAPIReconciler) deployServiceBroker(ctx context.Context) error {
 	logger := log.FromContext(ctx)
 
-	chart, err := loader.Load("./module-data/btp-service-broker/helm")
+	chart, err := loader.Load(r.moduleDataPath("btp-service-broker/helm"))
 	if err != nil {
 		logger.Error(err, "error loading BTP service broker helm chart")
 		return err
@@ -451,7 +453,7 @@ func (r *CFAPIReconciler) ensureDockerRegistry(ctx context.Context, cfAPI *v1alp
 		return errors.New("DockerRegistry CRD does not exist. Create it by enablib docker registry Kyma module")
 	}
 
-	err := r.installOneGlob(ctx, "./module-data/docker-registry/docker-registry.yaml")
+	err := r.installOneGlob(ctx, r.moduleDataPath("docker-registry/docker-registry.yaml"))
 	if err != nil {
 		logger.Error(err, "error installing docker registry")
 		return err
@@ -480,7 +482,7 @@ func (r *CFAPIReconciler) createOIDCConfig(ctx context.Context, cfAPI *v1alpha1.
 
 		t1 := template.New("oidcUAA")
 
-		t2, err := t1.ParseFiles("./module-data/oidc/oidc-uaa-experimental.tmpl")
+		t2, err := t1.ParseFiles(r.moduleDataPath("oidc/oidc-uaa-experimental.tmpl"))
 		if err != nil {
 			logger.Error(err, "error during parsing of oidc template")
 			return err
@@ -592,7 +594,7 @@ func (r *CFAPIReconciler) createDNSEntries(ctx context.Context, korifiAPI, appsD
 	}
 
 	t1 := template.New("dnsEntries")
-	t2, err := t1.ParseFiles("./module-data/dns-entries/dns-entries.tmpl")
+	t2, err := t1.ParseFiles(r.moduleDataPath("dns-entries/dns-entries.tmpl"))
 	if err != nil {
 		logger.Error(err, "error during parsing of dns entries template")
 		return err
@@ -673,7 +675,7 @@ func (r *CFAPIReconciler) generateCertificates(ctx context.Context, cfDomain, ap
 		KorifiAPIDomain: korifiApiDomain,
 	}
 
-	t2, err := template.ParseFiles("./module-data/certificates/certificates.tmpl")
+	t2, err := template.ParseFiles(r.moduleDataPath("certificates/certificates.tmpl"))
 	if err != nil {
 		logger.Error(err, "error during parsing of ingress certificates template")
 		return err
@@ -784,7 +786,7 @@ func (r *CFAPIReconciler) getWildcardDomain() (string, error) {
 func (r *CFAPIReconciler) createNamespaces(ctx context.Context, appContainerRegistry ContainerRegistry) error {
 	logger := log.FromContext(ctx)
 
-	err := r.installOneGlob(ctx, "./module-data/namespaces/namespaces.yaml")
+	err := r.installOneGlob(ctx, r.moduleDataPath("namespaces/namespaces.yaml"))
 	if err != nil {
 		logger.Error(err, "error creating namespaces")
 		return err
@@ -821,7 +823,7 @@ func (r *CFAPIReconciler) createNamespaces(ctx context.Context, appContainerRegi
 func (r *CFAPIReconciler) installGatewayAPI(ctx context.Context) error {
 	logger := log.FromContext(ctx)
 
-	err := r.installOneGlob(ctx, "./module-data/gateway-api/experimental-install.yaml")
+	err := r.installOneGlob(ctx, r.moduleDataPath("vendor/gateway-api/experimental-install.yaml"))
 	if err != nil {
 		logger.Error(err, "error installing gateway API")
 		return err
@@ -857,7 +859,7 @@ func (r *CFAPIReconciler) installGatewayAPI(ctx context.Context) error {
 		}
 	}
 
-	err = r.installOneGlob(ctx, "./module-data/envoy-filter/empty-envoy-filter.yaml")
+	err = r.installOneGlob(ctx, r.moduleDataPath("envoy-filter/empty-envoy-filter.yaml"))
 	if err != nil {
 		logger.Error(err, "error installing envoy filter")
 		return err
@@ -874,7 +876,7 @@ func getStatusFromSample(objectInstance *v1alpha1.CFAPI) v1alpha1.CFAPIStatus {
 func (r *CFAPIReconciler) deployKorifi(ctx context.Context, appsDomain, korifiAPIDomain, cfDomain, crDomain, uaaURL string) error {
 	logger := log.FromContext(ctx)
 
-	helmfile, err := findOneGlob("./module-data/korifi/korifi-*.tgz")
+	helmfile, err := findOneGlob(r.moduleDataPath("korifi/korifi-*.tgz"))
 	if err != nil {
 		logger.Error(err, "Failed to find korifi helm chart under dir module-data/korifi")
 		return err
@@ -885,7 +887,7 @@ func (r *CFAPIReconciler) deployKorifi(ctx context.Context, appsDomain, korifiAP
 		return err
 	}
 
-	values, err := loadOneYaml("./module-data/korifi/values.yaml")
+	values, err := loadOneYaml(r.moduleDataPath("korifi/values.yaml"))
 	if err != nil {
 		logger.Error(err, "Failed to load CFAPI values for korifi helm chart")
 		return err
@@ -947,6 +949,10 @@ func (r *CFAPIReconciler) retrieveUaaUrl(ctx context.Context) (string, error) {
 	logger.Info("UAA url extracted from token url: " + uaaURL)
 
 	return uaaURL, nil
+}
+
+func (r *CFAPIReconciler) moduleDataPath(pattern string) string {
+	return filepath.Join(r.ModuleDataPath, pattern)
 }
 
 func extractUaaURLFromTokenUrl(tokenUrl string) string {

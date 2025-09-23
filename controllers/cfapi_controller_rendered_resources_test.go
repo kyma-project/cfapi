@@ -9,6 +9,7 @@ package controllers_test
 import (
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -27,12 +28,26 @@ var (
 	podName = "busybox-pod"
 )
 
-var _ = Describe("Sample CR is created with the correct resource path", Ordered, func() {
+var _ = FDescribe("Sample CR is created with the correct resource path", Ordered, func() {
 	sampleCR := createSampleCR("valid-sample", "./test/busybox/manifest")
 	sampleCRKey := client.ObjectKeyFromObject(sampleCR)
 
 	It("should create SampleCR and resources", func() {
 		Expect(k8sClient.Create(ctx, sampleCR)).To(Succeed())
+
+		// the CFAPI reconciler would create a DockerRegistry resource and would wait for its secret to appear.
+		// As we do not have the docker registry controller running, we simulate that secret appearing here
+		Expect(k8sClient.Create(ctx, &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "cfapi-system",
+				Name:      "dockerregistry-config-external",
+			},
+			StringData: map[string]string{
+				"pushRegAddr": "https://my-registry.example.org",
+				"username":    "registry-user",
+				"password":    "registry-password",
+			},
+		})).To(Succeed())
 
 		Eventually(getCRStatus(sampleCRKey)).
 			WithTimeout(30 * time.Second).

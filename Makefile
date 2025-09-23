@@ -118,4 +118,4 @@ bin/vendir: bin
 	go install carvel.dev/vendir/cmd/vendir@latest
 
 vendir-update-dependencies: bin/vendir
-	vendir sync --chdir tests
+	vendir sync --chdir .

@@ -25,6 +25,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
 	"time"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -122,6 +123,7 @@ func main() {
 		EventRecorder:      mgr.GetEventRecorderFor(operatorName),
 		FinalState:         v1alpha1.State(flagVar.finalState),
 		FinalDeletionState: v1alpha1.State(flagVar.finalDeletionState),
+		ModuleDataPath:     filepath.Join(".", "module-data"),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Sample")
 		os.Exit(1)

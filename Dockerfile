@@ -30,15 +30,11 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -ldflags
 
 
 ENV VERSION_KPACK=0.17.0
-ENV VERSION_GATEWAY_API=1.3.0
 ENV VERSION_KORIFI=0.16.0
 ENV BTP_SERVICE_BROKER_RELEASE_DIR=${BTP_SERVICE_BROKER_RELEASE_DIR}
 
 WORKDIR /workspace/module-data/kpack
 RUN curl -OLf https://github.com/buildpacks-community/kpack/releases/download/v$VERSION_KPACK/release-$VERSION_KPACK.yaml
-
-WORKDIR /workspace/module-data/gateway-api
-RUN curl -OLf https://github.com/kubernetes-sigs/gateway-api/releases/download/v$VERSION_GATEWAY_API/experimental-install.yaml
 
 WORKDIR /workspace/module-data/korifi
 RUN curl -OLf https://github.com/cloudfoundry/korifi/releases/download/v$VERSION_KORIFI/korifi-$VERSION_KORIFI.tgz

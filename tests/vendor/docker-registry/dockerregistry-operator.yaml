@@ -9,7 +9,7 @@ metadata:
     app.kubernetes.io/managed-by: kustomize
     app.kubernetes.io/name: dockerregistry-operator
     app.kubernetes.io/part-of: dockerregistry-operator
-    app.kubernetes.io/version: 0.8.0
+    app.kubernetes.io/version: 0.10.0
     kyma-project.io/module: docker-registry
   name: dockerregistries.operator.kyma-project.io
 spec:
@@ -285,7 +285,7 @@ metadata:
     app.kubernetes.io/managed-by: kustomize
     app.kubernetes.io/name: dockerregistry-operator
     app.kubernetes.io/part-of: dockerregistry-operator
-    app.kubernetes.io/version: 0.8.0
+    app.kubernetes.io/version: 0.10.0
     kyma-project.io/module: docker-registry
   name: dockerregistry-operator
   namespace: kyma-system
@@ -299,7 +299,7 @@ metadata:
     app.kubernetes.io/managed-by: kustomize
     app.kubernetes.io/name: dockerregistry-operator
     app.kubernetes.io/part-of: dockerregistry-operator
-    app.kubernetes.io/version: 0.8.0
+    app.kubernetes.io/version: 0.10.0
     kyma-project.io/module: docker-registry
   name: dockerregistry-operator-role
 rules:
@@ -518,7 +518,7 @@ metadata:
     app.kubernetes.io/managed-by: kustomize
     app.kubernetes.io/name: dockerregistry-operator
     app.kubernetes.io/part-of: dockerregistry-operator
-    app.kubernetes.io/version: 0.8.0
+    app.kubernetes.io/version: 0.10.0
     kyma-project.io/module: docker-registry
   name: dockerregistry-operator-rolebinding
 roleRef:
@@ -570,7 +570,7 @@ metadata:
     app.kubernetes.io/managed-by: kustomize
     app.kubernetes.io/name: dockerregistry-operator
     app.kubernetes.io/part-of: dockerregistry-operator
-    app.kubernetes.io/version: 0.8.0
+    app.kubernetes.io/version: 0.10.0
     kyma-cli/extension: resource
     kyma-cli/extension-version: v1
     kyma-project.io/module: docker-registry
@@ -800,7 +800,7 @@ metadata:
     app.kubernetes.io/managed-by: kustomize
     app.kubernetes.io/name: dockerregistry-operator
     app.kubernetes.io/part-of: dockerregistry-operator
-    app.kubernetes.io/version: 0.8.0
+    app.kubernetes.io/version: 0.10.0
     busola.io/extension: resource
     busola.io/extension-version: "0.5"
     kyma-project.io/module: docker-registry
@@ -817,7 +817,7 @@ metadata:
     app.kubernetes.io/managed-by: kustomize
     app.kubernetes.io/name: dockerregistry-operator
     app.kubernetes.io/part-of: dockerregistry-operator
-    app.kubernetes.io/version: 0.8.0
+    app.kubernetes.io/version: 0.10.0
     kyma-project.io/module: docker-registry
   name: dockerregistry-operator-priority
 value: 2000000
@@ -831,7 +831,7 @@ metadata:
     app.kubernetes.io/managed-by: kustomize
     app.kubernetes.io/name: dockerregistry-operator
     app.kubernetes.io/part-of: dockerregistry-operator
-    app.kubernetes.io/version: 0.8.0
+    app.kubernetes.io/version: 0.10.0
     control-plane: operator
     kyma-project.io/module: docker-registry
   name: dockerregistry-operator
@@ -852,7 +852,7 @@ spec:
         app.kubernetes.io/managed-by: kustomize
         app.kubernetes.io/name: dockerregistry-operator
         app.kubernetes.io/part-of: dockerregistry-operator
-        app.kubernetes.io/version: 0.8.0
+        app.kubernetes.io/version: 0.10.0
         control-plane: operator
         kyma-project.io/module: docker-registry
         sidecar.istio.io/inject: "false"
@@ -865,7 +865,7 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.uid
-        image: europe-docker.pkg.dev/kyma-project/prod/dockerregistry-operator:0.8.0
+        image: europe-docker.pkg.dev/kyma-project/prod/dockerregistry-operator:0.10.0
         livenessProbe:
           httpGet:
             path: /healthz
