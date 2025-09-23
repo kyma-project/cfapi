@@ -31,3 +31,21 @@ login() {
 get_btp_user() {
   jq -r '.Authentication.Mail' $HOME/.config/.btp/config.json
 }
+
+configure_gateway_service() {
+  ns="$1"
+  service="$2"
+  nodePort="$3"
+
+  kubectl patch service -n "$ns" "$service" --type merge --patch-file <(
+    cat <<EOF
+spec:
+  ports:
+  - name: https
+    nodePort: $nodePort
+    port: 443
+    protocol: TCP
+    targetPort: 8443
+EOF
+  )
+}

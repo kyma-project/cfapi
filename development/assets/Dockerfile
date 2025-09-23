@@ -7,7 +7,11 @@ FROM ${REGISTRY}/${IMG}:${VERSION} AS uploader
 ARG VERSION
 
 WORKDIR /workspace
-COPY release/$VERSION/korifi-${VERSION}.tgz korifi-${VERSION}.tgz
+# Copying the korifi tgz file via a wild card would not fail if the tgz does
+# not exist. We use this trick to support either using korifi from the uploader
+# (i.e. official Korifi release), or building a local dev Korifi version. This
+# Dockerfile would only replace Korifi if the tgz below exists
+COPY release/$VERSION/korifi-${VERSION}.tgz* /workspace
 COPY release/$VERSION/btp-service-broker btp-service-broker
 
 #--------
@@ -25,13 +29,14 @@ COPY --from=uploader /manager .
 
 COPY --chown=65532:65532 /module-data .
 COPY --from=uploader --chown=65532:65532  /module-data module-data/
-RUN rm -rf /module-data/korifi/*.tgz
-RUN rm -rf /module-data/btp-service-broker
 
 RUN yq -i eval '.spec.isCA = true'  module-data/certificates/certificates.tmpl
 
-COPY --from=uploader /workspace/korifi-${VERSION}.tgz /module-data/korifi/korifi-${VERSION}.tgz
+RUN rm -rf /module-data/btp-service-broker
 COPY --from=uploader /workspace/btp-service-broker /module-data/btp-service-broker
+
+COPY --from=uploader /workspace/korifi-${VERSION}.tgz* /
+RUN test -f /korifi-${VERSION}.tgz && rm -rf /module-data/korifi/*.tgz && cp /korifi-${VERSION}.tgz /module-data/korifi/korifi-${VERSION}.tgz || echo "Using pre-packaged Korifi"
 
 #--------
 FROM gcr.io/distroless/static:nonroot

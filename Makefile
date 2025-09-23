@@ -107,3 +107,13 @@ bin/kustomize: bin
 
 bin/controller-gen: bin
 	go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.14.0
+
+bin/vendir:
+	go install carvel.dev/vendir/cmd/vendir@latest
+
+vendir-update-dependencies: bin/vendir
+	vendir sync
+
+.PHONY: test-integration
+test-integration:
+	CI_MODE=$(CI_MODE) ./scripts/run-tests.sh tests/integration

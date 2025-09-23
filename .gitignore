@@ -1,6 +1,6 @@
 bin
 testbin
 cover.out
-development/assets/secrets/ssl
+development/assets/secrets/*
 
 release
