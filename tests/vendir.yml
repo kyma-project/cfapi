@@ -1,0 +1,17 @@
+apiVersion: vendir.k14s.io/v1alpha1
+kind: Config
+directories:
+- path: vendor
+  contents:
+  - path: metrics-server-local
+    githubRelease:
+      slug: kubernetes-sigs/metrics-server
+      latest: true
+      disableAutoChecksumValidation: true
+      assetNames: ["components.yaml"]
+  - path: gateway-api
+    githubRelease:
+      slug: kubernetes-sigs/gateway-api
+      latest: true
+      disableAutoChecksumValidation: true
+      assetNames: ["experimental-install.yaml"]

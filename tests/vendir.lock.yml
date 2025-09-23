@@ -1,0 +1,13 @@
+apiVersion: vendir.k14s.io/v1alpha1
+directories:
+- contents:
+  - githubRelease:
+      tag: v0.8.0
+      url: https://api.github.com/repos/kubernetes-sigs/metrics-server/releases/229645413
+    path: metrics-server-local
+  - githubRelease:
+      tag: v1.3.0
+      url: https://api.github.com/repos/kubernetes-sigs/gateway-api/releases/214381245
+    path: gateway-api
+  path: vendor
+kind: LockConfig
