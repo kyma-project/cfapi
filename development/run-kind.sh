@@ -339,7 +339,7 @@ install_btp_operator() {
   echo " Installing the BTP Operator Module "
   echo "************************************************"
   kubectl apply -f https://github.com/kyma-project/btp-manager/releases/latest/download/btp-manager.yaml
-  kubectl apply -f https://github.com/kyma-project/btp-manager/releases/latest/download/btp-operator-default-cr.yaml -n kyma-system
+  kubectl apply -f https://github.com/kyma-project/btp-manager/releases/latest/download/btp-operator.yaml
 }
 
 main() {
