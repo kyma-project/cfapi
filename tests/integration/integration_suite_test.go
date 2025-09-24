@@ -3,6 +3,7 @@ package integration_test
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -10,13 +11,12 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/serializer/yaml"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
 	"k8s.io/kubectl/pkg/scheme"
@@ -24,12 +24,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 )
-
-const yamlDelimiter = "---\napiVersion"
-
-func init() {
-	utilruntime.Must(corev1.AddToScheme(scheme.Scheme))
-}
 
 func TestIntegration(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -44,6 +38,8 @@ var (
 func commonTestSetup() {
 	SetDefaultEventuallyTimeout(4 * time.Minute)
 	SetDefaultEventuallyPollingInterval(2 * time.Second)
+
+	k8sClient = createK8sClient()
 }
 
 var _ = SynchronizedBeforeSuite(func() []byte {
@@ -52,6 +48,9 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	ctx = context.Background()
 	Eventually(func(g Gomega) {
 		g.Expect(applyYamlFile(ctx, filepath.Join(mustGetEnv("CFAPI_MODULE_RELEASE_DIR"), "cfapi-operator.yaml"))).To(Succeed())
+	}).Should(Succeed())
+	Expect(addImagePullSecretToOperatorDeployment()).To(Succeed())
+	Eventually(func(g Gomega) {
 		g.Expect(applyYamlFile(ctx, filepath.Join(mustGetEnv("CFAPI_MODULE_RELEASE_DIR"), "cfapi-default-cr.yaml"))).To(Succeed())
 	}).Should(Succeed())
 
@@ -66,9 +65,29 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 var _ = SynchronizedAfterSuite(func() {}, func() {
 	Eventually(func(g Gomega) {
 		g.Expect(deleteYamlFile(ctx, filepath.Join(mustGetEnv("CFAPI_MODULE_RELEASE_DIR"), "cfapi-default-cr.yaml"))).To(Succeed())
+	}).Should(Succeed())
+
+	Eventually(func(g Gomega) {
 		g.Expect(deleteYamlFile(ctx, filepath.Join(mustGetEnv("CFAPI_MODULE_RELEASE_DIR"), "cfapi-operator.yaml"))).To(Succeed())
 	}).Should(Succeed())
 })
+
+func addImagePullSecretToOperatorDeployment() error {
+	depl := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "cfapi-system",
+			Name:      "cfapi-operator",
+		},
+	}
+	if err := k8sClient.Get(ctx, client.ObjectKeyFromObject(depl), depl); err != nil {
+		return err
+	}
+
+	modifiedDepl := depl.DeepCopy()
+	modifiedDepl.Spec.Template.Spec.ImagePullSecrets = append(modifiedDepl.Spec.Template.Spec.ImagePullSecrets,
+		corev1.LocalObjectReference{Name: "dockerregistry-config"})
+	return k8sClient.Patch(ctx, modifiedDepl, client.MergeFrom(depl))
+}
 
 func mustGetEnv(envVar string) string {
 	envVarValue, ok := os.LookupEnv(envVar)
@@ -146,12 +165,16 @@ func deleteYamlFile(ctx context.Context, yamlFilePath string) error {
 		err = resourceClient.Delete(ctx, obj.GetName(), metav1.DeleteOptions{
 			PropagationPolicy: &deleteForeground,
 		})
-		if err != nil {
+		if client.IgnoreNotFound(err) != nil {
 			return err
 		}
 
 		_, err = resourceClient.Get(ctx, obj.GetName(), metav1.GetOptions{})
-		if err != nil && !apierrors.IsNotFound(err) {
+		if err == nil {
+			return fmt.Errorf("object %s/%s still exists", obj.GetNamespace(), obj.GetName())
+		}
+
+		if client.IgnoreNotFound(err) != nil {
 			return err
 		}
 	}
@@ -166,11 +189,11 @@ func parseYamlIntoDocs(yamlFilePath string) ([][]byte, error) {
 	}
 
 	yamlDocs := [][]byte{}
-	splitDocs := bytes.Split(yamlData, []byte(yamlDelimiter))
+	splitDocs := bytes.Split(yamlData, []byte("---\napiVersion"))
 	for i, doc := range splitDocs {
-		// Only restore the stripped prefix for the second and subsequent elements (the first element does not start with the separator)
+		// Only restore "apiVersion" for the second and subsequent elements (the first element does not start with the separator)
 		if i != 0 {
-			doc = append([]byte(yamlDelimiter), doc...)
+			doc = append([]byte("apiVersion"), doc...)
 		}
 
 		yamlDocs = append(yamlDocs, doc)

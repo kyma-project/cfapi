@@ -17,7 +17,7 @@ function create_dummy_btp_operator_secret() {
   kubectl --namespace kyma-system delete secret sap-btp-manager --ignore-not-found
   kubectl --namespace kyma-system create secret generic sap-btp-manager \
     --from-literal=sm_url="https://dummy-sm-url" \
-    --from-literal=tokenurl="https://dummy-token-url" \
+    --from-literal=tokenurl="https://foo.authentication.dummy-token.url" \
     --from-literal=clientid="dummy-client-id" \
     --from-literal=clientsecret="dummy-client-secret" \
     --from-literal=cluster_id="dummy-cluster-id"

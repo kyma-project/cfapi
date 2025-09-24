@@ -7,6 +7,7 @@ import (
 
 var _ = Describe("Integration", func() {
 	It("foos", func() {
+		// time.Sleep(time.Minute)
 		Expect(true).To(BeFalse())
 	})
 })
