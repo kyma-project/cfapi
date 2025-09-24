@@ -113,3 +113,6 @@ bin/vendir:
 
 vendir-update-dependencies: bin/vendir
 	vendir sync --chdir tests
+
+test-integration:
+	./scripts/run-tests.sh tests/integration

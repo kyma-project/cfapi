@@ -1,12 +1,5 @@
 #!/bin/bash
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-ROOT_DIR="${SCRIPT_DIR}/.."
-PATH="$PATH":"$ROOT_DIR/bin"
-ENVTEST_ASSETS_DIR="${ROOT_DIR}/testbin"
-mkdir -p "${ENVTEST_ASSETS_DIR}"
 
-make -C "$ROOT_DIR" bin/setup-envtest
-source <("$ROOT_DIR/bin/setup-envtest" use -p env --bin-dir "${ENVTEST_ASSETS_DIR}")
-
-go run github.com/onsi/ginkgo/v2/ginkgo --output-interceptor-mode=none --randomize-all --randomize-suites $@
+NON_RECURSIVE_TEST=true $SCRIPT_DIR/run-tests.sh $@

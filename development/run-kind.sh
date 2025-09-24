@@ -111,8 +111,28 @@ create_default_admins() {
   kubectl apply -f "$SCRIPT_DIR/assets/admin-users.yaml"
 }
 
+create_btp_operator_secret() {
+  echo "************************************************"
+  echo " Creating the BTP Operator Module Secret"
+  echo "************************************************"
+
+  plan_id="$(btp --format=json list services/plans | jq -r '.[] | select(.name=="service-operator-access") | .id')"
+  instance_id="$(btp --format=json list services/instances | jq -r ".[] | select(.service_plan_id==\"$plan_id\") | .id")"
+  credentials="$(btp --format=json list services/bindings | jq -r ".[] | select(.service_instance_id==\"$instance_id\") | .credentials")"
+
+  kubectl --namespace kyma-system delete secret sap-btp-manager --ignore-not-found
+  kubectl --namespace kyma-system create secret generic sap-btp-manager \
+    --from-literal=sm_url="$(jq --raw-output '.sm_url' <<<"$credentials")" \
+    --from-literal=tokenurl="$(jq --raw-output '.url' <<<"$credentials")" \
+    --from-literal=clientid="$(jq --raw-output '.clientid' <<<"$credentials")" \
+    --from-literal=clientsecret="$(jq --raw-output '.clientsecret' <<<"$credentials")" \
+    --from-literal=cluster_id="3690e037-73fb-4d2d-9df0-5a8cb4382985"
+  kubectl --namespace kyma-system label secret sap-btp-manager "app.kubernetes.io/managed-by=kcp-kyma-environment-broker"
+}
+
 main() {
   login
+  create_btp_operator_secret
 
   "$ROOT_DIR/development/prepare-kind.sh" cfapi
   source "$ROOT_DIR/development/assets/secrets/env/env.sh"
