@@ -11,6 +11,7 @@ COPY main.go main.go
 COPY api api/
 COPY controllers controllers/
 COPY module-data module-data/
+COPY dependencies dependencies/
 
 # cache deps before building and copying source so that we don't need to re-download as much
 # and so that source changes don't invalidate our downloaded layer
@@ -29,16 +30,12 @@ ARG BTP_SERVICE_BROKER_RELEASE_DIR
 RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -ldflags="-X 'main.buildVersion=${TAG_default_tag}'" -a -o manager main.go
 
 
-ENV VERSION_KPACK=0.17.0
-ENV VERSION_GATEWAY_API=1.3.0
 ENV VERSION_KORIFI=0.16.0
 ENV BTP_SERVICE_BROKER_RELEASE_DIR=${BTP_SERVICE_BROKER_RELEASE_DIR}
 
-WORKDIR /workspace/module-data/kpack
-RUN curl -OLf https://github.com/buildpacks-community/kpack/releases/download/v$VERSION_KPACK/release-$VERSION_KPACK.yaml
+COPY dependencies/kpack module-data/kpack/
 
-WORKDIR /workspace/module-data/gateway-api
-RUN curl -OLf https://github.com/kubernetes-sigs/gateway-api/releases/download/v$VERSION_GATEWAY_API/experimental-install.yaml
+COPY dependencies/gateway-api module-data/gateway-api/
 
 WORKDIR /workspace/module-data/korifi
 RUN curl -OLf https://github.com/cloudfoundry/korifi/releases/download/v$VERSION_KORIFI/korifi-$VERSION_KORIFI.tgz

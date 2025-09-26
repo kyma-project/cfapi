@@ -9,37 +9,9 @@ ENVTEST_ASSETS_DIR="${ROOT_DIR}/testbin"
 mkdir -p "${ENVTEST_ASSETS_DIR}"
 extra_args=()
 
-function create_dummy_btp_operator_secret() {
-  echo "************************************************"
-  echo " Creating the BTP Operator Module Secret"
-  echo "************************************************"
-
-  kubectl --namespace kyma-system delete secret sap-btp-manager --ignore-not-found
-  kubectl --namespace kyma-system create secret generic sap-btp-manager \
-    --from-literal=sm_url="https://dummy-sm-url" \
-    --from-literal=tokenurl="https://foo.authentication.dummy-token.url" \
-    --from-literal=clientid="dummy-client-id" \
-    --from-literal=clientsecret="dummy-client-secret" \
-    --from-literal=cluster_id="dummy-cluster-id"
-  kubectl --namespace kyma-system label secret sap-btp-manager "app.kubernetes.io/managed-by=kcp-kyma-environment-broker"
-}
-
 function configure_integration_tests() {
   "$ROOT_DIR/development/prepare-kind.sh" cfapi
   source "$ROOT_DIR/development/assets/secrets/env/env.sh"
-  create_dummy_btp_operator_secret
-
-  if [[ -n "${SKIP_BUILD:-}" ]]; then
-    latest_release=$(ls -t "$ROOT_DIR/release" | head -1)
-    echo "Skipping build, using latest release $latest_release"
-    export CFAPI_MODULE_RELEASE_DIR="$ROOT_DIR/release/$latest_release/cfapi"
-  else
-    version=$(uuidgen)
-    echo "Building CFAPI module version $version"
-    make -C "$ROOT_DIR" release REGISTRY="$REGISTRY_URL" VERSION="$version"
-    export CFAPI_MODULE_RELEASE_DIR="$ROOT_DIR/release/$version/cfapi"
-    sed -i "s|image: $REGISTRY_URL|image: $IN_CLUSTER_REGISTRY_URL|" "$CFAPI_MODULE_RELEASE_DIR/cfapi-operator.yaml"
-  fi
 
   extra_args+=("--poll-progress-after=3m30s")
 }

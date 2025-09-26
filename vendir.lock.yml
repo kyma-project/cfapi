@@ -9,5 +9,9 @@ directories:
       tag: v1.3.0
       url: https://api.github.com/repos/kubernetes-sigs/gateway-api/releases/214381245
     path: gateway-api
-  path: vendor
+  - githubRelease:
+      tag: v0.17.0
+      url: https://api.github.com/repos/buildpacks-community/kpack/releases/213128352
+    path: kpack
+  path: dependencies
 kind: LockConfig

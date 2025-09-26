@@ -17,26 +17,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 )
 
-func ApplyYamlFile(ctx context.Context, yamlFilePath string) error {
-	yamlDocs, err := parseYamlIntoDocs(yamlFilePath)
-	if err != nil {
-		return err
-	}
-
-	for _, doc := range yamlDocs {
-		resourceClient, obj, err := resourceClientFor(doc)
-		if err != nil {
-			return err
-		}
-		_, err = resourceClient.Create(ctx, obj, metav1.CreateOptions{})
-		if client.IgnoreAlreadyExists(err) != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 func DeleteYamlFile(ctx context.Context, yamlFilePath string) error {
 	yamlDocs, err := parseYamlIntoDocs(yamlFilePath)
 	if err != nil {

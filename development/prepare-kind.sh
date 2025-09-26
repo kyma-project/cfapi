@@ -4,7 +4,13 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="$SCRIPT_DIR/.."
+
+# If BUILD_LOCAL_KORIFI is set to true, the script will build Korifi from local
+# source code and package it into the operator image that is deployed on the
+# kind cluster. Otherwise, the operator will install latest Korifi release.
+BUILD_LOCAL_KORIFI="${BUILD_LOCAL_KORIFI:-false}"
 KORIFI_DIR="$ROOT_DIR/../korifi"
+
 CLOUD_PROVIDER_KIND_DIR="$ROOT_DIR/../cloud-provider-kind"
 
 export VERSION="${VERSION:-$(uuidgen)}"
@@ -22,6 +28,10 @@ export UAA_URL
 
 tmp_dir="$(mktemp -d)"
 trap "rm -rf $tmp_dir" EXIT
+
+RELEASE_OUTPUT_DIR="$ROOT_DIR/release/$VERSION"
+KORIFI_RELEASE_ARTIFACTS_DIR="$RELEASE_OUTPUT_DIR/korifi-$VERSION"
+mkdir -p "$KORIFI_RELEASE_ARTIFACTS_DIR"
 
 download_uaa_ca_pem() {
   openssl s_client -showcerts -connect ${UAA_URL#https://}:443 </dev/null >"$SSL_DIR/ca.pem"
@@ -91,7 +101,7 @@ install_metrics_server() {
 
   local dep_dir vendor_dir
   dep_dir="${ROOT_DIR}/tests/dependencies"
-  vendor_dir="${ROOT_DIR}/tests/vendor"
+  vendor_dir="${ROOT_DIR}/dependencies"
 
   trap "rm $dep_dir/insecure-metrics-server/components.yaml" EXIT
   cp "$vendor_dir/metrics-server-local/components.yaml" "$dep_dir/insecure-metrics-server/components.yaml"
@@ -145,7 +155,7 @@ install_docker_registry() {
 
 install_gardener_cert_manager() {
   echo ">>> Installing Gateway API"
-  kubectl apply -f "$ROOT_DIR/tests/vendor/gateway-api"
+  kubectl apply -f "$ROOT_DIR/dependencies/gateway-api"
 
   echo ">>> Installing Vertical Pod Autoscaler"
   kubectl apply -f https://raw.githubusercontent.com/kubernetes/autoscaler/vpa-release-1.0/vertical-pod-autoscaler/deploy/vpa-v1-crd-gen.yaml
@@ -207,12 +217,98 @@ install_load_balancer() {
 }
 
 install_btp_operator() {
-
   echo "************************************************"
   echo " Installing the BTP Operator Module "
   echo "************************************************"
   kubectl apply -f https://github.com/kyma-project/btp-manager/releases/latest/download/btp-manager.yaml
   kubectl apply -f https://github.com/kyma-project/btp-manager/releases/latest/download/btp-operator.yaml
+
+  echo "************************************************"
+  echo " Creating the BTP Operator Module Secret"
+  echo "************************************************"
+
+  kubectl --namespace kyma-system delete secret sap-btp-manager --ignore-not-found
+  kubectl --namespace kyma-system create secret generic sap-btp-manager \
+    --from-literal=sm_url="https://dummy-sm-url" \
+    --from-literal=tokenurl="https://foo.authentication.dummy-token.url" \
+    --from-literal=clientid="dummy-client-id" \
+    --from-literal=clientsecret="dummy-client-secret" \
+    --from-literal=cluster_id="dummy-cluster-id"
+  kubectl --namespace kyma-system label secret sap-btp-manager "app.kubernetes.io/managed-by=kcp-kyma-environment-broker"
+}
+
+build_local_korifi_release_chart() {
+  pushd "$KORIFI_DIR"
+  {
+    cp -a helm/korifi/* "$KORIFI_RELEASE_ARTIFACTS_DIR"
+    build_korifi
+  }
+  popd
+
+  pushd "$RELEASE_OUTPUT_DIR"
+  {
+    tar czf "korifi-$VERSION.tgz" "korifi-$VERSION"
+  }
+  popd
+}
+
+build_korifi() {
+  echo "Building korifi values file..."
+
+  make generate manifests
+
+  kbld_file="scripts/assets/korifi-kbld.yml"
+
+  values_file=""$KORIFI_RELEASE_ARTIFACTS_DIR"/values.yaml"
+
+  CHART_VERSION="0.0.0-$VERSION" yq -i 'with(.; .version=env(CHART_VERSION))' "$KORIFI_RELEASE_ARTIFACTS_DIR/Chart.yaml"
+  yq "with(.sources[]; .docker.buildx.rawOptions += [\"--build-arg\", \"version=$VERSION\"])" $kbld_file |
+    kbld \
+      --images-annotation=false \
+      -f "helm/korifi/values.yaml" \
+      -f - >"$values_file"
+
+  awk '/image:/ {print $2}' "$values_file" | while read -r img; do
+    push_img="$REGISTRY_URL/cloudfoundry/$img"
+
+    docker tag "$img" "$push_img"
+    docker push "$push_img"
+  done
+
+  sed -i "s|  image: |  image: $IN_CLUSTER_REGISTRY_URL/cloudfoundry/|" "$values_file"
+  yq -i e '.systemImagePullSecrets |= ["dockerregistry-config"]' "$values_file"
+}
+
+install_cfapi_operator() {
+  kubectl -n korifi delete secret cfapi-registry-secret --ignore-not-found=true
+  kubectl -n korifi create secret generic cfapi-registry-secret \
+    --from-literal=server=$IN_CLUSTER_REGISTRY_URL \
+    --from-literal=username=$REGISTRY_USER \
+    --from-literal=password=$REGISTRY_PASSWORD
+
+  pushd $ROOT_DIR
+  {
+    make release REGISTRY=$REGISTRY_URL VERSION=$VERSION
+
+    broker_incluster_image="$IN_CLUSTER_REGISTRY_URL/kyma-project/cfapi/btp-service-broker:$VERSION"
+    broker_incluster_image=$broker_incluster_image yq -i 'with(.broker; .image=env(broker_incluster_image))' release/$VERSION/btp-service-broker/helm/values.yaml
+
+    cf_api_operator_image="$REGISTRY_URL/kyma-project/cfapi/cfapi-controller:$VERSION-kind"
+    docker build \
+      --build-arg VERSION="$VERSION" \
+      --build-arg REGISTRY="$REGISTRY_URL" \
+      --build-arg IMG="kyma-project/cfapi/cfapi-controller" \
+      -t "$cf_api_operator_image" \
+      -f "$SCRIPT_DIR/assets/Dockerfile" .
+
+    docker push "$cf_api_operator_image"
+
+    cf_api_operator_incluster_image="$IN_CLUSTER_REGISTRY_URL/kyma-project/cfapi/cfapi-controller:$VERSION-kind"
+    sed -i "s|image: .*|image: $cf_api_operator_incluster_image|" release/$VERSION/cfapi/cfapi-operator.yaml
+    kubectl apply -f release/$VERSION/cfapi/cfapi-operator.yaml
+    kubectl patch deployment -n cfapi-system cfapi-operator -p '{"spec": {"template": {"spec": {"imagePullSecrets": [{"name": "dockerregistry-config"}]}}}}'
+  }
+  popd
 }
 
 export_environment() {
@@ -230,6 +326,7 @@ export_environment() {
   export REGISTRY_USER="$REGISTRY_USER"
   export REGISTRY_PASSWORD="$REGISTRY_PASSWORD"
   export KORIFI_GW_TLS_PORT="$KORIFI_GW_TLS_PORT"
+  export VERSION="$VERSION"
 EOF
 }
 
@@ -243,6 +340,12 @@ main() {
   install_metrics_server
   install_load_balancer
   install_btp_operator
+
+  if [[ "$BUILD_LOCAL_KORIFI" == "true" ]]; then
+    build_local_korifi_release_chart
+  fi
+
+  install_cfapi_operator
 
   export_environment
 }

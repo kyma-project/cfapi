@@ -112,7 +112,7 @@ bin/vendir:
 	go install carvel.dev/vendir/cmd/vendir@latest
 
 vendir-update-dependencies: bin/vendir
-	vendir sync --chdir tests
+	vendir sync
 
 test-integration:
 	./scripts/run-tests.sh tests/integration

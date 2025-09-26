@@ -1,8 +1,13 @@
 package create_test
 
 import (
+	"github.com/kyma-project/cfapi/api/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 /*
@@ -22,7 +27,6 @@ import (
     type: Installation
   ```
 
-* OIDC config: the resource described by module-data/oidc/oidc-uaa-experimental.tmpl exists and is properly rendered
 * Ensure Gateway API is installed by checking the exsitence of a gwapi CRD
 * Ensure PILOT_ENABLE_ALPHA_GATEWAY_API is set on the istiod deployment
 * Ensure the resource from module-data/envoy-filter/empty-envoy-filter.yaml exists
@@ -57,9 +61,32 @@ korifi                                         korifi-statefulset-runner-control
 
 */
 
-var _ = Describe("Integration", func() {
-	It("foos", func() {
-		// time.Sleep(time.Minute)
-		Expect(true).To(BeFalse())
+var _ = FDescribe("Integration", func() {
+	Describe("CFAPI resource", func() {
+		var cfAPI *v1alpha1.CFAPI
+
+		BeforeEach(func() {
+			cfAPI = &v1alpha1.CFAPI{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "cfapi-system",
+					Name:      cfApiName,
+				},
+			}
+		})
+
+		It("creates CFAPI resource with ready status", func() {
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(cfAPI), cfAPI)).To(Succeed())
+
+				condition := meta.FindStatusCondition(cfAPI.Status.Conditions, v1alpha1.ConditionTypeInstallation)
+				g.Expect(condition).ShouldNot(BeNil())
+				g.Expect(condition.Reason).To(Equal(v1alpha1.ConditionReasonReady))
+				g.Expect(condition.Status).To(Equal(metav1.ConditionTrue))
+			}).Should(Succeed())
+		})
 	})
+	// It("foos", func() {
+	// 	// time.Sleep(time.Minute)
+	// 	Expect(true).To(BeFalse())
+	// })
 })

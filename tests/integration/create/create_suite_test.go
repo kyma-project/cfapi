@@ -2,17 +2,27 @@ package create_test
 
 import (
 	"context"
-	"path/filepath"
+	"encoding/json"
 	"testing"
 	"time"
 
-	"github.com/kyma-project/cfapi/tests/integration/helpers"
+	"github.com/google/uuid"
+	"github.com/kyma-project/cfapi/api/v1alpha1"
+	"github.com/kyma-project/cfapi/controllers"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/kubectl/pkg/scheme"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
+
+func init() {
+	utilruntime.Must(clientgoscheme.AddToScheme(scheme.Scheme))
+	utilruntime.Must(controllers.AddToScheme(scheme.Scheme))
+}
 
 func TestIntegration(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -22,40 +32,74 @@ func TestIntegration(t *testing.T) {
 var (
 	ctx       context.Context
 	k8sClient client.Client
-	fixture   *helpers.Fixture
+	cfApiName string
 )
+
+type sharedSetupData struct {
+	CfAPIName string `json:"cf_api_name"`
+}
 
 func commonTestSetup() {
 	SetDefaultEventuallyTimeout(4 * time.Minute)
 	SetDefaultEventuallyPollingInterval(2 * time.Second)
 
+	ctx = context.Background()
 	k8sClient = createK8sClient()
 }
 
 var _ = SynchronizedBeforeSuite(func() []byte {
 	commonTestSetup()
 
-	ctx = context.Background()
-	fixture = helpers.NewFixture(k8sClient)
+	cfAPI := &v1alpha1.CFAPI{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "cfapi-system",
+			Name:      uuid.NewString(),
+		},
+		Spec: v1alpha1.CFAPISpec{
+			RootNamespace: "cf",
+		},
+	}
+	Expect(k8sClient.Create(ctx, cfAPI)).To(Succeed())
 
-	fixture.SetUp(ctx)
-	Eventually(func(g Gomega) {
-		g.Expect(helpers.ApplyYamlFile(ctx, filepath.Join(helpers.MustGetEnv("CFAPI_MODULE_RELEASE_DIR"), "cfapi-default-cr.yaml"))).To(Succeed())
-	}).Should(Succeed())
+	sharedData := sharedSetupData{
+		CfAPIName: cfAPI.Name,
+	}
 
-	return nil
+	bs, err := json.Marshal(sharedData)
+	Expect(err).NotTo(HaveOccurred())
+
+	return bs
 }, func(bs []byte) {
 	commonTestSetup()
 
-	ctx = context.Background()
+	var sharedSetup sharedSetupData
+	err := json.Unmarshal(bs, &sharedSetup)
+	Expect(err).NotTo(HaveOccurred())
+
+	cfApiName = sharedSetup.CfAPIName
 })
 
 var _ = SynchronizedAfterSuite(func() {}, func() {
-	Eventually(func(g Gomega) {
-		g.Expect(helpers.DeleteYamlFile(ctx, filepath.Join(helpers.MustGetEnv("CFAPI_MODULE_RELEASE_DIR"), "cfapi-default-cr.yaml"))).To(Succeed())
-	}).Should(Succeed())
+	Expect(k8sClient.Delete(ctx, &v1alpha1.CFAPI{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "cfapi-system",
+			Name:      cfApiName,
+		},
+	})).To(Succeed())
 
-	fixture.TearDown(ctx)
+	/* Cleanup
+	- Delete the cf namespace
+	- Delete the cfapi-system/btp-service-broker helm chart
+	- Delete the korifi/korifi helm chart
+	- Delete the korifi namespace
+	- Gateway API:
+	  - vendor gwapi yaml and make the operator Dockerfile package it from the vendor directory instead of pulling it form github
+	  - in the test SynchronizedAfterSuite, delete the gwapi yaml (from the vendor directory)
+	- Kpack:
+	  - vendor kpack yaml and make the operator Dockerfile package it from the vendor directory instead of pulling it form github
+	  - in the test SynchronizedAfterSuite, delete the kpack yaml (from the vendor directory)
+	- Delete the module-data/envoy-filter/empty-envoy-filter.yaml resource
+	*/
 })
 
 func createK8sClient() client.Client {

@@ -1,7 +1,7 @@
 apiVersion: vendir.k14s.io/v1alpha1
 kind: Config
 directories:
-- path: vendor
+- path: dependencies
   contents:
   - path: metrics-server-local
     githubRelease:
@@ -15,3 +15,8 @@ directories:
       latest: true
       disableAutoChecksumValidation: true
       assetNames: ["experimental-install.yaml"]
+  - path: kpack
+    githubRelease:
+      slug: pivotal/kpack
+      latest: true
+      disableAutoChecksumValidation: true
