@@ -1,11 +1,15 @@
 package create_test
 
 import (
+	"crypto/tls"
+	"net/http"
+
 	"github.com/kyma-project/cfapi/api/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -83,6 +87,56 @@ var _ = FDescribe("Integration", func() {
 				g.Expect(condition.Reason).To(Equal(v1alpha1.ConditionReasonReady))
 				g.Expect(condition.Status).To(Equal(metav1.ConditionTrue))
 			}).Should(Succeed())
+		})
+
+		It("sets the finalizer on the resource", func() {
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(cfAPI), cfAPI)).To(Succeed())
+				g.Expect(cfAPI.Finalizers).To(ConsistOf("sample.kyma-project.io/finalizer"))
+			}).Should(Succeed())
+		})
+
+		Describe("cfapi url", func() {
+			BeforeEach(func() {
+				Eventually(func(g Gomega) {
+					gwService := &corev1.Service{
+						ObjectMeta: metav1.ObjectMeta{
+							Namespace: "istio-system",
+							Name:      "istio-ingressgateway",
+						},
+					}
+					g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(gwService), gwService)).To(Succeed())
+
+					modifiedGwService := gwService.DeepCopy()
+
+					ports := []corev1.ServicePort{}
+					for _, port := range modifiedGwService.Spec.Ports {
+						if port.Name == "https" {
+							port.NodePort = 32443
+							port.Port = 443
+							port.Protocol = corev1.ProtocolTCP
+							port.TargetPort.IntVal = 8443
+						}
+
+						ports = append(ports, port)
+					}
+					modifiedGwService.Spec.Ports = ports
+					g.Expect(k8sClient.Patch(ctx, modifiedGwService, client.MergeFrom(gwService))).To(Succeed())
+				}).Should(Succeed())
+			})
+
+			FIt("sets usable cfapi url", func() {
+				Eventually(func(g Gomega) {
+					g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(cfAPI), cfAPI)).To(Succeed())
+					g.Expect(cfAPI.Status.URL).NotTo(BeEmpty())
+
+					http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+					resp, err := http.Get(cfAPI.Status.URL)
+					g.Expect(err).NotTo(HaveOccurred())
+					resp.Body.Close()
+					g.Expect(resp.StatusCode).To(Equal(http.StatusOK))
+				}, "5m").Should(Succeed())
+			})
 		})
 	})
 	// It("foos", func() {
