@@ -69,7 +69,7 @@ var _ = FDescribe("Integration", func() {
 			cfAPI = &v1alpha1.CFAPI{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "cfapi-system",
-					Name:      cfApiName,
+					Name:      cfAPIName,
 				},
 			}
 		})

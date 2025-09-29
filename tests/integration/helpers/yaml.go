@@ -5,11 +5,14 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 
+	"gopkg.in/yaml.v2"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/serializer/yaml"
+	apiyaml "k8s.io/apimachinery/pkg/runtime/serializer/yaml"
+
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
 	controllerruntime "sigs.k8s.io/controller-runtime"
@@ -17,8 +20,35 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 )
 
+func DeleteYamlFilesInDir(ctx context.Context, dirPath string) error {
+	files, err := os.ReadDir(dirPath)
+	if err != nil {
+		return err
+	}
+
+	for _, file := range files {
+		if file.IsDir() {
+			continue
+		}
+
+		if strings.HasSuffix(file.Name(), ".yaml") || strings.HasSuffix(file.Name(), ".yml") {
+			err = DeleteYamlFile(ctx, fmt.Sprintf("%s/%s", dirPath, file.Name()))
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
 func DeleteYamlFile(ctx context.Context, yamlFilePath string) error {
 	yamlDocs, err := parseYamlIntoDocs(yamlFilePath)
+	if err != nil {
+		return err
+	}
+
+	yamlDocs, err = filterComments(yamlDocs)
 	if err != nil {
 		return err
 	}
@@ -26,7 +56,10 @@ func DeleteYamlFile(ctx context.Context, yamlFilePath string) error {
 	for _, doc := range yamlDocs {
 		resourceClient, obj, err := resourceClientFor(doc)
 		if err != nil {
-			return err
+			if meta.IsNoMatchError(err) {
+				continue
+			}
+			return fmt.Errorf("failed to create resource client for %s: %w", string(doc), err)
 		}
 
 		deleteForeground := metav1.DeletePropagationForeground
@@ -34,7 +67,7 @@ func DeleteYamlFile(ctx context.Context, yamlFilePath string) error {
 			PropagationPolicy: &deleteForeground,
 		})
 		if client.IgnoreNotFound(err) != nil {
-			return err
+			return fmt.Errorf("deleting object %s failed: %w", obj.GetName(), err)
 		}
 
 		_, err = resourceClient.Get(ctx, obj.GetName(), metav1.GetOptions{})
@@ -43,7 +76,7 @@ func DeleteYamlFile(ctx context.Context, yamlFilePath string) error {
 		}
 
 		if client.IgnoreNotFound(err) != nil {
-			return err
+			return fmt.Errorf("failed to get object %s/%s: %w", obj.GetNamespace(), obj.GetName(), err)
 		}
 	}
 
@@ -56,18 +89,33 @@ func parseYamlIntoDocs(yamlFilePath string) ([][]byte, error) {
 		return nil, err
 	}
 
-	yamlDocs := [][]byte{}
-	splitDocs := bytes.Split(yamlData, []byte("---\napiVersion"))
-	for i, doc := range splitDocs {
-		// Only restore "apiVersion" for the second and subsequent elements (the first element does not start with the separator)
-		if i != 0 {
-			doc = append([]byte("apiVersion"), doc...)
+	yamlDocs := bytes.Split(yamlData, []byte("---"))
+	return yamlDocs, nil
+}
+
+func filterComments(yamlDocs [][]byte) ([][]byte, error) {
+	result := [][]byte{}
+
+	for _, doc := range yamlDocs {
+		obj := map[string]any{}
+		err := yaml.Unmarshal(doc, &obj)
+		if err != nil {
+			return nil, err
 		}
 
-		yamlDocs = append(yamlDocs, doc)
+		if len(obj) == 0 {
+			continue
+		}
+
+		marshalledDoc, err := yaml.Marshal(obj)
+		if err != nil {
+			return nil, err
+		}
+
+		result = append(result, marshalledDoc)
 	}
 
-	return yamlDocs, nil
+	return result, nil
 }
 
 func resourceClientFor(yamlDoc []byte) (dynamic.ResourceInterface, *unstructured.Unstructured, error) {
@@ -76,7 +124,7 @@ func resourceClientFor(yamlDoc []byte) (dynamic.ResourceInterface, *unstructured
 		return nil, nil, err
 	}
 
-	decoder := yaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme)
+	decoder := apiyaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme)
 
 	obj := &unstructured.Unstructured{}
 	_, gvk, err := decoder.Decode(yamlDoc, nil, obj)
