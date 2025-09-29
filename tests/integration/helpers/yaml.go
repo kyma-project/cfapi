@@ -21,6 +21,16 @@ import (
 )
 
 func DeleteYamlFilesInDir(ctx context.Context, dirPath string) error {
+	dynClient, err := createDynamicClient()
+	if err != nil {
+		return err
+	}
+
+	mapper, err := createDynamicRestMapper()
+	if err != nil {
+		return err
+	}
+
 	files, err := os.ReadDir(dirPath)
 	if err != nil {
 		return err
@@ -32,7 +42,7 @@ func DeleteYamlFilesInDir(ctx context.Context, dirPath string) error {
 		}
 
 		if strings.HasSuffix(file.Name(), ".yaml") || strings.HasSuffix(file.Name(), ".yml") {
-			err = DeleteYamlFile(ctx, fmt.Sprintf("%s/%s", dirPath, file.Name()))
+			err = deleteYamlFile(ctx, dynClient, mapper, fmt.Sprintf("%s/%s", dirPath, file.Name()))
 			if err != nil {
 				return err
 			}
@@ -42,7 +52,7 @@ func DeleteYamlFilesInDir(ctx context.Context, dirPath string) error {
 	return nil
 }
 
-func DeleteYamlFile(ctx context.Context, yamlFilePath string) error {
+func deleteYamlFile(ctx context.Context, dynClient dynamic.Interface, mapper meta.RESTMapper, yamlFilePath string) error {
 	yamlDocs, err := parseYamlIntoDocs(yamlFilePath)
 	if err != nil {
 		return err
@@ -54,7 +64,7 @@ func DeleteYamlFile(ctx context.Context, yamlFilePath string) error {
 	}
 
 	for _, doc := range yamlDocs {
-		resourceClient, obj, err := resourceClientFor(doc)
+		resourceClient, obj, err := resourceClientFor(dynClient, mapper, doc)
 		if err != nil {
 			if meta.IsNoMatchError(err) {
 				continue
@@ -118,21 +128,11 @@ func filterComments(yamlDocs [][]byte) ([][]byte, error) {
 	return result, nil
 }
 
-func resourceClientFor(yamlDoc []byte) (dynamic.ResourceInterface, *unstructured.Unstructured, error) {
-	dynClient, err := createDynamicClient()
-	if err != nil {
-		return nil, nil, err
-	}
-
+func resourceClientFor(dynClient dynamic.Interface, mapper meta.RESTMapper, yamlDoc []byte) (dynamic.ResourceInterface, *unstructured.Unstructured, error) {
 	decoder := apiyaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme)
 
 	obj := &unstructured.Unstructured{}
 	_, gvk, err := decoder.Decode(yamlDoc, nil, obj)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	mapper, err := createDynamicRestMapper()
 	if err != nil {
 		return nil, nil, err
 	}
