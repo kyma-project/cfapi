@@ -7,7 +7,9 @@ import (
 	"github.com/kyma-project/cfapi/api/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	// gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -96,47 +98,67 @@ var _ = FDescribe("Integration", func() {
 			}).Should(Succeed())
 		})
 
-		Describe("cfapi url", func() {
-			BeforeEach(func() {
-				Eventually(func(g Gomega) {
-					gwService := &corev1.Service{
-						ObjectMeta: metav1.ObjectMeta{
-							Namespace: "istio-system",
-							Name:      "istio-ingressgateway",
-						},
-					}
-					g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(gwService), gwService)).To(Succeed())
+		FIt("sets usable cfapi url", func() {
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(cfAPI), cfAPI)).To(Succeed())
+				g.Expect(cfAPI.Status.URL).NotTo(BeEmpty())
 
-					modifiedGwService := gwService.DeepCopy()
+				http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+				resp, err := http.Get(cfAPI.Status.URL)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(resp.StatusCode).To(Equal(http.StatusOK))
+			}).Should(Succeed())
+		})
+	})
 
-					ports := []corev1.ServicePort{}
-					for _, port := range modifiedGwService.Spec.Ports {
-						if port.Name == "https" {
-							port.NodePort = 32443
-							port.Port = 443
-							port.Protocol = corev1.ProtocolTCP
-							port.TargetPort.IntVal = 8443
-						}
+	// Describe("Gateway API", func() {
+	// 	var gateway *gatewayv1.Gateway
+	// 	BeforeEach(func() {
+	// 		gateway := gatewayv1.Gateway{
+	// 			ObjectMeta: metav1.ObjectMeta{
+	// 				Name:      "korifi",
+	// 				Namespace: "korifi-gateway",
+	// 			},
+	// 		}
 
-						ports = append(ports, port)
-					}
-					modifiedGwService.Spec.Ports = ports
-					g.Expect(k8sClient.Patch(ctx, modifiedGwService, client.MergeFrom(gwService))).To(Succeed())
-				}).Should(Succeed())
-			})
+	// 		Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(gateway), gateway)).To(Succeed())
+	// 	})
 
-			FIt("sets usable cfapi url", func() {
-				Eventually(func(g Gomega) {
-					g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(cfAPI), cfAPI)).To(Succeed())
-					g.Expect(cfAPI.Status.URL).NotTo(BeEmpty())
+	// 	It("status is ready", func() {
+	// 		Eventually(func(g Gomega) {
+	// 			condition := meta.FindStatusCondition(gateway.Status.Conditions, string(gatewayv1.GatewayConditionReady))
+	// 			g.Expect(condition).ShouldNot(BeNil())
+	// 			g.Expect(condition.Reason).To(Equal(string(gatewayv1.GatewayReasonReady)))
+	// 			g.Expect(condition.Status).To(Equal(metav1.ConditionTrue))
+	// 		}).Should(Succeed())
+	// 	})
+	// })
 
-					http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-					resp, err := http.Get(cfAPI.Status.URL)
-					g.Expect(err).NotTo(HaveOccurred())
-					resp.Body.Close()
-					g.Expect(resp.StatusCode).To(Equal(http.StatusOK))
-				}, "5m").Should(Succeed())
-			})
+	Describe("Namepsaces", func() {
+		var (
+			korifiNamespace *corev1.Namespace
+			cfNamespace     *corev1.Namespace
+		)
+
+		BeforeEach(func() {
+			cfNamespace = &corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "cf",
+				},
+			}
+			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(cfNamespace), cfNamespace)).To(Succeed())
+
+			korifiNamespace = &corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "korifi",
+				},
+			}
+			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(korifiNamespace), korifiNamespace)).To(Succeed())
+		})
+
+		It("namespaces exist", func() {
+			Expect(korifiNamespace).NotTo(BeNil())
+			Expect(cfNamespace).NotTo(BeNil())
 		})
 	})
 	// It("foos", func() {

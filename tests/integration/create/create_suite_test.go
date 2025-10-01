@@ -75,6 +75,32 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	bs, err := json.Marshal(sharedData)
 	Expect(err).NotTo(HaveOccurred())
 
+	Eventually(func(g Gomega) {
+		gwService := &corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "korifi-gateway",
+				Name:      "korifi-istio",
+			},
+		}
+		g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(gwService), gwService)).To(Succeed())
+
+		modifiedGwService := gwService.DeepCopy()
+
+		ports := []corev1.ServicePort{}
+		for _, port := range modifiedGwService.Spec.Ports {
+			if port.Name == "https-api" {
+				port.NodePort = 32443
+				port.Port = 443
+				port.Protocol = corev1.ProtocolTCP
+				port.TargetPort.IntVal = 8443
+			}
+
+			ports = append(ports, port)
+		}
+		modifiedGwService.Spec.Ports = ports
+		g.Expect(k8sClient.Patch(ctx, modifiedGwService, client.MergeFrom(gwService))).To(Succeed())
+	}).Should(Succeed())
+
 	return bs
 }, func(bs []byte) {
 	commonTestSetup()
