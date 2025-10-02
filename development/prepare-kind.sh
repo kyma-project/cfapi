@@ -56,9 +56,6 @@ nodes:
   extraMounts:
   - containerPath: /var/run/docker.sock
     hostPath: /var/run/docker.sock
-  - containerPath: /ssl
-    hostPath: $SSL_DIR
-    readOnly: true
   kubeadmConfigPatches:
   - |
     kind: InitConfiguration
@@ -72,16 +69,6 @@ nodes:
         - name: docker-socket
           hostPath: /var/run/docker.sock
           mountPath: /var/run/docker.sock
-        - name: ssl-certs
-          hostPath: /ssl
-          mountPath: /etc/uaa-ssl
-      extraArgs:
-        oidc-issuer-url: ${UAA_URL}/oauth/token
-        oidc-client-id: cloud_controller
-        oidc-ca-file: /etc/uaa-ssl/ca.pem
-        oidc-username-claim: user_name
-        oidc-username-prefix: "$OIDC_PREFIX:"
-        oidc-signing-algs: "RS256"
   extraPortMappings:
   - containerPort: $KORIFI_GW_TLS_PORT
     hostPort: 443
@@ -109,21 +96,21 @@ install_metrics_server() {
   kubectl apply -k "$dep_dir/insecure-metrics-server"
 }
 
-# install_istio() {
-#   echo "************************************************"
-#   echo " Installing the Istio Module "
-#   echo "************************************************"
-#   kubectl apply -f https://github.com/kyma-project/istio/releases/latest/download/istio-manager-experimental.yaml
-#   kubectl apply -f https://github.com/kyma-project/istio/releases/latest/download/istio-default-cr.yaml
+install_istio() {
+  echo "************************************************"
+  echo " Installing the Istio Module "
+  echo "************************************************"
+  kubectl apply -f https://github.com/kyma-project/istio/releases/latest/download/istio-manager-experimental.yaml
+  kubectl apply -f https://github.com/kyma-project/istio/releases/latest/download/istio-default-cr.yaml
 
-#   kubectl wait --for=jsonpath='.status.state'=Ready -n kyma-system istios default
-#   configure_gateway_service istio-system istio-ingressgateway "$KYMA_GW_TLS_PORT"
+  kubectl wait --for=jsonpath='.status.state'=Ready -n kyma-system istios default
+  configure_gateway_service istio-system istio-ingressgateway "$KYMA_GW_TLS_PORT"
 
-#   echo "************************************************"
-#   echo " Creating the Default Istio Gateway "
-#   echo "************************************************"
-#   kubectl apply -f "$SCRIPT_DIR/assets/kyma-gateway.yaml"
-# }
+  echo "************************************************"
+  echo " Creating the Default Istio Gateway "
+  echo "************************************************"
+  kubectl apply -f "$SCRIPT_DIR/assets/kyma-gateway.yaml"
+}
 
 install_docker_registry() {
   echo "************************************************"
@@ -200,22 +187,22 @@ metadata:
 EOF
 }
 
-# install_load_balancer() {
-#   echo "************************************************"
-#   echo " Installing Load Balancer "
-#   echo "************************************************"
+install_load_balancer() {
+  echo "************************************************"
+  echo " Installing Load Balancer "
+  echo "************************************************"
 
-#   pushd "$CLOUD_PROVIDER_KIND_DIR"
-#   {
-#     docker build . -t $REGISTRY_URL/cloud-provider-kind:$VERSION
-#     docker push $REGISTRY_URL/cloud-provider-kind:$VERSION
-#   }
-#   popd
+  pushd "$CLOUD_PROVIDER_KIND_DIR"
+  {
+    docker build . -t $REGISTRY_URL/cloud-provider-kind:$VERSION
+    docker push $REGISTRY_URL/cloud-provider-kind:$VERSION
+  }
+  popd
 
-#   cat $SCRIPT_DIR/assets/cloud-provider-kind.yaml |
-#     CLOUD_PROVIDER_KIND_IMAGE="$IN_CLUSTER_REGISTRY_URL/cloud-provider-kind:$VERSION" envsubst |
-#     kubectl apply -f -
-# }
+  cat $SCRIPT_DIR/assets/cloud-provider-kind.yaml |
+    CLOUD_PROVIDER_KIND_IMAGE="$IN_CLUSTER_REGISTRY_URL/cloud-provider-kind:$VERSION" envsubst |
+    kubectl apply -f -
+}
 
 install_btp_operator() {
   echo "************************************************"
@@ -336,7 +323,7 @@ main() {
 
   create_namespaces
   install_gardener_cert_manager
-  # install_istio
+  install_istio
   install_docker_registry
   install_metrics_server
   # install_load_balancer
