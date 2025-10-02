@@ -18,6 +18,7 @@ export VERSION="${VERSION:-$(uuidgen)}"
 SECRET_DIR="$SCRIPT_DIR/assets/secrets"
 SSL_DIR="$SECRET_DIR/ssl"
 mkdir -p "$SSL_DIR"
+echo "------------------------------SSL"+$SSL_DIR
 
 KYMA_TLS_PORT=8443
 KYMA_GW_TLS_PORT=31443
