@@ -98,7 +98,7 @@ var _ = FDescribe("Integration", func() {
 			}).Should(Succeed())
 		})
 
-		FIt("sets usable cfapi url", func() {
+		It("sets usable cfapi url", func() {
 			Eventually(func(g Gomega) {
 				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(cfAPI), cfAPI)).To(Succeed())
 				g.Expect(cfAPI.Status.URL).NotTo(BeEmpty())

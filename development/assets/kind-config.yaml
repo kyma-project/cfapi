@@ -25,7 +25,7 @@ nodes:
           hostPath: /var/run/docker.sock
           mountPath: /var/run/docker.sock
   extraPortMappings:
-  - containerPort: 32443
+  - containerPort: 32444
     hostPort: 443
     protocol: TCP
   - containerPort: 31443
