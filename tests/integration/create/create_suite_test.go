@@ -89,7 +89,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 		ports := []corev1.ServicePort{}
 		for _, port := range modifiedGwService.Spec.Ports {
 			if port.Name == "https-api" {
-				port.NodePort = 32444
+				port.NodePort = 33443
 				port.Port = 443
 				port.Protocol = corev1.ProtocolTCP
 				port.TargetPort.IntVal = 8443

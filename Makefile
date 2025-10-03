@@ -114,5 +114,6 @@ bin/vendir:
 vendir-update-dependencies: bin/vendir
 	vendir sync
 
+.PHONY: test-integration
 test-integration:
-	./scripts/run-tests.sh tests/integration
+	CI_MODE=$(CI_MODE) ./scripts/run-tests.sh tests/integration

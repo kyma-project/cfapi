@@ -5,6 +5,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="$SCRIPT_DIR/.."
 
+export CI_MODE="${CI_MODE:-false}"
 # If BUILD_LOCAL_KORIFI is set to true, the script will build Korifi from local
 # source code and package it into the operator image that is deployed on the
 # kind cluster. Otherwise, the operator will install latest Korifi release.
@@ -22,7 +23,7 @@ echo "------------------------------SSL"+$SSL_DIR
 
 KYMA_TLS_PORT=8443
 KYMA_GW_TLS_PORT=31443
-KORIFI_GW_TLS_PORT=32444
+KORIFI_GW_TLS_PORT=33443
 
 source "$SCRIPT_DIR/tools/common.sh"
 export UAA_URL
@@ -56,6 +57,9 @@ nodes:
   extraMounts:
   - containerPath: /var/run/docker.sock
     hostPath: /var/run/docker.sock
+  - containerPath: /ssl
+    hostPath: $SSL_DIR
+    readOnly: true
   kubeadmConfigPatches:
   - |
     kind: InitConfiguration
@@ -69,6 +73,16 @@ nodes:
         - name: docker-socket
           hostPath: /var/run/docker.sock
           mountPath: /var/run/docker.sock
+        - name: ssl-certs
+          hostPath: /ssl
+          mountPath: /etc/uaa-ssl
+      extraArgs:
+        oidc-issuer-url: ${UAA_URL}/oauth/token
+        oidc-client-id: cloud_controller
+        oidc-ca-file: /etc/uaa-ssl/ca.pem
+        oidc-username-claim: user_name
+        oidc-username-prefix: "$OIDC_PREFIX:"
+        oidc-signing-algs: "RS256"
   extraPortMappings:
   - containerPort: $KORIFI_GW_TLS_PORT
     hostPort: 443
@@ -326,7 +340,9 @@ main() {
   install_istio
   install_docker_registry
   install_metrics_server
-  # install_load_balancer
+  if [[ "$CI_MODE" == "false" ]]; then
+    install_load_balancer
+  fi
   install_btp_operator
 
   if [[ "$BUILD_LOCAL_KORIFI" == "true" ]]; then

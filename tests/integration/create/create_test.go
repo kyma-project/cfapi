@@ -67,7 +67,7 @@ korifi                                         korifi-statefulset-runner-control
 
 */
 
-var _ = FDescribe("Integration", func() {
+var _ = Describe("Integration", func() {
 	Describe("CFAPI resource", func() {
 		var cfAPI *v1alpha1.CFAPI
 
