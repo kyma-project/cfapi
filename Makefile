@@ -40,8 +40,16 @@ manifests: bin/controller-gen ## Generate WebhookConfiguration, ClusterRole and 
 generate: bin/controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
 	controller-gen object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
-test: manifests generate fmt vet
+.PHONY: test-broker
+test-broker: manifests generate fmt vet
 	make -C components/btp-service-broker fmt vet test
+
+.PHONY: test-integration
+test-integration: manifests generate fmt vet
+	CI_MODE=$(CI_MODE) ./scripts/run-tests.sh tests/integration
+
+.PHONY: test
+test: test-broker test-integration
 
 docker-build: ## Build docker image with the manager.
 	docker build -t ${REGISTRY}/${IMG} --build-arg TARGETARCH=amd64 --build-arg BTP_SERVICE_BROKER_RELEASE_DIR=$(BTP_SERVICE_BROKER_RELEASE_DIR) .
@@ -113,6 +121,3 @@ bin/vendir:
 vendir-update-dependencies: bin/vendir
 	vendir sync
 
-.PHONY: test-integration
-test-integration:
-	CI_MODE=$(CI_MODE) ./scripts/run-tests.sh tests/integration

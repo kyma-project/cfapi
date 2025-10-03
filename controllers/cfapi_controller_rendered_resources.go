@@ -906,17 +906,13 @@ func (r *CFAPIReconciler) deployKorifi(ctx context.Context, appsDomain, korifiAP
 			"apiServer": map[string]interface{}{
 				"url": korifiAPIDomain,
 			},
-			"logcache": map[string]interface{}{
-				"url": "logcache." + cfDomain,
-			},
 			"uaaURL": uaaURL,
 		},
 		"kpackImageBuilder": map[string]interface{}{
-			"builderRepository": crDomain + "/trinity/kpack-builder",
+			"builderRepository": crDomain + "/cfapi/kpack-builder",
 		},
 		"containerRepositoryPrefix": crDomain + "/",
 		"defaultAppDomainName":      appsDomain,
-		"cfDomain":                  cfDomain,
 		"experimental": map[string]interface{}{
 			"uaa": map[string]interface{}{
 				"enabled": true,

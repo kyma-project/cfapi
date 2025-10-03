@@ -8,6 +8,7 @@ import (
 
 	golog "log"
 
+	gardenerv1alpha1 "github.com/gardener/cert-management/pkg/apis/cert/v1alpha1"
 	"github.com/google/uuid"
 	"github.com/kyma-project/cfapi/api/v1alpha1"
 	"github.com/kyma-project/cfapi/controllers"
@@ -21,14 +22,25 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+
+	dnsv1alpha1 "github.com/gardener/external-dns-management/pkg/apis/dns/v1alpha1"
+	buildv1alpha2 "github.com/pivotal/kpack/pkg/apis/build/v1alpha2"
+	v1alpha3 "istio.io/client-go/pkg/apis/networking/v1alpha3"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/kubectl/pkg/scheme"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 )
 
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme.Scheme))
 	utilruntime.Must(controllers.AddToScheme(scheme.Scheme))
+	utilruntime.Must(gatewayv1.Install(scheme.Scheme))
+	utilruntime.Must(v1alpha3.AddToScheme(scheme.Scheme))
+	utilruntime.Must(gardenerv1alpha1.AddToScheme(scheme.Scheme))
+	utilruntime.Must(dnsv1alpha1.AddToScheme(scheme.Scheme))
+	utilruntime.Must(buildv1alpha2.AddToScheme(scheme.Scheme))
 }
 
 func TestIntegration(t *testing.T) {
@@ -37,13 +49,15 @@ func TestIntegration(t *testing.T) {
 }
 
 var (
-	ctx       context.Context
-	k8sClient client.Client
-	cfAPIName string
+	ctx        context.Context
+	k8sClient  client.Client
+	cfAPIName  string
+	sharedData sharedSetupData
 )
 
 type sharedSetupData struct {
-	CfAPIName string `json:"cf_api_name"`
+	CfAPIName   string `json:"cf_api_name"`
+	CfAdminUser string `json:"cf_admin_user"`
 }
 
 func commonTestSetup() {
@@ -57,6 +71,23 @@ func commonTestSetup() {
 var _ = SynchronizedBeforeSuite(func() []byte {
 	commonTestSetup()
 
+	cfAdminUser := uuid.NewString()
+	Expect(k8sClient.Create(ctx, &rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: cfAdminUser,
+		},
+		Subjects: []rbacv1.Subject{{
+			APIGroup: rbacv1.GroupName,
+			Kind:     rbacv1.UserKind,
+			Name:     cfAdminUser,
+		}},
+		RoleRef: rbacv1.RoleRef{
+			APIGroup: rbacv1.GroupName,
+			Kind:     "ClusterRole",
+			Name:     "cluster-admin",
+		},
+	})).To(Succeed())
+
 	cfAPI := &v1alpha1.CFAPI{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "cfapi-system",
@@ -68,8 +99,9 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	}
 	Expect(k8sClient.Create(ctx, cfAPI)).To(Succeed())
 
-	sharedData := sharedSetupData{
-		CfAPIName: cfAPI.Name,
+	sharedData = sharedSetupData{
+		CfAPIName:   cfAPI.Name,
+		CfAdminUser: cfAdminUser,
 	}
 
 	bs, err := json.Marshal(sharedData)
@@ -105,11 +137,10 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 }, func(bs []byte) {
 	commonTestSetup()
 
-	var sharedSetup sharedSetupData
-	err := json.Unmarshal(bs, &sharedSetup)
+	err := json.Unmarshal(bs, &sharedData)
 	Expect(err).NotTo(HaveOccurred())
 
-	cfAPIName = sharedSetup.CfAPIName
+	cfAPIName = sharedData.CfAPIName
 })
 
 var _ = SynchronizedAfterSuite(func() {}, func() {
@@ -136,6 +167,12 @@ var _ = SynchronizedAfterSuite(func() {}, func() {
 	Eventually(func(g Gomega) {
 		g.Expect(helpers.DeleteYamlFilesInDir(ctx, "../../../module-data/envoy-filter")).To(Succeed())
 	}).Should(Succeed())
+
+	Expect(k8sClient.Delete(ctx, &rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: sharedData.CfAdminUser,
+		},
+	})).To(Succeed())
 })
 
 func createK8sClient() client.Client {
