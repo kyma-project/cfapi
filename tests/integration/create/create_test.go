@@ -8,8 +8,16 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	// "istio.io/api/networking/v1alpha3"
 
+	// v1alpha3 "istio.io/api/networking/v1alpha3"
+
+	// v1alpha3 "istio.io/client-go/pkg/apis/networking/v1alpha3"
+
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
+
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -108,6 +116,73 @@ var _ = Describe("Integration", func() {
 				g.Expect(resp.StatusCode).To(Equal(http.StatusOK))
 			}).Should(Succeed())
 		})
+	})
+
+	FDescribe("Gateway API", func() {
+		var gateway *gatewayv1.Gateway
+		BeforeEach(func() {
+			gateway = &gatewayv1.Gateway{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "korifi",
+					Namespace: "korifi-gateway",
+				},
+			}
+
+			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(gateway), gateway)).To(Succeed())
+		})
+
+		It("status is ready", func() {
+			Eventually(func(g Gomega) {
+				g.Expect(appWorkload.Status.Conditions).To(ContainElement(SatisfyAll(
+					HasType(Equal(korifiv1alpha1.StatusConditionReady)),
+					HasStatus(Equal(metav1.ConditionFalse)),
+					HasReason(Equal("StillRunning")),
+					HasMessage(Equal("3 instances still running")),
+				)))
+				condition := meta.FindStatusCondition(gateway.Status.Conditions, string(gatewayv1.GatewayConditionReady))
+				g.Expect(condition).ShouldNot(BeNil())
+				g.Expect(condition.Status).To(Equal(metav1.ConditionTrue))
+				g.Expect(condition.Reason).To(Equal(string(gatewayv1.RouteReasonResolvedRefs)))
+			}).Should(Succeed())
+		})
+
+		When("istiod deployment is ready", func() {
+			var istiodDeployment *appsv1.Deployment
+			BeforeEach(func() {
+				istiodDeployment = &appsv1.Deployment{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "istiod",
+						Namespace: "istio-system",
+					},
+				}
+
+				Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(istiodDeployment), istiodDeployment)).To(Succeed())
+			})
+
+			It("sets the PILOT_ENABLE_ALPHA_GATEWAY_API environment variable", func() {
+				Expect(istiodDeployment.Spec.Template.Spec.Containers[0].Env).To(ContainElements([]corev1.EnvVar{
+					{Name: "PILOT_ENABLE_ALPHA_GATEWAY_API", Value: "true"},
+				}))
+			})
+		})
+
+		// When("envoy filter is configured", func() {
+		// 	var envoyFilter *v1alpha3.EnvoyFilter
+		// 	BeforeEach(func() {
+		// 		envoyFilter = &v1alpha3.EnvoyFilter{
+		// 			ObjectMeta: metav1.ObjectMeta{
+		// 				Name:      "ef-removeserver",
+		// 				Namespace: "istio-system",
+		// 			},
+		// 		}
+
+		// 		Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(envoyFilter), envoyFilter)).To(Succeed())
+		// 	})
+
+		// 	It("exists", func() {
+		// 		Expect(envoyFilter.Generation).To(BeNumerically(">", 0))
+		// 	})
+		// })
 	})
 
 	Describe("Namepsaces", func() {
