@@ -23,7 +23,7 @@ echo "------------------------------SSL"+$SSL_DIR
 
 KYMA_TLS_PORT=8443
 KYMA_GW_TLS_PORT=31443
-KORIFI_GW_TLS_PORT=33443
+KORIFI_GW_TLS_PORT=32443
 
 source "$SCRIPT_DIR/tools/common.sh"
 export UAA_URL
