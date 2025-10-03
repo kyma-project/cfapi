@@ -45,8 +45,5 @@ bin/golangci-lint:
 golangci-lint: bin/golangci-lint
 	golangci-lint run
 
-bin/setup-envtest: bin/testbin
+bin/setup-envtest:
 	go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
-
-bin/testbin: bin/setup-envtest
-	mkdir -p bin/testbin

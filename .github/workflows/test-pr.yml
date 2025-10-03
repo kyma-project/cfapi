@@ -27,7 +27,7 @@ jobs:
     - name: Run linters
       run: make lint
 
-  tests:
+  broker-tests:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -46,4 +46,33 @@ jobs:
         go-version: '1.24.1'
 
     - name: Run tests
-      run: make test
+      run: make test-broker
+
+  integration-tests:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+
+    - uses: actions/setup-go@v5
+      with:
+        go-version: '1.24.1'
+
+    - name: Create Kind Cluster
+      # We use kind-action@main as the `cloud_provider` option has not been released yet
+      uses: helm/kind-action@main
+      with:
+        config: ./development/assets/kind-config.yaml
+        cloud_provider: true
+        cluster_name: cfapi
+
+    - name: Run tests
+      run: make test-integration CI_MODE=true
