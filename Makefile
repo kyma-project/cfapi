@@ -72,8 +72,7 @@ cfapi-release: bin/kustomize docker-build docker-push
 
 	cp default-cr.yaml $(CFAPI_RELEASE_DIR)/cfapi-default-cr.yaml
 
-	$(eval IMG_SHA = $(shell docker inspect --format='{{index .RepoDigests 0}}' ${REGISTRY}/${IMG}))
-	pushd $(RELEASE_DIR)/tmp/config/manager && kustomize edit set image controller=$(IMG_SHA) && popd
+	pushd $(RELEASE_DIR)/tmp/config/manager && kustomize edit set image controller=${REGISTRY}/${IMG}:${VERSION} && popd
 	pushd $(RELEASE_DIR)/tmp/config/manager && kustomize edit add label app.kubernetes.io/version:$(VERSION) --force --without-selector --include-templates && popd
 	kustomize build $(RELEASE_DIR)/tmp/config/default > $(CFAPI_RELEASE_DIR)/cfapi-operator.yaml
 
