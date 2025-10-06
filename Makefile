@@ -1,5 +1,5 @@
 # Image URL to use all building/pushing image targets
-VERSION = 0.0.0
+VERSION ?= 0.0.0
 REGISTRY = ghcr.io
 IMG = kyma-project/cfapi/cfapi-controller
 
