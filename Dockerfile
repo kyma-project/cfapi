@@ -30,7 +30,7 @@ ARG BTP_SERVICE_BROKER_RELEASE_DIR
 RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -ldflags="-X 'main.buildVersion=${TAG_default_tag}'" -a -o manager main.go
 
 
-ENV VERSION_KORIFI=0.16.0
+ENV VERSION_KORIFI=0.16.1
 ENV BTP_SERVICE_BROKER_RELEASE_DIR=${BTP_SERVICE_BROKER_RELEASE_DIR}
 
 COPY dependencies/kpack module-data/kpack/
