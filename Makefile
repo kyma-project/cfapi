@@ -52,7 +52,7 @@ test-integration: manifests generate fmt vet
 test: test-broker test-integration
 
 docker-build: ## Build docker image with the manager.
-	docker build -t ${REGISTRY}/${IMG} --build-arg TARGETARCH=amd64 --build-arg BTP_SERVICE_BROKER_RELEASE_DIR=$(BTP_SERVICE_BROKER_RELEASE_DIR) .
+	docker build -t ${REGISTRY}/${IMG} --build-arg TARGETARCH=amd64 --build-arg BTP_SERVICE_BROKER_RELEASE_DIR=$(BTP_SERVICE_BROKER_RELEASE_DIR) --build-arg VERSION=$(VERSION) .
 	docker tag ${REGISTRY}/${IMG} ${REGISTRY}/${IMG}:${VERSION}
 
 docker-push: ## Push docker image with the manager.
