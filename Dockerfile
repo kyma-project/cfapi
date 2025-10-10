@@ -30,15 +30,13 @@ ARG BTP_SERVICE_BROKER_RELEASE_DIR
 RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -ldflags="-X 'main.buildVersion=${TAG_default_tag}'" -a -o manager main.go
 
 
-ENV VERSION_KORIFI=0.16.1
 ENV BTP_SERVICE_BROKER_RELEASE_DIR=${BTP_SERVICE_BROKER_RELEASE_DIR}
 
 COPY dependencies/kpack module-data/kpack/
 
 COPY dependencies/gateway-api module-data/gateway-api/
 
-WORKDIR /workspace/module-data/korifi
-RUN curl -OLf https://github.com/cloudfoundry/korifi/releases/download/v$VERSION_KORIFI/korifi-$VERSION_KORIFI.tgz
+COPY dependencies/korifi module-data/korifi-chart/
 
 WORKDIR /workspace/module-data/btp-service-broker
 COPY $BTP_SERVICE_BROKER_RELEASE_DIR/helm helm

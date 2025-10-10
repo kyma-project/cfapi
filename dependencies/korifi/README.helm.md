@@ -1,0 +1,157 @@
+# Korifi Helm chart
+
+This documents the [Helm](https://helm.sh/) chart for [Korifi](https://github.com/cloudfoundry/korifi).
+
+The configuration for each individual component is nested under a top-level key named after the component itself.
+Values at the top-level apply to all components.
+
+Each component can be excluded from the deployment by the setting its `include` value to `false`.
+See [_Customizing the Chart Before Installing_](https://helm.sh/docs/intro/using_helm/#customizing-the-chart-before-installing) for details on how to specify values when installing a Helm chart.
+
+Here are all the values that can be set for the chart:
+
+- `adminUserName` (_String_): Name of the admin user that will be bound to the Cloud Foundry Admin role.
+- `api`:
+  - `apiServer`:
+    - `ingressCertSecret` (_String_): The name of the secret containing the TLS certificate for the API ingress.
+    - `internalCertSecret` (_String_): The name of the secret containing the TLS certificate for internal api access. It needs to be valid for 'korifi-api-svc.korifi.svc.cluster.local'.
+    - `internalPort` (_Integer_): Port used internally by the API container.
+    - `port` (_Integer_): API external port. Defaults to `443`.
+    - `timeouts`: HTTP timeouts.
+      - `idle` (_Integer_): Idle timeout.
+      - `read` (_Integer_): Read timeout.
+      - `readHeader` (_Integer_): Read header timeout.
+      - `write` (_Integer_): Write timeout.
+    - `url` (_String_): API URL.
+  - `authProxy`: Needed if using a cluster authentication proxy, e.g. [Pinniped](https://pinniped.dev/).
+    - `caCert` (_String_): Proxy's PEM-encoded CA certificate (*not* as Base64).
+    - `host` (_String_): Must be a host string, a host:port pair, or a URL to the base of the apiserver.
+  - `image` (_String_): Reference to the API container image.
+  - `include` (_Boolean_): Deploy the API component.
+  - `infoConfig`: The /v3/info endpoint configuration.
+    - `custom`: `custom` attribute in the /v3/info endpoint
+    - `description` (_String_): `description` attribute in the /v3/info endpoint
+    - `minCLIVersion` (_String_): `minimum` CLI version attribute in the /v3/info endpoint
+    - `name` (_String_): `name` attribute in the /v3/info endpoint
+    - `recommendedCLIVersion` (_String_): `recommended` CLI version attribute in the /v3/info endpoint
+    - `supportAddress` (_String_): `support` attribute in the /v3/info endpoint
+  - `lifecycle`: Default lifecycle for apps.
+    - `stack` (_String_): Stack.
+    - `type` (_String_): Lifecycle type (only `buildpack` accepted currently).
+  - `list`: List behaviour configuration
+    - `defaultPageSize` (_Integer_): Page size in case 'per_page' query parameter is not provided in list queries
+  - `nodeSelector`: Node labels for korifi-api pod assignment.
+  - `replicas` (_Integer_): Number of replicas.
+  - `resources`: [`ResourceRequirements`](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#resourcerequirements-v1-core) for the API.
+    - `limits`: Resource limits.
+      - `cpu` (_String_): CPU limit.
+      - `memory` (_String_): Memory limit.
+    - `requests`: Resource requests.
+      - `cpu` (_String_): CPU request.
+      - `memory` (_String_): Memory request.
+  - `tolerations` (_Array_): Korifi-api pod tolerations for taints.
+  - `userCertificateExpirationWarningDuration` (_String_): Issue a warning if the user certificate provided for login has a long expiry. See [`time.ParseDuration`](https://pkg.go.dev/time#ParseDuration) for details on the format.
+- `containerRegistrySecret` (_String_): Deprecated in favor of containerRegistrySecrets.
+- `containerRegistrySecrets` (_Array_): List of `Secret` names to use when pushing or pulling from package, droplet and kpack builder repositories. Required if eksContainerRegistryRoleARN not set. Ignored if eksContainerRegistryRoleARN is set.
+- `containerRepositoryPrefix` (_String_): The prefix of the container repository where package and droplet images will be pushed. This is suffixed with the app GUID and `-packages` or `-droplets`. For example, a value of `index.docker.io/korifi/` will result in `index.docker.io/korifi/<appGUID>-packages` and `index.docker.io/korifi/<appGUID>-droplets` being pushed.
+- `controllers`:
+  - `extraVCAPApplicationValues`: Key-value pairs that are going to be set in the VCAP_APPLICATION env var on apps. Nested values are not supported.
+  - `image` (_String_): Reference to the controllers container image.
+  - `maxRetainedBuildsPerApp` (_Integer_): How many staged builds to keep, excluding the app's current droplet. Older staged builds will be deleted, along with their corresponding container images.
+  - `maxRetainedPackagesPerApp` (_Integer_): How many 'ready' packages to keep, excluding the package associated with the app's current droplet. Older 'ready' packages will be deleted, along with their corresponding container images.
+  - `namespaceLabels`: Key-value pairs that are going to be set as labels on the namespaces created by Korifi.
+  - `nodeSelector`: Node labels for korifi-controllers pod assignment.
+  - `processDefaults`:
+    - `diskQuotaMB` (_Integer_): Default disk quota for the `web` process.
+    - `memoryMB` (_Integer_): Default memory limit for the `web` process.
+  - `replicas` (_Integer_): Number of replicas.
+  - `resources`: [`ResourceRequirements`](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#resourcerequirements-v1-core) for the API.
+    - `limits`: Resource limits.
+      - `cpu` (_String_): CPU limit.
+      - `memory` (_String_): Memory limit.
+    - `requests`: Resource requests.
+      - `cpu` (_String_): CPU request.
+      - `memory` (_String_): Memory request.
+  - `taskTTL` (_String_): How long before the `CFTask` object is deleted after the task has completed. See [`time.ParseDuration`](https://pkg.go.dev/time#ParseDuration) for details on the format, an additional `d` suffix for days is supported.
+  - `tolerations` (_Array_): Korifi-controllers pod tolerations for taints.
+  - `webhookCertSecret` (_String_): A secert containing the CA bundle and the certificate for the webhook server.
+  - `workloadsTLSSecret` (_String_): TLS secret used when setting up an app routes.
+- `crds`:
+  - `include` (_Boolean_): Install CRDs as part of the Helm installation.
+- `debug` (_Boolean_): Enables remote debugging with [Delve](https://github.com/go-delve/delve).
+- `defaultAppDomainName` (_String_): Base domain name for application URLs.
+- `eksContainerRegistryRoleARN` (_String_): Amazon Resource Name (ARN) of the IAM role to use to access the ECR registry from an EKS deployed Korifi. Required if containerRegistrySecret not set.
+- `experimental`: Experimental features. No guarantees are provided and breaking/backwards incompatible changes should be expected. These features are not recommended for use in production environments.
+  - `api`:
+  - `externalLogCache`:
+    - `enabled` (_Boolean_): Enable external LogCache
+    - `trustInsecureLogCache` (_Boolean_): Disable external log cache certificate validation. Not recommended to be set to 'true' in production environments
+    - `url` (_String_): The url of the exernal LogCache server
+  - `managedServices`:
+    - `enabled` (_Boolean_): Enable managed services support
+    - `trustInsecureBrokers` (_Boolean_): Disable service broker certificate validation. Not recommended to be set to 'true' in production environments
+  - `routing`:
+    - `disableRouteController` (_Boolean_): Disable route controller. Default value is 'false'.
+  - `securityGroups`:
+    - `enabled` (_Boolean_): Enable security groups support
+  - `uaa`:
+    - `enabled` (_Boolean_): Enable UAA support
+    - `url` (_String_): The url of a UAA instance
+- `generateIngressCertificates` (_Boolean_): Use `cert-manager` to generate self-signed certificates for the API and app endpoints.
+- `generateInternalCertificates` (_Boolean_): Use `cert-manager` to generate internal self-signed certificates, e.g. for the webhooks.
+- `helm`:
+  - `hooksImage` (_String_): Image for the helm hooks containing kubectl
+- `jobTaskRunner`:
+  - `include` (_Boolean_): Deploy the `job-task-runner` component.
+  - `jobTTL` (_String_): How long before the `Job` backing up a task is deleted after completion. See [`time.ParseDuration`](https://pkg.go.dev/time#ParseDuration) for details on the format, an additional `d` suffix for days is supported.
+  - `replicas` (_Integer_): Number of replicas.
+  - `resources`: [`ResourceRequirements`](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#resourcerequirements-v1-core) for the API.
+    - `limits`: Resource limits.
+      - `cpu` (_String_): CPU limit.
+      - `memory` (_String_): Memory limit.
+    - `requests`: Resource requests.
+      - `cpu` (_String_): CPU request.
+      - `memory` (_String_): Memory request.
+- `kpackImageBuilder`:
+  - `builderReadinessTimeout` (_String_): The time that the kpack Builder will be waited for if not in ready state, berfore the build workload fails. See [`time.ParseDuration`](https://pkg.go.dev/time#ParseDuration) for details on the format, an additional `d` suffix for days is supported.
+  - `builderRepository` (_String_): Container image repository to store the `ClusterBuilder` image. Required when `clusterBuilderName` is not provided.
+  - `clusterBuilderName` (_String_): The name of the `ClusterBuilder` Kpack has been configured with. Leave blank to let `kpack-image-builder` create an example `ClusterBuilder`.
+  - `include` (_Boolean_): Deploy the `kpack-image-builder` component.
+  - `replicas` (_Integer_): Number of replicas.
+  - `resources`: [`ResourceRequirements`](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#resourcerequirements-v1-core) for the API.
+    - `limits`: Resource limits.
+      - `cpu` (_String_): CPU limit.
+      - `memory` (_String_): Memory limit.
+    - `requests`: Resource requests.
+      - `cpu` (_String_): CPU request.
+      - `memory` (_String_): Memory request.
+  - `webhookCertSecret` (_String_): A secert containing the CA bundle and the certificate for the webhook server.
+- `logLevel` (_String_): Sets level of logging for api and controllers components. Can be 'info' or 'debug'.
+- `migration`:
+  - `include` (_Boolean_): Deploy the migration component.
+- `networking`: Networking configuration
+  - `gatewayClass` (_String_): The name of the GatewayClass Korifi Gateway references
+  - `gatewayInfrastructure`: Optional GatewayInfrastructure property of the Gateway, see https://gateway-api.sigs.k8s.io/reference/spec/#gateway.networking.k8s.io/v1.GatewayInfrastructure for contents
+  - `gatewayPorts`: Ports for the Gateway listeners
+    - `http` (_Integer_): HTTP port
+    - `https` (_Integer_): HTTPS port
+- `reconcilers`:
+  - `app` (_String_): ID of the workload runner to set on all `AppWorkload` objects. Defaults to `statefulset-runner`.
+  - `build` (_String_): ID of the image builder to set on all `BuildWorkload` objects. Defaults to `kpack-image-builder`.
+- `rootNamespace` (_String_): Root of the Cloud Foundry namespace hierarchy.
+- `stagingRequirements`:
+  - `buildCacheMB` (_Integer_): Persistent disk in MB for caching staging artifacts across builds.
+  - `diskMB` (_Integer_): Ephemeral Disk request in MB for staging apps.
+  - `memoryMB` (_Integer_): Memory request in MB for staging.
+- `statefulsetRunner`:
+  - `include` (_Boolean_): Deploy the `statefulset-runner` component.
+  - `replicas` (_Integer_): Number of replicas.
+  - `resources`: [`ResourceRequirements`](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#resourcerequirements-v1-core) for the API.
+    - `limits`: Resource limits.
+      - `cpu` (_String_): CPU limit.
+      - `memory` (_String_): Memory limit.
+    - `requests`: Resource requests.
+      - `cpu` (_String_): CPU request.
+      - `memory` (_String_): Memory request.
+  - `webhookCertSecret` (_String_): A secert containing the CA bundle and the certificate for the webhook server.
+- `systemImagePullSecrets` (_Array_): List of `Secret` names to be used when pulling Korifi system images from private registries

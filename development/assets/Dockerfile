@@ -7,11 +7,7 @@ FROM ${REGISTRY}/${IMG}:${VERSION} AS uploader
 ARG VERSION
 
 WORKDIR /workspace
-# Copying the korifi tgz file via a wild card would not fail if the tgz does
-# not exist. We use this trick to support either using korifi from the uploader
-# (i.e. official Korifi release), or building a local dev Korifi version. This
-# Dockerfile would only replace Korifi if the tgz below exists
-COPY release/$VERSION/korifi-${VERSION}.tgz* /workspace
+COPY release/$VERSION/korifi-${VERSION} korifi-chart
 COPY release/$VERSION/btp-service-broker btp-service-broker
 
 #--------
@@ -35,8 +31,14 @@ RUN yq -i eval '.spec.isCA = true'  module-data/certificates/certificates.tmpl
 RUN rm -rf /module-data/btp-service-broker
 COPY --from=uploader /workspace/btp-service-broker /module-data/btp-service-broker
 
-COPY --from=uploader /workspace/korifi-${VERSION}.tgz* /
-RUN test -f /korifi-${VERSION}.tgz && rm -rf /module-data/korifi/*.tgz && cp /korifi-${VERSION}.tgz /module-data/korifi/korifi-${VERSION}.tgz || echo "Using pre-packaged Korifi"
+COPY --from=uploader /workspace/korifi-chart /korifi-chart
+# If the uploader image contains a non-empty korifi directory (i.e. a local
+# build has been performed), replace the korifi helm chart with the custom
+# built one
+RUN if [ $(ls -A "/korifi-chart" | wc -l) -ne 0 ]; then \
+        echo "Korifi files found, replacing Korifi module"; \
+        rm -rf /module-data/korifi-chart/* && cp -a /korifi-chart/* /module-data/korifi-chart/; \
+    fi
 
 #--------
 FROM gcr.io/distroless/static:nonroot

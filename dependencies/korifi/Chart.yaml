@@ -1,0 +1,5 @@
+apiVersion: v2
+name: korifi
+description: A Helm chart to deploy all Korifi components
+type: application
+version: 0.16.1
