@@ -116,7 +116,7 @@ install_istio() {
   kubectl apply -f https://github.com/kyma-project/istio/releases/latest/download/istio-manager-experimental.yaml
   kubectl apply -f https://github.com/kyma-project/istio/releases/latest/download/istio-default-cr.yaml
 
-  kubectl wait --for=jsonpath='.status.state'=Ready -n kyma-system istios default
+  kubectl wait --for=jsonpath='.status.state'=Ready -n kyma-system istios default --timeout=5m
   configure_gateway_service istio-system istio-ingressgateway "$KYMA_GW_TLS_PORT"
 
   echo "************************************************"
@@ -243,12 +243,6 @@ build_local_korifi_release_chart() {
   {
     cp -a helm/korifi/* "$KORIFI_RELEASE_ARTIFACTS_DIR"
     build_korifi
-  }
-  popd
-
-  pushd "$RELEASE_OUTPUT_DIR"
-  {
-    tar czf "korifi-$VERSION.tgz" "korifi-$VERSION"
   }
   popd
 }

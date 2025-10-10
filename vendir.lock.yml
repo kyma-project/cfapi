@@ -13,5 +13,9 @@ directories:
       tag: v0.17.0
       url: https://api.github.com/repos/buildpacks-community/kpack/releases/213128352
     path: kpack
+  - helmChart:
+      appVersion: ""
+      version: 0.16.1
+    path: korifi
   path: dependencies
 kind: LockConfig

@@ -883,12 +883,7 @@ func getStatusFromSample(objectInstance *v1alpha1.CFAPI) v1alpha1.CFAPIStatus {
 func (r *CFAPIReconciler) deployKorifi(ctx context.Context, appsDomain, korifiAPIDomain, cfDomain, crDomain, uaaURL string) error {
 	logger := log.FromContext(ctx)
 
-	helmfile, err := findOneGlob("./module-data/korifi/korifi-*.tgz")
-	if err != nil {
-		logger.Error(err, "Failed to find korifi helm chart under dir module-data/korifi")
-		return err
-	}
-	chart, err := loader.Load(helmfile)
+	chart, err := loader.Load("./module-data/korifi-chart")
 	if err != nil {
 		logger.Error(err, "error loading korifi helm chart")
 		return err
