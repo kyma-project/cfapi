@@ -113,7 +113,7 @@ bin/kustomize: bin
 	go install sigs.k8s.io/kustomize/kustomize/v5@latest
 
 bin/controller-gen: bin
-	go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.14.0
+	go install sigs.k8s.io/controller-tools/cmd/controller-gen@latest
 
 bin/vendir:
 	go install carvel.dev/vendir/cmd/vendir@latest

@@ -23,9 +23,7 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"os"
-	"time"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -46,11 +44,7 @@ import (
 )
 
 const (
-	rateLimiterBurstDefault     = 200
-	rateLimiterFrequencyDefault = 30
-	failureBaseDelayDefault     = 1 * time.Second
-	failureMaxDelayDefault      = 1000 * time.Second
-	operatorName                = "cfapi-operator"
+	operatorName = "cfapi-operator"
 )
 
 var (
@@ -62,13 +56,10 @@ type FlagVar struct {
 	metricsAddr          string
 	enableLeaderElection bool
 	probeAddr            string
-	failureBaseDelay     time.Duration
-	failureMaxDelay      time.Duration
-	rateLimiterFrequency int
-	rateLimiterBurst     int
-	finalState           string
-	finalDeletionState   string
-	printVersion         bool
+	// TODO: Remove this one, it sets the "final" state on the controller, which sounds wrong on many levels
+	finalState string
+	// TODO: Remove this one, it setting a state on a controller sounds wrong on many levels
+	finalDeletionState string
 }
 
 func init() { //nolint:gochecknoinits
@@ -88,23 +79,9 @@ func main() {
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
 
-	if flagVar.printVersion {
-		msg := fmt.Sprintf("CFAPI Operator version: %s\n", buildVersion)
-		_, err := os.Stdout.WriteString(msg)
-		if err != nil {
-			os.Exit(1)
-		}
-		os.Exit(0)
-	}
-
-	rateLimiter := controllers.RateLimiter{
-		Burst:           flagVar.rateLimiterBurst,
-		Frequency:       flagVar.rateLimiterFrequency,
-		BaseDelay:       flagVar.failureBaseDelay,
-		FailureMaxDelay: flagVar.failureMaxDelay,
-	}
-
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
+
+	setupLog.Info("Starting CFAPI Operator", "version", buildVersion)
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme: scheme,
@@ -129,7 +106,7 @@ func main() {
 		EventRecorder:      mgr.GetEventRecorderFor(operatorName),
 		FinalState:         v1alpha1.State(flagVar.finalState),
 		FinalDeletionState: v1alpha1.State(flagVar.finalDeletionState),
-	}).SetupWithManager(mgr, rateLimiter); err != nil {
+	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Sample")
 		os.Exit(1)
 	}
@@ -158,18 +135,9 @@ func defineFlagVar() *FlagVar {
 	flag.BoolVar(&flagVar.enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
-	flag.IntVar(&flagVar.rateLimiterBurst, "rate-limiter-burst", rateLimiterBurstDefault,
-		"Indicates the burst value for the bucket rate limiter.")
-	flag.IntVar(&flagVar.rateLimiterFrequency, "rate-limiter-frequency", rateLimiterFrequencyDefault,
-		"Indicates the bucket rate limiter frequency, signifying no. of events per second.")
-	flag.DurationVar(&flagVar.failureBaseDelay, "failure-base-delay", failureBaseDelayDefault,
-		"Indicates the failure base delay in seconds for rate limiter.")
-	flag.DurationVar(&flagVar.failureMaxDelay, "failure-max-delay", failureMaxDelayDefault,
-		"Indicates the failure max delay in seconds")
 	flag.StringVar(&flagVar.finalState, "final-state", string(v1alpha1.StateReady),
 		"Customize final state, to mimic state behaviour like Ready, Warning")
 	flag.StringVar(&flagVar.finalDeletionState, "final-deletion-state", string(v1alpha1.StateDeleting),
 		"Customize final state when module marked for deletion, to mimic state behaviour like Ready, Warning")
-	flag.BoolVar(&flagVar.printVersion, "version", false, "Prints the operator version and exits")
 	return flagVar
 }
