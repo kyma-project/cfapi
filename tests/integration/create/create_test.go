@@ -13,7 +13,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	buildv1alpha2 "github.com/pivotal/kpack/pkg/apis/build/v1alpha2"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 
 	v1alpha3 "istio.io/client-go/pkg/apis/networking/v1alpha3"
 
