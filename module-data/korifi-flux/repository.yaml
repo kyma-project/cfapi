@@ -1,0 +1,9 @@
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: korifi
+  namespace: cfapi-system
+spec:
+  interval: 5m0s
+  url: https://cloudfoundry.github.io/korifi

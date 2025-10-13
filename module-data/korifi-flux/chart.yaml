@@ -1,0 +1,13 @@
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmChart
+metadata:
+  name: korifi
+  namespace: cfapi-system
+spec:
+  interval: 5m0s
+  chart: korifi
+  reconcileStrategy: ChartVersion
+  sourceRef:
+    kind: HelmRepository
+    name: korifi
+  version: '0.16.1'

@@ -32,6 +32,8 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -ldflags
 
 ENV BTP_SERVICE_BROKER_RELEASE_DIR=${BTP_SERVICE_BROKER_RELEASE_DIR}
 
+COPY dependencies/flux module-data/flux/
+
 COPY dependencies/kpack module-data/kpack/
 
 COPY dependencies/gateway-api module-data/gateway-api/

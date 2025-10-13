@@ -17,5 +17,9 @@ directories:
       appVersion: ""
       version: 0.16.1
     path: korifi
+  - githubRelease:
+      tag: v2.7.2
+      url: https://api.github.com/repos/fluxcd/flux2/releases/253123383
+    path: flux
   path: dependencies
 kind: LockConfig

@@ -34,6 +34,7 @@ import (
 	"helm.sh/helm/v3/pkg/chart/loader"
 
 	"sigs.k8s.io/controller-runtime/pkg/scheme"
+	"sigs.k8s.io/yaml"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -299,6 +300,11 @@ func (r *CFAPIReconciler) processResources(ctx context.Context, cfAPI *v1alpha1.
 	logger := log.FromContext(ctx)
 
 	r.eventRecorder.Event(cfAPI, "Normal", "ResourcesInstall", "installing resources")
+
+	err := r.installOneGlob(ctx, "./module-data/flux/install.yaml")
+	if err != nil {
+		return "", fmt.Errorf("failed to install flux: %w", err)
+	}
 
 	// get wildcard domain
 	wildCardDomain, err := r.getWildcardDomain()
@@ -819,9 +825,14 @@ func getStatusFromSample(objectInstance *v1alpha1.CFAPI) v1alpha1.CFAPIStatus {
 func (r *CFAPIReconciler) deployKorifi(ctx context.Context, appsDomain, korifiAPIDomain, containerRegistryServer, uaaURL string) error {
 	logger := log.FromContext(ctx)
 
-	chart, err := loader.Load("./module-data/korifi-chart")
+	err := r.installOneGlob(ctx, "./module-data/korifi-flux/repository.yaml")
 	if err != nil {
-		return fmt.Errorf("failed to load korifi helm chart: %w", err)
+		return fmt.Errorf("failed to install korifi flux repository: %w", err)
+	}
+
+	err = r.installOneGlob(ctx, "./module-data/korifi-flux/chart.yaml")
+	if err != nil {
+		return fmt.Errorf("failed to install korifi flux chart: %w", err)
 	}
 
 	values, err := loadOneYaml("./module-data/korifi/values.yaml")
@@ -852,9 +863,37 @@ func (r *CFAPIReconciler) deployKorifi(ctx context.Context, appsDomain, korifiAP
 
 	DeepUpdate(values, valuesDynamic)
 
-	err = applyRelease(chart, "korifi", "korifi", values, logger)
+	korifiRelease, err := loadOneYaml("./module-data/korifi-flux/release.yaml")
+	if err != nil {
+		return fmt.Errorf("failed to load korifi flux release: %w", err)
+	}
 
-	return err
+	korifiReleaseSpec, ok := korifiRelease["spec"].(map[string]any)
+	if !ok {
+		return errors.New("korifi flux release spec is not an object")
+	}
+	korifiReleaseSpec["values"] = values
+
+	korifiRelease["spec"] = korifiReleaseSpec
+
+	korifiReleaseBytes, err := yaml.Marshal(korifiRelease)
+	if err != nil {
+		return fmt.Errorf("failed to marshal korifi flux release: %w", err)
+	}
+
+	logger.Info(fmt.Sprintf("will apply the following korifi helm release: \n\n%s\n\n", string(korifiReleaseBytes)))
+	korifiFluxObjects, err := parseManifestStringToObjects(string(korifiReleaseBytes))
+	if err != nil {
+		return fmt.Errorf("failed to parse flux korifi release to objects: %w", err)
+	}
+
+	for _, obj := range korifiFluxObjects.Items {
+		if err = r.ssa(ctx, obj); client.IgnoreAlreadyExists(err) != nil {
+			return fmt.Errorf("failed to create korifi flux objects: %w", err)
+		}
+	}
+
+	return nil
 }
 
 func (r *CFAPIReconciler) retrieveUaaUrl(ctx context.Context) (string, error) {

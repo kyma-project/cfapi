@@ -6,7 +6,7 @@ metadata:
 rules:
 - apiGroups:
   - ""
-  resources: 
+  resources:
   - "*"
   verbs:
   - "*"
@@ -194,7 +194,7 @@ rules:
   - "*"
 - apiGroups:
   - korifi.cloudfoundry.org
-  resources: 
+  resources:
   - "*"
   verbs:
   - "*"
@@ -245,6 +245,24 @@ rules:
   - "*"
 - apiGroups:
   - authentication.gardener.cloud
+  resources:
+  - "*"
+  verbs:
+  - "*"
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - "*"
+  verbs:
+  - "*"
+- apiGroups:
+  - source.toolkit.fluxcd.io
+  resources:
+  - "*"
+  verbs:
+  - "*"
+- apiGroups:
+  - helm.toolkit.fluxcd.io
   resources:
   - "*"
   verbs:

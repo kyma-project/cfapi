@@ -25,3 +25,9 @@ directories:
       name: korifi
       repository:
         url: https://cloudfoundry.github.io/korifi
+  - path: flux
+    githubRelease:
+      slug: fluxcd/flux2
+      latest: true
+      disableAutoChecksumValidation: true
+      assetNames: ["install.yaml"]
