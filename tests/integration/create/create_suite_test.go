@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/kyma-project/cfapi/api/v1alpha1"
 	"github.com/kyma-project/cfapi/controllers"
+	"github.com/kyma-project/cfapi/tests/helpers/fail_handler"
 	"github.com/kyma-project/cfapi/tests/integration/helpers"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -22,6 +23,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
 
 	dnsv1alpha1 "github.com/gardener/external-dns-management/pkg/apis/dns/v1alpha1"
 	buildv1alpha2 "github.com/pivotal/kpack/pkg/apis/build/v1alpha2"
@@ -44,7 +46,14 @@ func init() {
 }
 
 func TestIntegration(t *testing.T) {
-	RegisterFailHandler(Fail)
+	RegisterFailHandler(fail_handler.New("Create Integration Tests",
+		fail_handler.Hook{
+			Matcher: fail_handler.Always,
+			Hook: func(config *rest.Config, failure fail_handler.TestFailure) {
+				fail_handler.PrintCFAPIControllerLogs(config, failure.StartTime)
+			},
+		},
+	).Fail)
 	RunSpecs(t, "Create Integration Suite")
 }
 

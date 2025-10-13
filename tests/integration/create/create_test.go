@@ -103,7 +103,7 @@ var _ = Describe("Integration", func() {
 				},
 			}
 
-			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(envoyFilter), envoyFilter)).To(Succeed())
+			g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(envoyFilter), envoyFilter)).To(Succeed())
 		}).Should(Succeed())
 	})
 

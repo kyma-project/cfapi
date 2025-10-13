@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	golog "log"
 	"reflect"
 	"time"
@@ -17,86 +18,102 @@ const (
 	helmChartApplyWaitTime = 5 * time.Minute
 )
 
-func applyRelease(chart *chart.Chart, namespace, name string, values map[string]interface{}, logger logr.Logger) error {
-	if releaseExists(namespace, name) {
-		logger.Info("release " + name + " exists in namespace " + namespace)
+func applyRelease(chart *chart.Chart, namespace, name string, values map[string]any, logger logr.Logger) error {
+	exists, err := releaseExists(namespace, name)
+	if err != nil {
+		return fmt.Errorf("failed to check if helm release %s/%s exists: %w", namespace, name, err)
+	}
 
-		if releaseIsPending(namespace, name, logger) {
-			logger.Info("release " + name + " in namespace + " + namespace + " is pending, wait for it to finish before updating")
-			time.Sleep(helmChartApplyWaitTime)
+	if !exists {
+		logger.Info("installing new release " + name + " in namespace " + namespace)
+		return installRelease(chart, namespace, name, values, logger)
+	}
 
-			if releaseIsPending(namespace, name, logger) {
-				logger.Info("release " + name + " in namespace + " + namespace + " is still pending, uninstall and try again")
-				err := uninstallRelease(namespace, name, logger)
-				if err != nil {
-					logger.Error(err, "error during uninstall of "+name+" helm release in "+namespace+" namespace")
-					return err
-				}
-				return installRelease(chart, namespace, name, values, logger)
-			}
-		}
+	logger.Info("release " + name + " exists in namespace " + namespace)
 
+	pending, err := releaseIsPending(namespace, name)
+	if err != nil {
+		return fmt.Errorf("failed to check if helm release %s/%s is pending: %w", namespace, name, err)
+	}
+
+	if !pending {
 		logger.Info("updating existing release " + name + " in namespace " + namespace)
-
 		return updateRelease(chart, namespace, name, values, logger)
 	}
 
-	logger.Info("installing new release " + name + " in namespace " + namespace)
+	logger.Info("release " + name + " in namespace + " + namespace + " is pending, wait for it to finish before updating")
+	time.Sleep(helmChartApplyWaitTime)
 
+	pending, err = releaseIsPending(namespace, name)
+	if err != nil {
+		return fmt.Errorf("failed to check if helm release %s/%s is pending after waiting for the chart: %w", namespace, name, err)
+	}
+
+	if !pending {
+		logger.Info("updating existing release " + name + " in namespace " + namespace)
+		return updateRelease(chart, namespace, name, values, logger)
+	}
+
+	logger.Info("release " + name + " in namespace + " + namespace + " is still pending, uninstall and try again")
+	err = uninstallRelease(namespace, name)
+	if err != nil {
+		return fmt.Errorf("failed to uninstall helm release %s/%s: %w", namespace, name, err)
+	}
 	return installRelease(chart, namespace, name, values, logger)
 }
 
-func releaseIsPending(namespace, name string, logger logr.Logger) bool {
+func releaseIsPending(namespace, name string) (bool, error) {
 	settings := cli.New()
 	actionConfig := new(action.Configuration)
 	err := actionConfig.Init(settings.RESTClientGetter(), namespace,
 		"secret", golog.Printf)
-
 	if err != nil {
-		return false
+		return false, fmt.Errorf("failed to init helm action config: %w", err)
 	}
 
 	histClient := action.NewHistory(actionConfig)
 	histClient.Max = 1
 	versions, err := histClient.Run(name)
-
 	if err != nil {
-		logger.Error(err, "error during checking helm release")
-		return false
+		return false, fmt.Errorf("failed to check helm release: %w", err)
 	}
 
 	lastVersionStatus := versions[len(versions)-1].Info.Status
 
-	return (lastVersionStatus.IsPending())
+	return (lastVersionStatus.IsPending()), nil
 }
 
-func releaseExists(namespace, name string) bool {
+func releaseExists(namespace, name string) (bool, error) {
 	settings := cli.New()
 	actionConfig := new(action.Configuration)
 	err := actionConfig.Init(settings.RESTClientGetter(), namespace,
 		"secret", golog.Printf)
-
 	if err != nil {
-		return false
+		return false, fmt.Errorf("failed to init helm action config: %w", err)
 	}
 
 	histClient := action.NewHistory(actionConfig)
 	histClient.Max = 1
 	versions, err := histClient.Run(name)
 
-	return !(err == driver.ErrReleaseNotFound || isReleaseUninstalled(versions))
+	if err == driver.ErrReleaseNotFound {
+		return false, nil
+	}
+
+	if err != nil {
+		return false, fmt.Errorf("failed to check helm release hustory: %w", err)
+	}
+
+	return !isReleaseUninstalled(versions), nil
 }
 
-func installRelease(chart *chart.Chart, namespace, name string, values map[string]interface{}, logger logr.Logger) error {
-
+func installRelease(chart *chart.Chart, namespace, name string, values map[string]any, logger logr.Logger) error {
 	settings := cli.New()
 	actionConfig := new(action.Configuration)
 	err := actionConfig.Init(settings.RESTClientGetter(), namespace,
 		"secret", golog.Printf)
-
 	if err != nil {
-		logger.Error(err, "error during init of helm action config")
-		return err
+		return fmt.Errorf("failed to init helm action config: %w", err)
 	}
 
 	installClient := action.NewInstall(actionConfig)
@@ -107,10 +124,8 @@ func installRelease(chart *chart.Chart, namespace, name string, values map[strin
 	installClient.Wait = true
 
 	_, err = installClient.Run(chart, values)
-
 	if err != nil {
-		logger.Error(err, "error during install of korifi helm chart")
-		return err
+		return fmt.Errorf("failed to install release %s: %w", name, err)
 	}
 
 	logger.Info("release " + name + " in namespace " + namespace + " installed successfully")
@@ -118,16 +133,13 @@ func installRelease(chart *chart.Chart, namespace, name string, values map[strin
 	return nil
 }
 
-func updateRelease(chart *chart.Chart, namespace, name string, values map[string]interface{}, logger logr.Logger) error {
-
+func updateRelease(chart *chart.Chart, namespace, name string, values map[string]any, logger logr.Logger) error {
 	settings := cli.New()
 	actionConfig := new(action.Configuration)
 	err := actionConfig.Init(settings.RESTClientGetter(), namespace,
 		"secret", golog.Printf)
-
 	if err != nil {
-		logger.Error(err, "error during init of helm action config")
-		return err
+		return fmt.Errorf("failed to init helm action config: %w", err)
 	}
 
 	upgradeClient := action.NewUpgrade(actionConfig)
@@ -139,10 +151,8 @@ func updateRelease(chart *chart.Chart, namespace, name string, values map[string
 	upgradeClient.Timeout = 5 * time.Minute
 
 	_, err = upgradeClient.Run(name, chart, values)
-
 	if err != nil {
-		logger.Error(err, "error during deployment of korifi helm chart")
-		return err
+		return fmt.Errorf("failed to update release %s: %w", name, err)
 	}
 
 	logger.Info("release " + name + " in namespace " + namespace + " updated successfully")
@@ -150,16 +160,13 @@ func updateRelease(chart *chart.Chart, namespace, name string, values map[string
 	return nil
 }
 
-func uninstallRelease(namespace, name string, logger logr.Logger) error {
-
+func uninstallRelease(namespace, name string) error {
 	settings := cli.New()
 	actionConfig := new(action.Configuration)
 	err := actionConfig.Init(settings.RESTClientGetter(), namespace,
 		"secret", golog.Printf)
-
 	if err != nil {
-		logger.Error(err, "error during init of helm action config")
-		return err
+		return fmt.Errorf("failed to init helm action config: %w", err)
 	}
 
 	uninstallClient := action.NewUninstall(actionConfig)
@@ -168,10 +175,8 @@ func uninstallRelease(namespace, name string, logger logr.Logger) error {
 	uninstallClient.Wait = true
 
 	_, err = uninstallClient.Run(name)
-
 	if err != nil {
-		logger.Error(err, "error during uninstall of "+name+" helm release")
-		return err
+		return fmt.Errorf("failed to uninstall release %s: %w", name, err)
 	}
 
 	return nil

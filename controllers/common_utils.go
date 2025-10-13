@@ -14,10 +14,10 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	errors2 "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/sets"
 	yamlUtil "k8s.io/apimachinery/pkg/util/yaml"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/yaml"
 )
@@ -38,9 +38,8 @@ func (r *CFAPIReconciler) installOneGlob(ctx context.Context, pattern string) er
 	}
 
 	for _, obj := range resources.Items {
-		if err := r.ssa(ctx, obj); err != nil && !errors2.IsAlreadyExists(err) {
-			logger.Error(err, "error during installation of resources")
-			return err
+		if err := r.ssa(ctx, obj); client.IgnoreAlreadyExists(err) != nil {
+			return fmt.Errorf("failed to install resources: %w", err)
 		}
 	}
 	return nil
@@ -68,10 +67,10 @@ func findOneGlob(pattern string) (string, error) {
 		return "", err
 	}
 	if len(matches) > 1 {
-		return "", fmt.Errorf("Ambiguous file glob %s, found more than one file", pattern)
+		return "", fmt.Errorf("ambiguous file glob %s, found more than one file", pattern)
 	}
 	if len(matches) == 0 {
-		return "", fmt.Errorf("No file glob found %s", pattern)
+		return "", fmt.Errorf("no file glob found %s", pattern)
 	}
 	return matches[0], nil
 }

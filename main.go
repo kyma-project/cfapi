@@ -100,13 +100,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&controllers.CFAPIReconciler{
-		Client:             mgr.GetClient(),
-		Scheme:             mgr.GetScheme(),
-		EventRecorder:      mgr.GetEventRecorderFor(operatorName),
-		FinalState:         v1alpha1.State(flagVar.finalState),
-		FinalDeletionState: v1alpha1.State(flagVar.finalDeletionState),
-	}).SetupWithManager(mgr); err != nil {
+	if err = controllers.NewCFApiReconciler(mgr.GetClient(), mgr.GetEventRecorderFor(operatorName), mgr.GetScheme()).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Sample")
 		os.Exit(1)
 	}

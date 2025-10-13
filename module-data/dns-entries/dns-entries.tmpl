@@ -1,5 +1,3 @@
-{{ define "dnsEntries" }}
----
 apiVersion: dns.gardener.cloud/v1alpha1
 kind: DNSEntry
 metadata:
@@ -27,4 +25,3 @@ spec:
   ttl: 600
   targets:
   - {{ .IngressHost }}
-{{ end }}
