@@ -12,13 +12,13 @@ require (
 	github.com/pivotal/kpack v0.17.0
 	gopkg.in/yaml.v3 v3.0.1
 	helm.sh/helm/v3 v3.19.0
-	istio.io/client-go v1.27.1
+	istio.io/client-go v1.27.2
 	k8s.io/api v0.34.1
 	k8s.io/apiextensions-apiserver v0.34.1
 	k8s.io/apimachinery v0.34.1
 	k8s.io/client-go v0.34.1
 	k8s.io/kubectl v0.34.1
-	sigs.k8s.io/controller-runtime v0.22.2
+	sigs.k8s.io/controller-runtime v0.22.3
 	sigs.k8s.io/gateway-api v1.4.0
 	sigs.k8s.io/yaml v1.6.0
 )
@@ -149,7 +149,7 @@ require (
 	google.golang.org/protobuf v1.36.10 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.13.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
-	istio.io/api v1.27.1 // indirect
+	istio.io/api v1.27.2-0.20251010085937-bc3692c751f3 // indirect
 	k8s.io/apiserver v0.34.1 // indirect
 	k8s.io/cli-runtime v0.34.1 // indirect
 	k8s.io/component-base v0.34.1 // indirect
