@@ -4,7 +4,7 @@ kind: OpenIDConnect
 metadata:
   name: oidc-uaa
 spec:
-  issuerURL: {{.UAA}}/oauth/token
+  issuerURL: {{.UAAURL}}/oauth/token
   clientID: cf
   usernameClaim: "user_name"
   usernamePrefix: "sap.ids:"

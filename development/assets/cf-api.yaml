@@ -6,4 +6,3 @@ metadata:
 spec:
   rootNamespace: cf
   uaa: $UAA_URL
-  appImagePullSecret: cfapi-registry-secret

@@ -6,8 +6,8 @@ metadata:
 spec:
   commonName: "{{ .CFDomain }}"
   dnsNames:
-  - "{{ .KorifiAPIDomain }}"
-  - "*.{{ .AppsDomain }}"
+  - "cfapi.{{ .CFDomain }}"
+  - "*.apps.{{ .CFDomain }}"
   secretRef:
     name: korifi-api-ingress-cert
     namespace: korifi
@@ -20,7 +20,7 @@ metadata:
 spec:
   commonName: "{{ .CFDomain }}"
   dnsNames:
-  - "*.{{ .AppsDomain }}"
+  - "*.apps.{{ .CFDomain }}"
   secretRef:
     name: korifi-workloads-ingress-cert
     namespace: korifi

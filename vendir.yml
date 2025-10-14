@@ -25,3 +25,23 @@ directories:
       name: korifi
       repository:
         url: https://cloudfoundry.github.io/korifi
+  - path: kyma-docker-registry
+    githubRelease:
+      slug: kyma-project/docker-registry
+      latest: true
+      disableAutoChecksumValidation: true
+      assetNames: ["dockerregistry-operator.yaml"]
+  - path: istio
+    git:
+      url: https://github.com/istio/istio
+      refSelection:
+        semver:
+          constraints: ">1.27.1"
+    includePaths:
+      - manifests/charts/base/files/crd-all.gen.yaml
+  - path: istio-kyma
+    githubRelease:
+      slug: kyma-project/istio
+      latest: true
+      disableAutoChecksumValidation: true
+      assetNames: ["istio-manager-experimental.yaml"]

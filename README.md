@@ -9,8 +9,8 @@ Once installed, one could use the cf cli to connect and deploy workloads.
 ## Custom Resource (CR) Specification
 | Property | Optional | Default | Description |
 |-----|-----|-----|-----|
-| RootNamespace | Optional | cf | Root namespace for CF resources |
-| AppImagePullSecret | Optional | By default a local DockerRegistry will be deployed and used | Dockerregistry secret pointing to a docker registry for application images|
+| RootNamespace | Optional | `cf` | Root namespace for CF resources |
+| ContainerRegistrySecret | Optional | `cfapi-system/dockerregistry-config` | Container registry secret used to push application images. It has to be of type `docker-registry`  |
 | UAA | Optional | In case of a SAP managed Kyma, the UAA will be derived from the BTP service operator config |  UAA URL to be used for authentication |
 | CFAdmins | Optional | By default Kyma cluster-admins will become CF admins | List of users, which will become CF administrators.A user is expected in format sap.ids:\<sap email\> example sap.ids:samir.zeort@sap.com  |
 

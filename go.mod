@@ -2,16 +2,22 @@ module github.com/kyma-project/cfapi
 
 go 1.25
 
+replace golang.org/x/tools => golang.org/x/tools v0.37.0
+
 require (
+	github.com/BooleanCat/go-functional/v2 v2.5.1
 	github.com/gardener/cert-management v0.18.0
 	github.com/gardener/external-dns-management v0.29.0
 	github.com/go-logr/logr v1.4.3
 	github.com/google/uuid v1.6.0
+	github.com/hashicorp/go-multierror v1.1.1
+	github.com/kyma-project/istio/operator v0.0.0-00010101000000-000000000000
 	github.com/onsi/ginkgo/v2 v2.27.1
 	github.com/onsi/gomega v1.38.2
 	github.com/pivotal/kpack v0.17.0
 	gopkg.in/yaml.v3 v3.0.1
 	helm.sh/helm/v3 v3.19.0
+	istio.io/api v1.27.2-0.20251010085937-bc3692c751f3
 	istio.io/client-go v1.27.3
 	k8s.io/api v0.34.1
 	k8s.io/apiextensions-apiserver v0.34.1
@@ -25,7 +31,6 @@ require (
 
 require (
 	dario.cat/mergo v1.0.2 // indirect
-	github.com/AdaLogics/go-fuzz-headers v0.0.0-20240806141605-e8a1dd7889d6 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20250102033503-faa5f7b0171c // indirect
 	github.com/BurntSushi/toml v1.5.0 // indirect
 	github.com/MakeNowJust/heredoc v1.0.0 // indirect
@@ -83,7 +88,6 @@ require (
 	github.com/gosuri/uitable v0.0.4 // indirect
 	github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
-	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/huandu/xstrings v1.5.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jmoiron/sqlx v1.4.0 // indirect
@@ -96,6 +100,7 @@ require (
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.19 // indirect
+	github.com/maxbrunsfeld/counterfeiter/v6 v6.12.0 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
@@ -126,6 +131,7 @@ require (
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/xlab/treeprint v1.2.0 // indirect
+	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/automaxprocs v1.6.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
@@ -148,7 +154,8 @@ require (
 	google.golang.org/protobuf v1.36.10 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.13.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
-	istio.io/api v1.27.2-0.20251010085937-bc3692c751f3 // indirect
+	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
+	istio.io/istio v0.0.0-20250829173807-2c19e5462807 // indirect
 	k8s.io/apiserver v0.34.1 // indirect
 	k8s.io/cli-runtime v0.34.1 // indirect
 	k8s.io/component-base v0.34.1 // indirect
@@ -163,3 +170,7 @@ require (
 	sigs.k8s.io/randfill v1.0.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v6 v6.3.0 // indirect
 )
+
+tool github.com/maxbrunsfeld/counterfeiter/v6
+
+replace github.com/kyma-project/istio/operator => github.com/kyma-project/istio v0.0.0-20251020110526-ca1977ede17a
