@@ -11,7 +11,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func (r *CFAPIReconciler) crdExists(ctx context.Context, kind string) (bool, error) {
+func (r *CFAPIReconcilerOld) crdExists(ctx context.Context, kind string) (bool, error) {
 	err := v1.AddToScheme(r.scheme)
 	if err != nil {
 		return false, err
@@ -32,7 +32,7 @@ func (r *CFAPIReconciler) crdExists(ctx context.Context, kind string) (bool, err
 	return false, nil
 }
 
-func (r *CFAPIReconciler) secretExists(namespace, name string) bool {
+func (r *CFAPIReconcilerOld) secretExists(namespace, name string) bool {
 	secret := corev1.Secret{}
 
 	err := r.k8sClient.Get(context.Background(), client.ObjectKey{
@@ -43,7 +43,7 @@ func (r *CFAPIReconciler) secretExists(namespace, name string) bool {
 	return err == nil
 }
 
-func (r *CFAPIReconciler) patchDockerSecret(ctx context.Context, name, namespace, server, username, password string) error {
+func (r *CFAPIReconcilerOld) patchDockerSecret(ctx context.Context, name, namespace, server, username, password string) error {
 	conf := DockerRegistryConfig{
 		Auths: map[string]DockerRegistryAuth{},
 	}
@@ -76,7 +76,7 @@ func (r *CFAPIReconciler) patchDockerSecret(ctx context.Context, name, namespace
 }
 
 // ssaStatus patches status using SSA on the passed object.
-func (r *CFAPIReconciler) ssaStatus(ctx context.Context, obj client.Object) error {
+func (r *CFAPIReconcilerOld) ssaStatus(ctx context.Context, obj client.Object) error {
 	obj.SetManagedFields(nil)
 	obj.SetResourceVersion("")
 	return r.k8sClient.Status().Patch(ctx, obj, client.Apply,
@@ -84,13 +84,13 @@ func (r *CFAPIReconciler) ssaStatus(ctx context.Context, obj client.Object) erro
 }
 
 // ssa patches the object using SSA.
-func (r *CFAPIReconciler) ssa(ctx context.Context, obj client.Object) error {
+func (r *CFAPIReconcilerOld) ssa(ctx context.Context, obj client.Object) error {
 	obj.SetManagedFields(nil)
 	obj.SetResourceVersion("")
 
 	return r.k8sClient.Patch(ctx, obj, client.Apply, client.ForceOwnership, client.FieldOwner(fieldOwner))
 }
 
-func (r *CFAPIReconciler) createIfMissing(ctx context.Context, object client.Object) error {
+func (r *CFAPIReconcilerOld) createIfMissing(ctx context.Context, object client.Object) error {
 	return client.IgnoreAlreadyExists(r.k8sClient.Create(ctx, object))
 }

@@ -2,6 +2,8 @@ module github.com/kyma-project/cfapi
 
 go 1.25
 
+replace golang.org/x/tools => golang.org/x/tools v0.37.0
+
 require (
 	github.com/gardener/cert-management v0.18.0
 	github.com/gardener/external-dns-management v0.29.0
@@ -96,6 +98,7 @@ require (
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.19 // indirect
+	github.com/maxbrunsfeld/counterfeiter/v6 v6.12.0 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
@@ -163,3 +166,5 @@ require (
 	sigs.k8s.io/randfill v1.0.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v6 v6.3.0 // indirect
 )
+
+tool github.com/maxbrunsfeld/counterfeiter/v6

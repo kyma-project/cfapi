@@ -121,3 +121,5 @@ bin/vendir:
 vendir-update-dependencies: bin/vendir
 	vendir sync
 
+bin/setup-envtest:
+	go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest

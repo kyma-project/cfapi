@@ -109,6 +109,10 @@ type CFAPI struct {
 	Status CFAPIStatus `json:"status,omitempty"`
 }
 
+func (a *CFAPI) StatusConditions() *[]metav1.Condition {
+	return &a.Status.Conditions
+}
+
 // +kubebuilder:object:root=true
 
 // CFAPIList contains a list of CFAPI.

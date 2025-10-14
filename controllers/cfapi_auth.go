@@ -18,7 +18,7 @@ import (
 
 const oidcUserPrefix = "sap.ids:"
 
-func (r *CFAPIReconciler) getUserClusterAdmins(ctx context.Context) ([]rbacv1.Subject, error) {
+func (r *CFAPIReconcilerOld) getUserClusterAdmins(ctx context.Context) ([]rbacv1.Subject, error) {
 	subjects := []rbacv1.Subject{}
 	crblist := &rbacv1.ClusterRoleBindingList{}
 	err := r.k8sClient.List(ctx, crblist)
@@ -51,7 +51,7 @@ func toSubjectList(users []string) []rbacv1.Subject {
 	return subjects
 }
 
-func (r *CFAPIReconciler) assignCfAdministrators(ctx context.Context, subjects []rbacv1.Subject, cfNs string) error {
+func (r *CFAPIReconcilerOld) assignCfAdministrators(ctx context.Context, subjects []rbacv1.Subject, cfNs string) error {
 	logger := log.FromContext(ctx)
 	var err error
 	_subjects := subjects

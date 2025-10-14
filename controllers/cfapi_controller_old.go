@@ -33,8 +33,6 @@ import (
 
 	"helm.sh/helm/v3/pkg/chart/loader"
 
-	"sigs.k8s.io/controller-runtime/pkg/scheme"
-
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -50,19 +48,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	v1alpha1 "github.com/kyma-project/cfapi/api/v1alpha1"
+	"github.com/kyma-project/cfapi/controllers/helm"
 )
-
-var (
-	// SchemeBuilder is used to add go types to the GroupVersionKind scheme.
-	SchemeBuilder = &scheme.Builder{GroupVersion: v1alpha1.GroupVersion}
-
-	// AddToScheme adds the types in this group-version to the given scheme.
-	AddToScheme = SchemeBuilder.AddToScheme
-)
-
-func init() { //nolint:gochecknoinits
-	SchemeBuilder.Register(&v1alpha1.CFAPI{}, &v1alpha1.CFAPIList{})
-}
 
 const (
 	kymaSystemNamespace          = "kyma-system"
@@ -74,20 +61,23 @@ const (
 	finalDeletionState = v1alpha1.StateDeleting
 )
 
-// CFAPIReconciler reconciles a Sample object.
-type CFAPIReconciler struct {
+// CFAPIReconcilerOld reconciles a Sample object.
+type CFAPIReconcilerOld struct {
 	k8sClient     client.Client
+	helmClient    *helm.Client
 	eventRecorder record.EventRecorder
 	scheme        *runtime.Scheme
 }
 
-func NewCFApiReconciler(
+func NewCFApiReconcilerOld(
 	k8sClient client.Client,
+	helmClient *helm.Client,
 	eventRecorder record.EventRecorder,
 	scheme *runtime.Scheme,
-) *CFAPIReconciler {
-	return &CFAPIReconciler{
+) *CFAPIReconcilerOld {
+	return &CFAPIReconcilerOld{
 		k8sClient:     k8sClient,
+		helmClient:    helmClient,
 		eventRecorder: eventRecorder,
 		scheme:        scheme,
 	}
@@ -122,7 +112,7 @@ type ContainerRegistry struct {
 // +kubebuilder:rbac:groups="apps",resources=deployments,verbs=create;patch;delete
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *CFAPIReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *CFAPIReconcilerOld) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&v1alpha1.CFAPI{}).
 		Complete(r)
@@ -130,7 +120,7 @@ func (r *CFAPIReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 // Reconcile is the entry point from the controller-runtime framework.
 // It performs a reconciliation based on the passed ctrl.Request object.
-func (r *CFAPIReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *CFAPIReconcilerOld) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
 	objectInstance := v1alpha1.CFAPI{}
@@ -175,7 +165,7 @@ func (r *CFAPIReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 }
 
 // HandleInitialState bootstraps state handling for the reconciled resource.
-func (r *CFAPIReconciler) HandleInitialState(ctx context.Context, objectInstance *v1alpha1.CFAPI) error {
+func (r *CFAPIReconcilerOld) HandleInitialState(ctx context.Context, objectInstance *v1alpha1.CFAPI) error {
 	status := getStatusFromSample(objectInstance)
 
 	return r.setStatusForObjectInstance(ctx, objectInstance, status.
@@ -185,7 +175,7 @@ func (r *CFAPIReconciler) HandleInitialState(ctx context.Context, objectInstance
 
 // HandleProcessingState processes the reconciled resource by processing the underlying resources.
 // Based on the processing either a success or failure state is set on the reconciled resource.
-func (r *CFAPIReconciler) HandleProcessingState(ctx context.Context, objectInstance *v1alpha1.CFAPI) error {
+func (r *CFAPIReconcilerOld) HandleProcessingState(ctx context.Context, objectInstance *v1alpha1.CFAPI) error {
 	status := getStatusFromSample(objectInstance)
 
 	url, err := r.processResources(ctx, objectInstance)
@@ -207,7 +197,7 @@ func (r *CFAPIReconciler) HandleProcessingState(ctx context.Context, objectInsta
 }
 
 // HandleErrorState handles error recovery for the reconciled resource.
-func (r *CFAPIReconciler) HandleErrorState(ctx context.Context, objectInstance *v1alpha1.CFAPI) error {
+func (r *CFAPIReconcilerOld) HandleErrorState(ctx context.Context, objectInstance *v1alpha1.CFAPI) error {
 	status := getStatusFromSample(objectInstance)
 	url, err := r.processResources(ctx, objectInstance)
 	if err != nil {
@@ -226,7 +216,7 @@ func (r *CFAPIReconciler) HandleErrorState(ctx context.Context, objectInstance *
 
 // HandleDeletingState processed the deletion on the reconciled resource.
 // Once the deletion if processed the relevant finalizers (if applied) are removed.
-func (r *CFAPIReconciler) HandleDeletingState(ctx context.Context, objectInstance *v1alpha1.CFAPI) error {
+func (r *CFAPIReconcilerOld) HandleDeletingState(ctx context.Context, objectInstance *v1alpha1.CFAPI) error {
 	r.eventRecorder.Event(objectInstance, "Normal", "Deleting", "resource deleting")
 	logger := log.FromContext(ctx)
 
@@ -265,7 +255,7 @@ func (r *CFAPIReconciler) HandleDeletingState(ctx context.Context, objectInstanc
 }
 
 // HandleReadyState checks for the consistency of reconciled resource, by verifying the underlying resources.
-func (r *CFAPIReconciler) HandleReadyState(ctx context.Context, objectInstance *v1alpha1.CFAPI) error {
+func (r *CFAPIReconcilerOld) HandleReadyState(ctx context.Context, objectInstance *v1alpha1.CFAPI) error {
 	status := getStatusFromSample(objectInstance)
 	if _, err := r.processResources(ctx, objectInstance); err != nil {
 		if !objectInstance.GetDeletionTimestamp().IsZero() {
@@ -280,7 +270,7 @@ func (r *CFAPIReconciler) HandleReadyState(ctx context.Context, objectInstance *
 	return nil
 }
 
-func (r *CFAPIReconciler) setStatusForObjectInstance(ctx context.Context, objectInstance *v1alpha1.CFAPI,
+func (r *CFAPIReconcilerOld) setStatusForObjectInstance(ctx context.Context, objectInstance *v1alpha1.CFAPI,
 	status *v1alpha1.CFAPIStatus,
 ) error {
 	objectInstance.Status = *status
@@ -295,7 +285,7 @@ func (r *CFAPIReconciler) setStatusForObjectInstance(ctx context.Context, object
 	return nil
 }
 
-func (r *CFAPIReconciler) processResources(ctx context.Context, cfAPI *v1alpha1.CFAPI) (string, error) {
+func (r *CFAPIReconcilerOld) processResources(ctx context.Context, cfAPI *v1alpha1.CFAPI) (string, error) {
 	logger := log.FromContext(ctx)
 
 	r.eventRecorder.Event(cfAPI, "Normal", "ResourcesInstall", "installing resources")
@@ -409,7 +399,7 @@ func (r *CFAPIReconciler) processResources(ctx context.Context, cfAPI *v1alpha1.
 	return "https://" + korifiApiDomain, nil
 }
 
-func (r *CFAPIReconciler) deployServiceBroker(ctx context.Context) error {
+func (r *CFAPIReconcilerOld) deployServiceBroker(ctx context.Context) error {
 	logger := log.FromContext(ctx)
 
 	chart, err := loader.Load("./module-data/btp-service-broker/helm")
@@ -420,7 +410,7 @@ func (r *CFAPIReconciler) deployServiceBroker(ctx context.Context) error {
 	return applyRelease(chart, "cfapi-system", "btp-service-broker", map[string]any{}, logger)
 }
 
-func (r *CFAPIReconciler) ensureDockerRegistry(ctx context.Context, cfAPI *v1alpha1.CFAPI) error {
+func (r *CFAPIReconcilerOld) ensureDockerRegistry(ctx context.Context, cfAPI *v1alpha1.CFAPI) error {
 	logger := log.FromContext(ctx)
 
 	if cfAPI.Spec.AppImagePullSecret != "" {
@@ -450,7 +440,7 @@ func (r *CFAPIReconciler) ensureDockerRegistry(ctx context.Context, cfAPI *v1alp
 	return nil
 }
 
-func (r *CFAPIReconciler) createOIDCConfig(ctx context.Context, uaaURL string) error {
+func (r *CFAPIReconcilerOld) createOIDCConfig(ctx context.Context, uaaURL string) error {
 	logger := log.FromContext(ctx)
 
 	oidcCrdExists, err := r.crdExists(ctx, "OpenIDConnect")
@@ -495,7 +485,7 @@ func (r *CFAPIReconciler) createOIDCConfig(ctx context.Context, uaaURL string) e
 	return nil
 }
 
-func (r *CFAPIReconciler) getAppContainerRegistry(ctx context.Context, cfAPI *v1alpha1.CFAPI) (ContainerRegistry, error) {
+func (r *CFAPIReconcilerOld) getAppContainerRegistry(ctx context.Context, cfAPI *v1alpha1.CFAPI) (ContainerRegistry, error) {
 	logger := log.FromContext(ctx)
 
 	if cfAPI.Spec.AppImagePullSecret != "" {
@@ -535,7 +525,7 @@ func (r *CFAPIReconciler) getAppContainerRegistry(ctx context.Context, cfAPI *v1
 	}, nil
 }
 
-func (r *CFAPIReconciler) createDNSEntries(ctx context.Context, korifiAPI, appsDomain string) error {
+func (r *CFAPIReconcilerOld) createDNSEntries(ctx context.Context, korifiAPI, appsDomain string) error {
 	logger := log.FromContext(ctx)
 
 	// get ingress hostname
@@ -592,7 +582,7 @@ func (r *CFAPIReconciler) createDNSEntries(ctx context.Context, korifiAPI, appsD
 	return nil
 }
 
-func (r *CFAPIReconciler) createDockerSecret(ctx context.Context, name, namespace, server, username, password string) error {
+func (r *CFAPIReconcilerOld) createDockerSecret(ctx context.Context, name, namespace, server, username, password string) error {
 	conf := DockerRegistryConfig{
 		Auths: map[string]DockerRegistryAuth{},
 	}
@@ -624,7 +614,7 @@ func (r *CFAPIReconciler) createDockerSecret(ctx context.Context, name, namespac
 	return nil
 }
 
-func (r *CFAPIReconciler) generateCertificates(ctx context.Context, cfDomain, appsDomain, korifiApiDomain string) error {
+func (r *CFAPIReconcilerOld) generateCertificates(ctx context.Context, cfDomain, appsDomain, korifiApiDomain string) error {
 	certTemplate, err := template.ParseFiles("./module-data/certificates/certificates.tmpl")
 	if err != nil {
 		return fmt.Errorf("failed to parse certificates template: %w", err)
@@ -675,7 +665,7 @@ func (r *CFAPIReconciler) generateCertificates(ctx context.Context, cfDomain, ap
 	return nil
 }
 
-func (r *CFAPIReconciler) waitForSecret(namespace, name string) error {
+func (r *CFAPIReconcilerOld) waitForSecret(namespace, name string) error {
 	logger := log.FromContext(context.Background())
 
 	start := time.Now()
@@ -703,7 +693,7 @@ func (r *CFAPIReconciler) waitForSecret(namespace, name string) error {
 	return nil
 }
 
-func (r *CFAPIReconciler) getWildcardDomain() (string, error) {
+func (r *CFAPIReconcilerOld) getWildcardDomain() (string, error) {
 	u := &unstructured.Unstructured{}
 	u.SetGroupVersionKind(schema.GroupVersionKind{
 		Group:   "networking.istio.io",
@@ -735,7 +725,7 @@ func (r *CFAPIReconciler) getWildcardDomain() (string, error) {
 	return s, nil
 }
 
-func (r *CFAPIReconciler) createNamespaces(ctx context.Context, appContainerRegistry ContainerRegistry) error {
+func (r *CFAPIReconcilerOld) createNamespaces(ctx context.Context, appContainerRegistry ContainerRegistry) error {
 	logger := log.FromContext(ctx)
 
 	err := r.installOneGlob(ctx, "./module-data/namespaces/namespaces.yaml")
@@ -769,7 +759,7 @@ func (r *CFAPIReconciler) createNamespaces(ctx context.Context, appContainerRegi
 	return nil
 }
 
-func (r *CFAPIReconciler) installGatewayAPI(ctx context.Context) error {
+func (r *CFAPIReconcilerOld) installGatewayAPI(ctx context.Context) error {
 	err := r.installOneGlob(ctx, "./module-data/gateway-api/experimental-install.yaml")
 	if err != nil {
 		return fmt.Errorf("failed to install the Gateway API: %w", err)
@@ -816,7 +806,7 @@ func getStatusFromSample(objectInstance *v1alpha1.CFAPI) v1alpha1.CFAPIStatus {
 }
 
 // Korifi HELM chart deployment
-func (r *CFAPIReconciler) deployKorifi(ctx context.Context, appsDomain, korifiAPIDomain, containerRegistryServer, uaaURL string) error {
+func (r *CFAPIReconcilerOld) deployKorifi(ctx context.Context, appsDomain, korifiAPIDomain, containerRegistryServer, uaaURL string) error {
 	logger := log.FromContext(ctx)
 
 	chart, err := loader.Load("./module-data/korifi-chart")
@@ -857,7 +847,7 @@ func (r *CFAPIReconciler) deployKorifi(ctx context.Context, appsDomain, korifiAP
 	return err
 }
 
-func (r *CFAPIReconciler) retrieveUaaUrl(ctx context.Context) (string, error) {
+func (r *CFAPIReconcilerOld) retrieveUaaUrl(ctx context.Context) (string, error) {
 	logger := log.FromContext(ctx)
 
 	logger.Info("Retrieve UAA url from in-cluster details")

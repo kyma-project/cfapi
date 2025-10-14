@@ -11,7 +11,6 @@ import (
 	gardenerv1alpha1 "github.com/gardener/cert-management/pkg/apis/cert/v1alpha1"
 	"github.com/google/uuid"
 	"github.com/kyma-project/cfapi/api/v1alpha1"
-	"github.com/kyma-project/cfapi/controllers"
 	"github.com/kyma-project/cfapi/tests/helpers/fail_handler"
 	"github.com/kyma-project/cfapi/tests/integration/helpers"
 	. "github.com/onsi/ginkgo/v2"
@@ -37,7 +36,7 @@ import (
 
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme.Scheme))
-	utilruntime.Must(controllers.AddToScheme(scheme.Scheme))
+	utilruntime.Must(v1alpha1.AddToScheme(scheme.Scheme))
 	utilruntime.Must(gatewayv1.Install(scheme.Scheme))
 	utilruntime.Must(v1alpha3.AddToScheme(scheme.Scheme))
 	utilruntime.Must(gardenerv1alpha1.AddToScheme(scheme.Scheme))

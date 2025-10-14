@@ -40,6 +40,7 @@ import (
 
 	v1alpha1 "github.com/kyma-project/cfapi/api/v1alpha1"
 	controllers "github.com/kyma-project/cfapi/controllers"
+	"github.com/kyma-project/cfapi/controllers/helm"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -64,7 +65,7 @@ type FlagVar struct {
 
 func init() { //nolint:gochecknoinits
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-	utilruntime.Must(controllers.AddToScheme(scheme))
+	utilruntime.Must(v1alpha1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 
@@ -100,7 +101,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = controllers.NewCFApiReconciler(mgr.GetClient(), mgr.GetEventRecorderFor(operatorName), mgr.GetScheme()).SetupWithManager(mgr); err != nil {
+	if err = controllers.NewCFApiReconcilerOld(
+		mgr.GetClient(),
+		helm.NewClient(),
+		mgr.GetEventRecorderFor(operatorName),
+		mgr.GetScheme(),
+	).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Sample")
 		os.Exit(1)
 	}

@@ -29,7 +29,7 @@ const (
 	fieldOwner      = "sample.kyma-project.io/owner"
 )
 
-func (r *CFAPIReconciler) installOneGlob(ctx context.Context, pattern string) error {
+func (r *CFAPIReconcilerOld) installOneGlob(ctx context.Context, pattern string) error {
 	logger := log.FromContext(ctx)
 	logger.Info("Installing", "glob", pattern)
 	resources, err := loadOneGlob(pattern)
