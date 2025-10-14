@@ -6,6 +6,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="$SCRIPT_DIR/.."
 
 export CI_MODE="${CI_MODE:-false}"
+SKIP_DEPLOY="${SKIP_DEPLOY:-false}"
 # If BUILD_LOCAL_KORIFI is set to true, the script will build Korifi from local
 # source code and package it into the operator image that is deployed on the
 # kind cluster. Otherwise, the operator will install latest Korifi release.
@@ -114,7 +115,7 @@ install_istio() {
   echo " Installing the Istio Module "
   echo "************************************************"
   kubectl apply -f https://github.com/kyma-project/istio/releases/latest/download/istio-manager-experimental.yaml
-  kubectl apply -f https://github.com/kyma-project/istio/releases/latest/download/istio-default-cr.yaml
+  kubectl apply -f "$SCRIPT_DIR/assets/istio-default-cr.yaml"
 
   kubectl wait --for=jsonpath='.status.state'=Ready -n kyma-system istios default --timeout=5m
   configure_gateway_service istio-system istio-ingressgateway "$KYMA_GW_TLS_PORT"
@@ -156,7 +157,7 @@ install_docker_registry() {
 
 install_gardener_cert_manager() {
   echo ">>> Installing Gateway API"
-  kubectl apply --server-side -f "$ROOT_DIR/dependencies/gateway-api"
+  kubectl apply --server-side=true -f "$ROOT_DIR/dependencies/gateway-api"
 
   echo ">>> Installing Vertical Pod Autoscaler"
   kubectl apply -f https://raw.githubusercontent.com/kubernetes/autoscaler/vpa-release-1.0/vertical-pod-autoscaler/deploy/vpa-v1-crd-gen.yaml
@@ -315,34 +316,41 @@ export_environment() {
   rm -rf "$env_dir"
   mkdir -p "$env_dir"
 
+  registry_url="$(kubectl get secret dockerregistry-config-external -o="jsonpath={.data.pushRegAddr}" | base64 -d):$KYMA_TLS_PORT"
+  in_cluster_registry_url=$(kubectl get secret dockerregistry-config -o="jsonpath={.data.pushRegAddr}" | base64 -d)
+  registry_user=$(kubectl get secret dockerregistry-config-external -o="jsonpath={.data.username}" | base64 -d)
+  registry_password=$(kubectl get secret dockerregistry-config-external -o="jsonpath={.data.password}" | base64 -d)
+
   cat <<EOF >"$env_dir/env.sh"
-  export REGISTRY_URL="$REGISTRY_URL"
-  export IN_CLUSTER_REGISTRY_URL="$IN_CLUSTER_REGISTRY_URL"
-  export REGISTRY_USER="$REGISTRY_USER"
-  export REGISTRY_PASSWORD="$REGISTRY_PASSWORD"
+  export REGISTRY_URL="$registry_url"
+  export IN_CLUSTER_REGISTRY_URL="$in_cluster_registry_url"
+  export REGISTRY_USER="$registry_user"
+  export REGISTRY_PASSWORD="$registry_password"
   export KORIFI_GW_TLS_PORT="$KORIFI_GW_TLS_PORT"
   export VERSION="$VERSION"
 EOF
 }
 
 main() {
-  ensure_kind_cluster "$1"
+  if [ $SKIP_DEPLOY == "false" ]; then
+    ensure_kind_cluster "$1"
 
-  create_namespaces
-  install_gardener_cert_manager
-  install_istio
-  install_docker_registry
-  install_metrics_server
-  if [[ "$CI_MODE" == "false" ]]; then
-    install_load_balancer
+    create_namespaces
+    install_gardener_cert_manager
+    install_istio
+    install_docker_registry
+    install_metrics_server
+    if [[ "$CI_MODE" == "false" ]]; then
+      install_load_balancer
+    fi
+    install_btp_operator
+
+    if [[ "$BUILD_LOCAL_KORIFI" == "true" ]]; then
+      build_local_korifi_release_chart
+    fi
+
+    install_cfapi_operator
   fi
-  install_btp_operator
-
-  if [[ "$BUILD_LOCAL_KORIFI" == "true" ]]; then
-    build_local_korifi_release_chart
-  fi
-
-  install_cfapi_operator
 
   export_environment
 }

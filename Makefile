@@ -48,8 +48,13 @@ test-broker: manifests generate fmt vet
 test-integration: manifests generate fmt vet
 	CI_MODE=$(CI_MODE) ./scripts/run-tests.sh tests/integration
 
+.PHONY: test-operator
+test-operator: manifests generate fmt vet
+	./scripts/run-tests.sh .
+
 .PHONY: test
-test: test-broker test-integration
+test: test-operator test-broker test-integration
+
 
 docker-build: ## Build docker image with the manager.
 	docker build -t ${REGISTRY}/${IMG} --build-arg TARGETARCH=amd64 --build-arg BTP_SERVICE_BROKER_RELEASE_DIR=$(BTP_SERVICE_BROKER_RELEASE_DIR) --build-arg VERSION=$(VERSION) .
@@ -121,3 +126,5 @@ bin/vendir:
 vendir-update-dependencies: bin/vendir
 	vendir sync
 
+bin/setup-envtest:
+	go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest

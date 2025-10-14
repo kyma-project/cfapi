@@ -1,0 +1,5 @@
+{{- $ctx := . }}
+{{- range $path, $_ := .Files.Glob "configmaps/*.yaml" }}
+---
+{{ tpl ($.Files.Get $path) $ctx }}
+{{- end }}

@@ -6,7 +6,7 @@ metadata:
 rules:
 - apiGroups:
   - ""
-  resources: 
+  resources:
   - "*"
   verbs:
   - "*"
@@ -194,7 +194,7 @@ rules:
   - "*"
 - apiGroups:
   - korifi.cloudfoundry.org
-  resources: 
+  resources:
   - "*"
   verbs:
   - "*"
@@ -247,5 +247,11 @@ rules:
   - authentication.gardener.cloud
   resources:
   - "*"
+  verbs:
+  - "*"
+- apiGroups:
+  - operator.kyma-project.io
+  resources:
+  - istios
   verbs:
   - "*"

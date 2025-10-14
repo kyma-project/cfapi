@@ -22,8 +22,10 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"flag"
 	"os"
+	"time"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -39,7 +41,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	v1alpha1 "github.com/kyma-project/cfapi/api/v1alpha1"
-	controllers "github.com/kyma-project/cfapi/controllers"
+	"github.com/kyma-project/cfapi/controllers/cfapi"
+	"github.com/kyma-project/cfapi/controllers/helm"
+	"github.com/kyma-project/cfapi/controllers/installable"
+	"github.com/kyma-project/cfapi/controllers/installable/values"
+	"github.com/kyma-project/cfapi/controllers/installable/values/secrets"
+	"github.com/kyma-project/cfapi/controllers/kyma"
+	kymaistiov1alpha2 "github.com/kyma-project/istio/operator/api/v1alpha2"
+	istioclient "istio.io/client-go/pkg/clientset/versioned"
+	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -64,7 +74,9 @@ type FlagVar struct {
 
 func init() { //nolint:gochecknoinits
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-	utilruntime.Must(controllers.AddToScheme(scheme))
+	utilruntime.Must(v1alpha1.AddToScheme(scheme))
+	utilruntime.Must(kymaistiov1alpha2.AddToScheme(scheme))
+	utilruntime.Must(apiextv1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 
@@ -100,10 +112,34 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = controllers.NewCFApiReconciler(mgr.GetClient(), mgr.GetEventRecorderFor(operatorName), mgr.GetScheme()).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Sample")
+	helmClient := helm.NewClient()
+	installables := []installable.Installable{
+		installable.NewYamlTemplate(mgr.GetClient(), "./module-data/oidc/oidc-uaa-experimental.tmpl", "OIDC configuration"),
+		installable.NewYamlFile(mgr.GetClient(), "./module-data/gateway-api/experimental-install.yaml", "Gateway API"),
+		installable.NewYamlFile(mgr.GetClient(), "./module-data/envoy-filter/empty-envoy-filter.yaml", "Envoy Filter"),
+		installable.NewYamlFile(mgr.GetClient(), "./module-data/namespaces/namespaces.yaml", "Namespaces"),
+		installable.NewCertificates(mgr.GetClient(), installable.NewYamlTemplate(mgr.GetClient(), "./module-data/certificates/certificates.tmpl", "Korifi Certificates")),
+		installable.NewYamlGlob(mgr.GetClient(), "./module-data/kpack/release-*.yaml", "kpack"),
+		installable.NewHelmChart("./module-data/korifi-chart", "korifi", "korifi", values.NewKorifi(secrets.NewDocker(mgr.GetClient())), helmClient),
+		installable.NewConditional(korifiGatewayavailable{}, installable.NewYamlTemplate(mgr.GetClient(), "./module-data/dns-entries/dns-entries.tmpl", "DNS Entries")),
+		installable.NewHelmChart("./module-data/btp-service-broker/helm", "cfapi-system", "btp-service-broker", values.NoValues{}, helmClient),
+		installable.NewAdmins(mgr.GetClient()),
+	}
+
+	controllersLog := ctrl.Log.WithName(operatorName)
+	if err := cfapi.NewReconciler(
+		mgr.GetClient(),
+		mgr.GetScheme(),
+		kyma.NewClient(mgr.GetClient(), istioclient.NewForConfigOrDie(ctrl.GetConfigOrDie())),
+		mgr.GetEventRecorderFor(operatorName),
+		controllersLog,
+		10*time.Second,
+		installables...,
+	).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "CFAPI")
 		os.Exit(1)
 	}
+
 	//+kubebuilder:scaffold:builder
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
@@ -134,4 +170,14 @@ func defineFlagVar() *FlagVar {
 	flag.StringVar(&flagVar.finalDeletionState, "final-deletion-state", string(v1alpha1.StateDeleting),
 		"Customize final state when module marked for deletion, to mimic state behaviour like Ready, Warning")
 	return flagVar
+}
+
+type korifiGatewayavailable struct{}
+
+func (k korifiGatewayavailable) IsMet(ctx context.Context, config v1alpha1.InstallationConfig) (bool, string) {
+	if config.KorifiIngressHost == "" {
+		return false, "korifi ingress gateway not available yet"
+	}
+
+	return true, ""
 }

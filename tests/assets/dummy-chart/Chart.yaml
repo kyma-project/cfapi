@@ -1,0 +1,5 @@
+apiVersion: v2
+name: dummy-chart
+description: A Dummy helm chart
+type: application
+version: 0.0.1

@@ -17,5 +17,20 @@ directories:
       appVersion: ""
       version: 0.16.1
     path: korifi
+  - githubRelease:
+      tag: 0.10.0
+      url: https://api.github.com/repos/kyma-project/docker-registry/releases/247312117
+    path: kyma-docker-registry
+  - git:
+      commitTitle: 'Automator: update proxy@release-1.27 in istio/istio@release-1.27
+        (#58017)'
+      sha: df538c2279a633544e6c0961a03ab772729933be
+      tags:
+      - 1.27.3
+    path: istio
+  - githubRelease:
+      tag: 1.22.1
+      url: https://api.github.com/repos/kyma-project/istio/releases/255718046
+    path: istio-kyma
   path: dependencies
 kind: LockConfig

@@ -7,10 +7,10 @@ metadata:
   name: cf-api-ingress
   namespace: korifi
 spec:
-  dnsName: {{ .KorifiAPI }}
+  dnsName: cfapi.{{ .CFDomain }}
   ttl: 600
   targets:
-  - {{ .IngressHost }}
+  - apps.{{ .KorifiIngressHost }}
 ---
 apiVersion: dns.gardener.cloud/v1alpha1
 kind: DNSEntry
@@ -21,7 +21,7 @@ metadata:
   name: cf-apps-ingress
   namespace: korifi
 spec:
-  dnsName: "*.{{ .AppsDomain }}"
+  dnsName: "*.apps.{{ .CFDomain }}"
   ttl: 600
   targets:
-  - {{ .IngressHost }}
+  - apps.{{ .KorifiIngressHost }}

@@ -48,13 +48,33 @@ var (
 type CFAPIStatus struct {
 	Status `json:",inline"`
 
-	// Conditions contain a set of conditionals to determine the State of Status.
-	// If all Conditions are met, State is expected to be in StateReady.
+	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
+
+	//+kubebuilder:validation:Optional
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
+
+	//+kubebuilder:validation:Optional
+	InstallationConfig InstallationConfig `json:"installationConfig,omitempty"`
 
 	// URL contains the URL that should be used by the cf CLI in order
 	// to consume the CF API.
+	//+kubebuilder:validation:Optional
 	URL string `json:"url,omitempty"`
+}
+
+type InstallationConfig struct {
+	//+kubebuilder:validation:Optional
+	RootNamespace string `json:"rootNamespace"`
+	//+kubebuilder:validation:Optional
+	ContainerRegistrySecret string `json:"containerRegistrySecret"`
+	//+kubebuilder:validation:Optional
+	UAAURL string `json:"uaaUrl"`
+	//+kubebuilder:validation:Optional
+	CFAdmins []string `json:"cfAdmins"`
+	//+kubebuilder:validation:Optional
+	CFDomain string `json:"cfDomain"`
+	//+kubebuilder:validation:Optional
+	KorifiIngressHost string `json:"korifiIngressHost"`
 }
 
 func (s *CFAPIStatus) WithState(state State) *CFAPIStatus {
@@ -89,10 +109,10 @@ func (s *CFAPIStatus) WithInstallConditionStatus(status metav1.ConditionStatus, 
 }
 
 type CFAPISpec struct {
-	RootNamespace      string   `json:"rootNamespace,omitempty"`
-	AppImagePullSecret string   `json:"appImagePullSecret,omitempty"`
-	UAA                string   `json:"uaa,omitempty"`
-	CFAdmins           []string `json:"cfadmins,omitempty"`
+	RootNamespace           string   `json:"rootNamespace,omitempty"`
+	ContainerRegistrySecret string   `json:"containerRegistrySecret,omitempty"`
+	UAA                     string   `json:"uaa,omitempty"`
+	CFAdmins                []string `json:"cfadmins,omitempty"`
 }
 
 //+kubebuilder:object:root=true
@@ -107,6 +127,10 @@ type CFAPI struct {
 
 	Spec   CFAPISpec   `json:"spec,omitempty"`
 	Status CFAPIStatus `json:"status,omitempty"`
+}
+
+func (a *CFAPI) StatusConditions() *[]metav1.Condition {
+	return &a.Status.Conditions
 }
 
 // +kubebuilder:object:root=true
