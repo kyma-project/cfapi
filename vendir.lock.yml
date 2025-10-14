@@ -17,5 +17,9 @@ directories:
       appVersion: ""
       version: 0.16.1
     path: korifi
+  - githubRelease:
+      tag: 0.10.0
+      url: https://api.github.com/repos/kyma-project/docker-registry/releases/247312117
+    path: kyma-docker-registry
   path: dependencies
 kind: LockConfig

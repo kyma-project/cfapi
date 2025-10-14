@@ -25,3 +25,9 @@ directories:
       name: korifi
       repository:
         url: https://cloudfoundry.github.io/korifi
+  - path: kyma-docker-registry
+    githubRelease:
+      slug: kyma-project/docker-registry
+      latest: true
+      disableAutoChecksumValidation: true
+      assetNames: ["dockerregistry-operator.yaml"]

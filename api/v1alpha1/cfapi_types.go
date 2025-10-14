@@ -48,12 +48,17 @@ var (
 type CFAPIStatus struct {
 	Status `json:",inline"`
 
-	// Conditions contain a set of conditionals to determine the State of Status.
-	// If all Conditions are met, State is expected to be in StateReady.
+	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
+
+	//+kubebuilder:validation:Optional
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
+
+	//+kubebuilder:validation:Optional
+	ContainerRegistrySecret string `json:"containerRegistrySecret"`
 
 	// URL contains the URL that should be used by the cf CLI in order
 	// to consume the CF API.
+	//+kubebuilder:validation:Optional
 	URL string `json:"url,omitempty"`
 }
 
