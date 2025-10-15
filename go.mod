@@ -4,7 +4,7 @@ go 1.25
 
 require (
 	github.com/gardener/cert-management v0.18.0
-	github.com/gardener/external-dns-management v0.28.0
+	github.com/gardener/external-dns-management v0.29.0
 	github.com/go-logr/logr v1.4.3
 	github.com/google/uuid v1.6.0
 	github.com/onsi/ginkgo/v2 v2.26.0
@@ -126,7 +126,6 @@ require (
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/xlab/treeprint v1.2.0 // indirect
-	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.uber.org/automaxprocs v1.6.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
