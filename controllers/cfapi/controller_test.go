@@ -1,10 +1,14 @@
 package cfapi_test
 
 import (
+	"errors"
+
 	"github.com/google/uuid"
 	v1alpha1 "github.com/kyma-project/cfapi/api/v1alpha1"
 	"github.com/kyma-project/cfapi/controllers/cfapi"
-	"github.com/kyma-project/cfapi/controllers/registry"
+	"github.com/kyma-project/cfapi/controllers/installable"
+	"github.com/kyma-project/cfapi/controllers/kyma"
+	. "github.com/kyma-project/cfapi/tests/helpers"
 	. "github.com/kyma-project/cfapi/tests/matchers"
 	"github.com/kyma-project/cfapi/tools/k8s"
 	"github.com/kyma-project/cfapi/tools/k8s/conditions"
@@ -39,13 +43,6 @@ var _ = Describe("CFDomainReconciler Integration Tests", func() {
 		}).Should(Succeed())
 	})
 
-	It("sets default processing state", func() {
-		Eventually(func(g Gomega) {
-			g.Expect(adminClient.Get(ctx, client.ObjectKeyFromObject(cfAPI), cfAPI)).To(Succeed())
-			g.Expect(cfAPI.Status.State).To(Equal(v1alpha1.StateProcessing))
-		}).Should(Succeed())
-	})
-
 	When("the object is being deleted", func() {
 		BeforeEach(func() {
 			Expect(adminClient.Delete(ctx, cfAPI)).To(Succeed())
@@ -65,14 +62,134 @@ var _ = Describe("CFDomainReconciler Integration Tests", func() {
 			g.Expect(cfAPI.Status.ObservedGeneration).To(Equal(cfAPI.Generation))
 		}).Should(Succeed())
 	})
-	// ensureDockerRegistry - install the kyma docker registry CRD, whens for when the docker registry secret exists or does not exist
-	// check korifi pull secret - if using kyma registry, cfapi.status.registrysecret is set to `docker-registry-external`, or to whatever secret the user specified
 
-	It("sets the kyma container registry secret in the status", func() {
+	It("installs installables", func() {
 		Eventually(func(g Gomega) {
 			g.Expect(adminClient.Get(ctx, client.ObjectKeyFromObject(cfAPI), cfAPI)).To(Succeed())
-			g.Expect(cfAPI.Status.ContainerRegistrySecret).To(Equal(registry.KymaRegistrySecret))
+
+			g.Expect(firstInstallable.InstallCallCount()).To(BeNumerically(">", 0))
+			_, actualFirstInstallableConfig := firstInstallable.InstallArgsForCall(firstInstallable.InstallCallCount() - 1)
+			g.Expect(actualFirstInstallableConfig).To(Equal(cfAPI.Status.InstallationConfig))
+
+			g.Expect(secondInstallable.InstallCallCount()).To(BeNumerically(">", 0))
+			_, actualSecondInstallableConfig := secondInstallable.InstallArgsForCall(secondInstallable.InstallCallCount() - 1)
+			g.Expect(actualSecondInstallableConfig).To(Equal(cfAPI.Status.InstallationConfig))
 		}).Should(Succeed())
+	})
+
+	It("sets install config on the status", func() {
+		Eventually(func(g Gomega) {
+			g.Expect(adminClient.Get(ctx, client.ObjectKeyFromObject(cfAPI), cfAPI)).To(Succeed())
+			g.Expect(cfAPI.Status.InstallationConfig).To(Equal(v1alpha1.InstallationConfig{
+				RootNamespace:           cfAPI.Spec.RootNamespace,
+				ContainerRegistrySecret: kyma.ContainerRegistryRegistrySecretName,
+				CFDomain:                "kyma-host.com",
+				UAAURL:                  "https://uaa.cf.eu12.hana.ondemand.com",
+			}))
+		}).Should(Succeed())
+	})
+
+	When("custom uaa usr is specified", func() {
+		BeforeEach(func() {
+			Expect(k8s.Patch(ctx, adminClient, cfAPI, func() {
+				cfAPI.Spec.UAA = "my-own.uaa.com"
+			})).To(Succeed())
+		})
+
+		It("uses it", func() {
+			Eventually(func(g Gomega) {
+				g.Expect(adminClient.Get(ctx, client.ObjectKeyFromObject(cfAPI), cfAPI)).To(Succeed())
+				g.Expect(cfAPI.Status.InstallationConfig.UAAURL).To(Equal("my-own.uaa.com"))
+			}).Should(Succeed())
+		})
+	})
+
+	It("sets ready state", func() {
+		Eventually(func(g Gomega) {
+			g.Expect(adminClient.Get(ctx, client.ObjectKeyFromObject(cfAPI), cfAPI)).To(Succeed())
+			g.Expect(cfAPI.Status.State).To(Equal(v1alpha1.StateReady))
+			g.Expect(cfAPI.Status.Conditions).To(ContainElement(SatisfyAll(
+				HasType(Equal(v1alpha1.ConditionTypeInstallation)),
+				HasStatus(Equal(metav1.ConditionTrue)),
+				HasReason(Equal("InstallationSuccess")),
+			)))
+		}).Should(Succeed())
+	})
+
+	When("the cfapi spec is invalid", func() {
+		BeforeEach(func() {
+			Expect(k8s.Patch(ctx, adminClient, cfAPI, func() {
+				cfAPI.Spec.ContainerRegistrySecret = uuid.NewString()
+			})).To(Succeed())
+		})
+
+		It("sets warning state", func() {
+			Eventually(func(g Gomega) {
+				g.Expect(adminClient.Get(ctx, client.ObjectKeyFromObject(cfAPI), cfAPI)).To(Succeed())
+				g.Expect(cfAPI.Status.State).To(Equal(v1alpha1.StateWarning))
+				g.Expect(cfAPI.Status.Conditions).To(ContainElement(SatisfyAll(
+					HasType(Equal(conditions.StatusConditionReady)),
+					HasStatus(Equal(metav1.ConditionFalse)),
+					HasReason(Equal("InvalidConfiguration")),
+					HasMessage(ContainSubstring("not found")),
+				)))
+			}).Should(Succeed())
+		})
+	})
+
+	When("one of the installables returns an error", func() {
+		BeforeEach(func() {
+			secondInstallable.InstallReturns(installable.Result{}, errors.New("second-failed"))
+		})
+
+		It("leaves the CFAPI resource in processing state", func() {
+			EventuallyShouldHold(func(g Gomega) {
+				g.Expect(adminClient.Get(ctx, client.ObjectKeyFromObject(cfAPI), cfAPI)).To(Succeed())
+				g.Expect(cfAPI.Status.State).To(Equal(v1alpha1.StateProcessing))
+			})
+		})
+	})
+
+	When("one of the installables returns a failure result", func() {
+		BeforeEach(func() {
+			secondInstallable.InstallReturns(installable.Result{
+				State:   installable.ResultStateFailed,
+				Message: "i have failed",
+			}, nil)
+		})
+
+		It("sets error state in status", func() {
+			Eventually(func(g Gomega) {
+				g.Expect(adminClient.Get(ctx, client.ObjectKeyFromObject(cfAPI), cfAPI)).To(Succeed())
+				g.Expect(cfAPI.Status.State).To(Equal(v1alpha1.StateError))
+				g.Expect(cfAPI.Status.Conditions).To(ContainElement(SatisfyAll(
+					HasType(Equal(v1alpha1.ConditionTypeInstallation)),
+					HasStatus(Equal(metav1.ConditionFalse)),
+					HasReason(Equal("InstallationFailed")),
+					HasMessage(Equal("i have failed")),
+				)))
+			}).Should(Succeed())
+		})
+	})
+
+	When("one of the installables returns processing result", func() {
+		BeforeEach(func() {
+			secondInstallable.InstallReturns(installable.Result{
+				State: installable.ResultStateInProgress,
+			}, nil)
+		})
+
+		It("sets processing state in status", func() {
+			Eventually(func(g Gomega) {
+				g.Expect(adminClient.Get(ctx, client.ObjectKeyFromObject(cfAPI), cfAPI)).To(Succeed())
+				g.Expect(cfAPI.Status.State).To(Equal(v1alpha1.StateProcessing))
+				g.Expect(cfAPI.Status.Conditions).To(ContainElement(SatisfyAll(
+					HasType(Equal(v1alpha1.ConditionTypeInstallation)),
+					HasStatus(Equal(metav1.ConditionUnknown)),
+					HasReason(Equal("InstallationInProgress")),
+				)))
+			}).Should(Succeed())
+		})
 	})
 
 	When("the user has specified a custom registry secret", func() {
@@ -92,14 +209,14 @@ var _ = Describe("CFDomainReconciler Integration Tests", func() {
 			})).To(Succeed())
 
 			Expect(k8s.Patch(ctx, adminClient, cfAPI, func() {
-				cfAPI.Spec.AppImagePullSecret = customSecretName
+				cfAPI.Spec.ContainerRegistrySecret = customSecretName
 			})).To(Succeed())
 		})
 
 		It("sets the custom container registry secret in the status", func() {
 			Eventually(func(g Gomega) {
 				g.Expect(adminClient.Get(ctx, client.ObjectKeyFromObject(cfAPI), cfAPI)).To(Succeed())
-				g.Expect(cfAPI.Status.ContainerRegistrySecret).To(Equal(customSecretName))
+				g.Expect(cfAPI.Status.InstallationConfig.ContainerRegistrySecret).To(Equal(customSecretName))
 			}).Should(Succeed())
 		})
 
@@ -107,7 +224,7 @@ var _ = Describe("CFDomainReconciler Integration Tests", func() {
 			BeforeEach(func() {
 				customSecretName = uuid.NewString()
 				Expect(k8s.Patch(ctx, adminClient, cfAPI, func() {
-					cfAPI.Spec.AppImagePullSecret = customSecretName
+					cfAPI.Spec.ContainerRegistrySecret = customSecretName
 				})).To(Succeed())
 			})
 

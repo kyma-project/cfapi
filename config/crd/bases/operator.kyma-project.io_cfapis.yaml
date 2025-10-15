@@ -45,12 +45,12 @@ spec:
             type: object
           spec:
             properties:
-              appImagePullSecret:
-                type: string
               cfadmins:
                 items:
                   type: string
                 type: array
+              containerRegistrySecret:
+                type: string
               rootNamespace:
                 type: string
               uaa:
@@ -114,8 +114,21 @@ spec:
                   - type
                   type: object
                 type: array
-              containerRegistrySecret:
-                type: string
+              installationConfig:
+                properties:
+                  cfAdmins:
+                    items:
+                      type: string
+                    type: array
+                  cfDomain:
+                    type: string
+                  containerRegistrySecret:
+                    type: string
+                  rootNamespace:
+                    type: string
+                  uaaUrl:
+                    type: string
+                type: object
               observedGeneration:
                 format: int64
                 type: integer

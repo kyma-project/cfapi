@@ -413,7 +413,7 @@ func (r *CFAPIReconcilerOld) deployServiceBroker(ctx context.Context) error {
 func (r *CFAPIReconcilerOld) ensureDockerRegistry(ctx context.Context, cfAPI *v1alpha1.CFAPI) error {
 	logger := log.FromContext(ctx)
 
-	if cfAPI.Spec.AppImagePullSecret != "" {
+	if cfAPI.Spec.ContainerRegistrySecret != "" {
 		logger.Info("App Container Img Reg Secret is set, using it")
 		return nil
 	}
@@ -488,13 +488,13 @@ func (r *CFAPIReconcilerOld) createOIDCConfig(ctx context.Context, uaaURL string
 func (r *CFAPIReconcilerOld) getAppContainerRegistry(ctx context.Context, cfAPI *v1alpha1.CFAPI) (ContainerRegistry, error) {
 	logger := log.FromContext(ctx)
 
-	if cfAPI.Spec.AppImagePullSecret != "" {
+	if cfAPI.Spec.ContainerRegistrySecret != "" {
 		logger.Info("App Container Img Reg Secret is set, using it")
 		// extract container registry from secret
 		secret := corev1.Secret{}
 		err := r.k8sClient.Get(context.Background(), client.ObjectKey{
 			Namespace: "korifi",
-			Name:      cfAPI.Spec.AppImagePullSecret,
+			Name:      cfAPI.Spec.ContainerRegistrySecret,
 		}, &secret)
 		if err != nil {
 			return ContainerRegistry{}, fmt.Errorf("failed to get app container registry secret: %w", err)

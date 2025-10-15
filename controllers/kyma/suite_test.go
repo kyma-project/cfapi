@@ -1,7 +1,8 @@
-package registry_test
+package kyma_test
 
 import (
 	"context"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -10,8 +11,9 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	"k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/scheme"
+
+	// v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
@@ -36,19 +38,17 @@ func TestNetworkingControllers(t *testing.T) {
 	SetDefaultConsistentlyPollingInterval(250 * time.Millisecond)
 
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Registry Integration Suite")
+	RunSpecs(t, "Kyma Client Suite")
 }
-
-var _ = BeforeSuite(func() {
-	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
-
-	err := v1.AddToScheme(scheme.Scheme)
-	Expect(err).NotTo(HaveOccurred())
-})
 
 var _ = BeforeEach(func() {
 	ctx = context.Background()
+	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
+
 	testEnv = &envtest.Environment{
+		CRDDirectoryPaths: []string{
+			filepath.Join("..", "..", "dependencies", "istio", "manifests", "charts", "base", "files"),
+		},
 		ErrorIfCRDPathMissing: true,
 	}
 
@@ -56,6 +56,12 @@ var _ = BeforeEach(func() {
 	Expect(err).NotTo(HaveOccurred())
 
 	adminClient, stopClientCache = helpers.NewCachedClient(testEnv.Config)
+
+	Expect(adminClient.Create(ctx, &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "kyma-system",
+		},
+	})).To(Succeed())
 
 	testNamespace = uuid.NewString()
 	Expect(adminClient.Create(ctx, &corev1.Namespace{

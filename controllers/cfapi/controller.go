@@ -23,7 +23,10 @@ package cfapi
 
 import (
 	"context"
+	"slices"
+	"time"
 
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -32,7 +35,8 @@ import (
 
 	"github.com/go-logr/logr"
 	v1alpha1 "github.com/kyma-project/cfapi/api/v1alpha1"
-	"github.com/kyma-project/cfapi/controllers/registry"
+	"github.com/kyma-project/cfapi/controllers/installable"
+	"github.com/kyma-project/cfapi/controllers/kyma"
 	"github.com/kyma-project/cfapi/tools/k8s"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -44,21 +48,27 @@ const (
 )
 
 type Reconciler struct {
-	k8sClient    client.Client
-	scheme       *runtime.Scheme
-	kymaRegistry *registry.Kyma
+	k8sClient       client.Client
+	scheme          *runtime.Scheme
+	kymaClient      *kyma.Client
+	requeueInterval time.Duration
+	installables    []installable.Installable
 }
 
 func NewReconciler(
 	k8sClient client.Client,
 	scheme *runtime.Scheme,
-	kymaRegistry *registry.Kyma,
+	kymaClient *kyma.Client,
 	log logr.Logger,
+	requeueInterval time.Duration,
+	installables ...installable.Installable,
 ) *k8s.PatchingReconciler[v1alpha1.CFAPI] {
 	apiReconciler := &Reconciler{
-		k8sClient:    k8sClient,
-		scheme:       scheme,
-		kymaRegistry: kymaRegistry,
+		k8sClient:       k8sClient,
+		scheme:          scheme,
+		kymaClient:      kymaClient,
+		requeueInterval: requeueInterval,
+		installables:    installables,
 	}
 	return k8s.NewPatchingReconciler(ctrl.Log, k8sClient, apiReconciler)
 }
@@ -86,37 +96,132 @@ func (r *Reconciler) ReconcileResource(ctx context.Context, cfAPI *v1alpha1.CFAP
 		controllerutil.RemoveFinalizer(cfAPI, Finalizer)
 	}
 
-	err := r.ensureContainerRegistrySecret(ctx, cfAPI)
+	installationConfig, err := r.compileInstallationConfig(ctx, cfAPI)
 	if err != nil {
 		cfAPI.Status.State = v1alpha1.StateWarning
+		return ctrl.Result{}, k8s.NewNotReadyError().WithReason("InvalidConfiguration").WithMessage(err.Error()).WithRequeue()
+
+	}
+
+	cfAPI.Status.InstallationConfig = installationConfig
+
+	installResult, err := r.installInstallables(ctx, installationConfig)
+	if err != nil {
 		return ctrl.Result{}, err
 	}
 
-	return ctrl.Result{}, nil
+	return r.applyInstallResultToStatus(installResult, cfAPI)
 }
 
-func (r *Reconciler) ensureContainerRegistrySecret(ctx context.Context, cfAPI *v1alpha1.CFAPI) error {
-	if cfAPI.Spec.AppImagePullSecret != "" {
+func (r *Reconciler) applyInstallResultToStatus(installResult installable.Result, cfAPI *v1alpha1.CFAPI) (ctrl.Result, error) {
+	switch installResult.State {
+	case installable.ResultStateSuccess:
+		cfAPI.Status.State = v1alpha1.StateReady
+		meta.SetStatusCondition(&cfAPI.Status.Conditions, metav1.Condition{
+			Type:               v1alpha1.ConditionTypeInstallation,
+			Status:             metav1.ConditionTrue,
+			ObservedGeneration: cfAPI.Generation,
+			LastTransitionTime: metav1.NewTime(time.Now()),
+			Reason:             "InstallationSuccess",
+		})
+
+		return ctrl.Result{}, nil
+	case installable.ResultStateFailed:
+		cfAPI.Status.State = v1alpha1.StateError
+		meta.SetStatusCondition(&cfAPI.Status.Conditions, metav1.Condition{
+			Type:               v1alpha1.ConditionTypeInstallation,
+			Status:             metav1.ConditionFalse,
+			ObservedGeneration: cfAPI.Generation,
+			LastTransitionTime: metav1.NewTime(time.Now()),
+			Reason:             "InstallationFailed",
+			Message:            installResult.Message,
+		})
+
+		return ctrl.Result{}, nil
+	default:
+		cfAPI.Status.State = v1alpha1.StateProcessing
+		meta.SetStatusCondition(&cfAPI.Status.Conditions, metav1.Condition{
+			Type:               v1alpha1.ConditionTypeInstallation,
+			Status:             metav1.ConditionUnknown,
+			ObservedGeneration: cfAPI.Generation,
+			LastTransitionTime: metav1.NewTime(time.Now()),
+			Reason:             "InstallationInProgress",
+		})
+
+		return ctrl.Result{RequeueAfter: r.requeueInterval}, nil
+	}
+}
+
+func (r *Reconciler) compileInstallationConfig(ctx context.Context, cfAPI *v1alpha1.CFAPI) (v1alpha1.InstallationConfig, error) {
+	registrySecretName, err := r.ensureContainerRegistrySecret(ctx, cfAPI)
+	if err != nil {
+		return v1alpha1.InstallationConfig{}, err
+	}
+
+	kymaDomain, err := r.kymaClient.Domain.Get(ctx)
+	if err != nil {
+		return v1alpha1.InstallationConfig{}, err
+	}
+
+	uaaURL, err := r.computeUaaURL(ctx, cfAPI)
+	if err != nil {
+		return v1alpha1.InstallationConfig{}, err
+	}
+
+	return v1alpha1.InstallationConfig{
+		RootNamespace:           cfAPI.Spec.RootNamespace,
+		ContainerRegistrySecret: registrySecretName,
+		CFDomain:                kymaDomain,
+		UAAURL:                  uaaURL,
+	}, nil
+}
+
+func (r *Reconciler) computeUaaURL(ctx context.Context, cfAPI *v1alpha1.CFAPI) (string, error) {
+	if cfAPI.Spec.UAA != "" {
+		return cfAPI.Spec.UAA, nil
+	}
+
+	return r.kymaClient.UAA.GetURL(ctx)
+}
+
+func (r *Reconciler) installInstallables(ctx context.Context, config v1alpha1.InstallationConfig) (installable.Result, error) {
+	results := []installable.Result{}
+
+	for _, inst := range r.installables {
+		result, err := inst.Install(ctx, config)
+		if err != nil {
+			return installable.Result{}, err
+		}
+		results = append(results, result)
+	}
+
+	slices.SortFunc(results, func(r1, r2 installable.Result) int {
+		return int(r2.State) - int(r1.State)
+	})
+
+	return results[0], nil
+}
+
+func (r *Reconciler) ensureContainerRegistrySecret(ctx context.Context, cfAPI *v1alpha1.CFAPI) (string, error) {
+	if cfAPI.Spec.ContainerRegistrySecret != "" {
 		customSecret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: cfAPI.Namespace,
-				Name:      cfAPI.Spec.AppImagePullSecret,
+				Name:      cfAPI.Spec.ContainerRegistrySecret,
 			},
 		}
 
 		err := r.k8sClient.Get(ctx, client.ObjectKeyFromObject(customSecret), customSecret)
 		if err != nil {
-			return err
+			return "", err
 		}
-		cfAPI.Status.ContainerRegistrySecret = customSecret.Name
-		return nil
+		return customSecret.Name, nil
 	}
 
-	kymaRegistrySecret, err := r.kymaRegistry.GetRegistrySecret(ctx, cfAPI.Namespace)
+	kymaRegistrySecret, err := r.kymaClient.ContainerRegistry.GetRegistrySecret(ctx, cfAPI.Namespace)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	cfAPI.Status.ContainerRegistrySecret = kymaRegistrySecret.Name
-	return nil
+	return kymaRegistrySecret.Name, nil
 }

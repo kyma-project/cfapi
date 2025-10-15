@@ -31,3 +31,11 @@ directories:
       latest: true
       disableAutoChecksumValidation: true
       assetNames: ["dockerregistry-operator.yaml"]
+  - path: istio
+    git:
+      url: https://github.com/istio/istio
+      refSelection:
+        semver:
+          constraints: ">1.27.1"
+    includePaths:
+      - manifests/charts/base/files/crd-all.gen.yaml

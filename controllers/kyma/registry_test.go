@@ -1,23 +1,22 @@
-package registry_test
+package kyma_test
 
 import (
 	"path/filepath"
 
-	"github.com/kyma-project/cfapi/controllers/registry"
+	"github.com/kyma-project/cfapi/controllers/kyma"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/scheme"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 )
 
 var _ = Describe("Kyma", func() {
-	var kymaRegistry *registry.Kyma
+	var kymaRegistry *kyma.ContainerRegistry
 
 	BeforeEach(func() {
-		kymaRegistry = registry.NewKyma(adminClient, scheme.Scheme)
+		kymaRegistry = kyma.NewContainerRegistry(adminClient)
 	})
 
 	Describe("GetRegistrySecret", func() {
@@ -51,7 +50,7 @@ var _ = Describe("Kyma", func() {
 					Expect(adminClient.Create(ctx, &corev1.Secret{
 						ObjectMeta: metav1.ObjectMeta{
 							Namespace: testNamespace,
-							Name:      registry.KymaRegistrySecret,
+							Name:      kyma.ContainerRegistryRegistrySecretName,
 						},
 					})).To(Succeed())
 				})
@@ -59,7 +58,7 @@ var _ = Describe("Kyma", func() {
 				It("returns the secret", func() {
 					Expect(getSecretErr).NotTo(HaveOccurred())
 					Expect(secret.Namespace).To(Equal(testNamespace))
-					Expect(secret.Name).To(Equal(registry.KymaRegistrySecret))
+					Expect(secret.Name).To(Equal(kyma.ContainerRegistryRegistrySecretName))
 				})
 			})
 		})

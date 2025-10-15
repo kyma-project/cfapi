@@ -54,12 +54,25 @@ type CFAPIStatus struct {
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
 	//+kubebuilder:validation:Optional
-	ContainerRegistrySecret string `json:"containerRegistrySecret"`
+	InstallationConfig InstallationConfig `json:"installationConfig,omitempty"`
 
 	// URL contains the URL that should be used by the cf CLI in order
 	// to consume the CF API.
 	//+kubebuilder:validation:Optional
 	URL string `json:"url,omitempty"`
+}
+
+type InstallationConfig struct {
+	//+kubebuilder:validation:Optional
+	RootNamespace string `json:"rootNamespace"`
+	//+kubebuilder:validation:Optional
+	ContainerRegistrySecret string `json:"containerRegistrySecret"`
+	//+kubebuilder:validation:Optional
+	UAAURL string `json:"uaaUrl"`
+	//+kubebuilder:validation:Optional
+	CFAdmins []string `json:"cfAdmins"`
+	//+kubebuilder:validation:Optional
+	CFDomain string `json:"cfDomain"`
 }
 
 func (s *CFAPIStatus) WithState(state State) *CFAPIStatus {
@@ -94,10 +107,10 @@ func (s *CFAPIStatus) WithInstallConditionStatus(status metav1.ConditionStatus, 
 }
 
 type CFAPISpec struct {
-	RootNamespace      string   `json:"rootNamespace,omitempty"`
-	AppImagePullSecret string   `json:"appImagePullSecret,omitempty"`
-	UAA                string   `json:"uaa,omitempty"`
-	CFAdmins           []string `json:"cfadmins,omitempty"`
+	RootNamespace           string   `json:"rootNamespace,omitempty"`
+	ContainerRegistrySecret string   `json:"containerRegistrySecret,omitempty"`
+	UAA                     string   `json:"uaa,omitempty"`
+	CFAdmins                []string `json:"cfadmins,omitempty"`
 }
 
 //+kubebuilder:object:root=true

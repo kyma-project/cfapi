@@ -1,4 +1,4 @@
-package registry
+package kyma
 
 import (
 	"context"
@@ -7,33 +7,30 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-const KymaRegistrySecret = "dockerregistry-config-external"
+const ContainerRegistryRegistrySecretName = "dockerregistry-config-external"
 
-type Kyma struct {
+type ContainerRegistry struct {
 	k8sClient client.Client
-	scheme    *runtime.Scheme
 }
 
-func NewKyma(k8sClient client.Client, scheme *runtime.Scheme) *Kyma {
-	return &Kyma{
+func NewContainerRegistry(k8sClient client.Client) *ContainerRegistry {
+	return &ContainerRegistry{
 		k8sClient: k8sClient,
-		scheme:    scheme,
 	}
 }
 
-func (k *Kyma) GetRegistrySecret(ctx context.Context, namespace string) (*corev1.Secret, error) {
+func (k *ContainerRegistry) GetRegistrySecret(ctx context.Context, namespace string) (*corev1.Secret, error) {
 	if !k.dockerRegistryModuleIsEnabled(ctx) {
 		return nil, errors.New("dockerregistry kyma module is not enabled")
 	}
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
-			Name:      KymaRegistrySecret,
+			Name:      ContainerRegistryRegistrySecretName,
 		},
 	}
 
@@ -45,7 +42,7 @@ func (k *Kyma) GetRegistrySecret(ctx context.Context, namespace string) (*corev1
 	return secret, nil
 }
 
-func (k *Kyma) dockerRegistryModuleIsEnabled(ctx context.Context) bool {
+func (k *ContainerRegistry) dockerRegistryModuleIsEnabled(ctx context.Context) bool {
 	logger := log.FromContext(ctx)
 
 	crds := &v1.CustomResourceDefinitionList{}
