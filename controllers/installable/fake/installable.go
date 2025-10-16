@@ -10,11 +10,12 @@ import (
 )
 
 type Installable struct {
-	InstallStub        func(context.Context, v1alpha1.InstallationConfig) (installable.Result, error)
+	InstallStub        func(context.Context, v1alpha1.InstallationConfig, installable.EventRecorder) (installable.Result, error)
 	installMutex       sync.RWMutex
 	installArgsForCall []struct {
 		arg1 context.Context
 		arg2 v1alpha1.InstallationConfig
+		arg3 installable.EventRecorder
 	}
 	installReturns struct {
 		result1 installable.Result
@@ -28,19 +29,20 @@ type Installable struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *Installable) Install(arg1 context.Context, arg2 v1alpha1.InstallationConfig) (installable.Result, error) {
+func (fake *Installable) Install(arg1 context.Context, arg2 v1alpha1.InstallationConfig, arg3 installable.EventRecorder) (installable.Result, error) {
 	fake.installMutex.Lock()
 	ret, specificReturn := fake.installReturnsOnCall[len(fake.installArgsForCall)]
 	fake.installArgsForCall = append(fake.installArgsForCall, struct {
 		arg1 context.Context
 		arg2 v1alpha1.InstallationConfig
-	}{arg1, arg2})
+		arg3 installable.EventRecorder
+	}{arg1, arg2, arg3})
 	stub := fake.InstallStub
 	fakeReturns := fake.installReturns
-	fake.recordInvocation("Install", []interface{}{arg1, arg2})
+	fake.recordInvocation("Install", []interface{}{arg1, arg2, arg3})
 	fake.installMutex.Unlock()
 	if stub != nil {
-		return stub(arg1, arg2)
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -54,17 +56,17 @@ func (fake *Installable) InstallCallCount() int {
 	return len(fake.installArgsForCall)
 }
 
-func (fake *Installable) InstallCalls(stub func(context.Context, v1alpha1.InstallationConfig) (installable.Result, error)) {
+func (fake *Installable) InstallCalls(stub func(context.Context, v1alpha1.InstallationConfig, installable.EventRecorder) (installable.Result, error)) {
 	fake.installMutex.Lock()
 	defer fake.installMutex.Unlock()
 	fake.InstallStub = stub
 }
 
-func (fake *Installable) InstallArgsForCall(i int) (context.Context, v1alpha1.InstallationConfig) {
+func (fake *Installable) InstallArgsForCall(i int) (context.Context, v1alpha1.InstallationConfig, installable.EventRecorder) {
 	fake.installMutex.RLock()
 	defer fake.installMutex.RUnlock()
 	argsForCall := fake.installArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
 func (fake *Installable) InstallReturns(result1 installable.Result, result2 error) {

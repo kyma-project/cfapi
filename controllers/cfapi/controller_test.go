@@ -65,11 +65,11 @@ var _ = Describe("CFDomainReconciler Integration Tests", func() {
 			g.Expect(adminClient.Get(ctx, client.ObjectKeyFromObject(cfAPI), cfAPI)).To(Succeed())
 
 			g.Expect(firstInstallable.InstallCallCount()).To(BeNumerically(">", 0))
-			_, actualFirstInstallableConfig := firstInstallable.InstallArgsForCall(firstInstallable.InstallCallCount() - 1)
+			_, actualFirstInstallableConfig, _ := firstInstallable.InstallArgsForCall(firstInstallable.InstallCallCount() - 1)
 			g.Expect(actualFirstInstallableConfig).To(Equal(cfAPI.Status.InstallationConfig))
 
 			g.Expect(secondInstallable.InstallCallCount()).To(BeNumerically(">", 0))
-			_, actualSecondInstallableConfig := secondInstallable.InstallArgsForCall(secondInstallable.InstallCallCount() - 1)
+			_, actualSecondInstallableConfig, _ := secondInstallable.InstallArgsForCall(secondInstallable.InstallCallCount() - 1)
 			g.Expect(actualSecondInstallableConfig).To(Equal(cfAPI.Status.InstallationConfig))
 		}).Should(Succeed())
 	})

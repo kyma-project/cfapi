@@ -28,6 +28,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/tools/record"
 
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -53,6 +54,7 @@ type Reconciler struct {
 	k8sClient       client.Client
 	scheme          *runtime.Scheme
 	kymaClient      *kyma.Client
+	eventRecorder   record.EventRecorder
 	requeueInterval time.Duration
 	installables    []installable.Installable
 }
@@ -61,6 +63,7 @@ func NewReconciler(
 	k8sClient client.Client,
 	scheme *runtime.Scheme,
 	kymaClient *kyma.Client,
+	eventRecorder record.EventRecorder,
 	log logr.Logger,
 	requeueInterval time.Duration,
 	installables ...installable.Installable,
@@ -69,6 +72,7 @@ func NewReconciler(
 		k8sClient:       k8sClient,
 		scheme:          scheme,
 		kymaClient:      kymaClient,
+		eventRecorder:   eventRecorder,
 		requeueInterval: requeueInterval,
 		installables:    installables,
 	}
@@ -107,7 +111,7 @@ func (r *Reconciler) ReconcileResource(ctx context.Context, cfAPI *v1alpha1.CFAP
 
 	cfAPI.Status.InstallationConfig = installationConfig
 
-	installResult, err := r.installInstallables(ctx, installationConfig)
+	installResult, err := r.installInstallables(ctx, installationConfig, installable.NewCFAPIEventRecorder(r.eventRecorder, cfAPI))
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -212,11 +216,11 @@ func (r *Reconciler) computeCFAdmins(ctx context.Context, cfAPI *v1alpha1.CFAPI)
 	})), nil
 }
 
-func (r *Reconciler) installInstallables(ctx context.Context, config v1alpha1.InstallationConfig) (installable.Result, error) {
+func (r *Reconciler) installInstallables(ctx context.Context, config v1alpha1.InstallationConfig, eventRecorder installable.EventRecorder) (installable.Result, error) {
 	results := []installable.Result{}
 
 	for _, inst := range r.installables {
-		result, err := inst.Install(ctx, config)
+		result, err := inst.Install(ctx, config, eventRecorder)
 		if err != nil {
 			return installable.Result{}, err
 		}

@@ -157,6 +157,7 @@ var _ = BeforeEach(func() {
 		k8sManager.GetClient(),
 		k8sManager.GetScheme(),
 		kymaClient,
+		k8sManager.GetEventRecorderFor("cfapi"),
 		ctrl.Log.WithName("controllers").WithName("cfapi"),
 		100*time.Millisecond,
 		firstInstallable,
