@@ -124,5 +124,119 @@ metadata:
 				Expect(installErr).To(MatchError(ContainSubstring("failed to create")))
 			})
 		})
+
+		When("the yaml file does not exist", func() {
+			var (
+				installResult1 installable.Result
+				installErr1    error
+			)
+			BeforeEach(func() {
+				installResult1, installErr1 = installable.NewYamlFile(adminClient, "file-does-not-exist", "").
+					Install(ctx, v1alpha1.InstallationConfig{}, eventRecorder)
+			})
+
+			It("returns an error in not existing file", func() {
+				Expect(installErr1).NotTo(HaveOccurred())
+				Expect(installResult1.State).To(Equal(installable.ResultStateFailed))
+			})
+		})
+	})
+
+	Describe("Template", func() {
+		var (
+			templateContent string
+
+			installResult installable.Result
+			installErr    error
+		)
+
+		BeforeEach(func() {
+			templateContent = ""
+		})
+
+		JustBeforeEach(func() {
+			yamlFile, err := os.CreateTemp("", "temp-*.tmpl")
+			Expect(err).NotTo(HaveOccurred())
+			DeferCleanup(func() {
+				Expect(os.RemoveAll(yamlFile.Name())).To(Succeed())
+			})
+
+			_, err = io.WriteString(yamlFile, templateContent)
+			Expect(err).NotTo(HaveOccurred())
+
+			installResult, installErr = installable.NewYamlTemplate(adminClient, yamlFile.Name(), "test-file").
+				Install(ctx, v1alpha1.InstallationConfig{}, eventRecorder)
+		})
+
+		It("succeeds for empty template file", func() {
+			Expect(installErr).NotTo(HaveOccurred())
+			Expect(installResult.State).To(Equal(installable.ResultStateSuccess))
+		})
+
+		When("the template file contains objects", func() {
+			BeforeEach(func() {
+				templateContent = fmt.Sprintf(
+					`apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: map1
+  namespace: %s
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: map2
+  namespace: %s`, testNamespace, testNamespace)
+			})
+
+			It("creates them", func() {
+				Expect(installErr).NotTo(HaveOccurred())
+				Expect(installResult.State).To(Equal(installable.ResultStateSuccess))
+				Expect(adminClient.Get(ctx, client.ObjectKey{Name: "map1", Namespace: testNamespace}, &corev1.ConfigMap{})).To(Succeed())
+				Expect(adminClient.Get(ctx, client.ObjectKey{Name: "map2", Namespace: testNamespace}, &corev1.ConfigMap{})).To(Succeed())
+			})
+		})
+
+		When("create fails", func() {
+			BeforeEach(func() {
+				templateContent = fmt.Sprintf(
+					`apiVersion: v1
+kind: NotExistingType
+metadata:
+  name: whatever
+  namespace: %s`, testNamespace)
+			})
+
+			It("returns an error", func() {
+				Expect(installErr).To(MatchError(ContainSubstring("failed to create")))
+			})
+		})
+
+		When("the template yaml is invalid", func() {
+			BeforeEach(func() {
+				templateContent = "invalid-yaml"
+			})
+
+			It("returns a failed result", func() {
+				Expect(installErr).NotTo(HaveOccurred())
+				Expect(installResult.State).To(Equal(installable.ResultStateFailed))
+			})
+		})
+
+		When("the template file does not exist", func() {
+			var (
+				installResult1 installable.Result
+				installErr1    error
+			)
+			BeforeEach(func() {
+				installResult1, installErr1 = installable.NewYamlTemplate(adminClient, "file-does-not-exist", "").
+					Install(ctx, v1alpha1.InstallationConfig{}, eventRecorder)
+			})
+
+			It("returns an error in not existing file", func() {
+				Expect(installErr1).NotTo(HaveOccurred())
+				Expect(installResult1.State).To(Equal(installable.ResultStateFailed))
+			})
+		})
 	})
 })

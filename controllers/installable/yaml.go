@@ -115,7 +115,7 @@ func (y *YamlTemplate) Install(ctx context.Context, config v1alpha1.Installation
 	if err != nil {
 		return Result{
 			State:   ResultStateFailed,
-			Message: fmt.Sprintf("failed to parse the template %s: %w", y.yamlTemplateFilePath, err.Error()),
+			Message: fmt.Sprintf("failed to parse the template %s: %s", y.yamlTemplateFilePath, err.Error()),
 		}, nil
 	}
 
@@ -124,7 +124,7 @@ func (y *YamlTemplate) Install(ctx context.Context, config v1alpha1.Installation
 	if err != nil {
 		return Result{
 			State:   ResultStateFailed,
-			Message: fmt.Sprintf("failed to execute template %s: %w", y.yamlTemplateFilePath, err.Error()),
+			Message: fmt.Sprintf("failed to execute template %s: %s", y.yamlTemplateFilePath, err.Error()),
 		}, nil
 	}
 
