@@ -29,9 +29,6 @@ var _ = Describe("CFDomainReconciler Integration Tests", func() {
 				Name:      uuid.NewString(),
 				Namespace: cfAPINamespace,
 			},
-			Spec: v1alpha1.CFAPISpec{
-				RootNamespace: uuid.NewString(),
-			},
 		}
 		Expect(adminClient.Create(ctx, cfAPI)).To(Succeed())
 	})
@@ -81,12 +78,27 @@ var _ = Describe("CFDomainReconciler Integration Tests", func() {
 		Eventually(func(g Gomega) {
 			g.Expect(adminClient.Get(ctx, client.ObjectKeyFromObject(cfAPI), cfAPI)).To(Succeed())
 			g.Expect(cfAPI.Status.InstallationConfig).To(Equal(v1alpha1.InstallationConfig{
-				RootNamespace:           cfAPI.Spec.RootNamespace,
+				RootNamespace:           "cf",
 				ContainerRegistrySecret: kyma.ContainerRegistryRegistrySecretName,
 				CFDomain:                "kyma-host.com",
 				UAAURL:                  "https://uaa.cf.eu12.hana.ondemand.com",
 			}))
 		}).Should(Succeed())
+	})
+
+	When("custom root namespace is specified", func() {
+		BeforeEach(func() {
+			Expect(k8s.Patch(ctx, adminClient, cfAPI, func() {
+				cfAPI.Spec.RootNamespace = "custom-root-ns"
+			})).To(Succeed())
+		})
+
+		It("uses it", func() {
+			Eventually(func(g Gomega) {
+				g.Expect(adminClient.Get(ctx, client.ObjectKeyFromObject(cfAPI), cfAPI)).To(Succeed())
+				g.Expect(cfAPI.Status.InstallationConfig.RootNamespace).To(Equal("custom-root-ns"))
+			}).Should(Succeed())
+		})
 	})
 
 	When("custom uaa usr is specified", func() {

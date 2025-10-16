@@ -153,6 +153,11 @@ func (r *Reconciler) applyInstallResultToStatus(installResult installable.Result
 }
 
 func (r *Reconciler) compileInstallationConfig(ctx context.Context, cfAPI *v1alpha1.CFAPI) (v1alpha1.InstallationConfig, error) {
+	rootNs := cfAPI.Spec.RootNamespace
+	if rootNs == "" {
+		rootNs = "cf"
+	}
+
 	registrySecretName, err := r.ensureContainerRegistrySecret(ctx, cfAPI)
 	if err != nil {
 		return v1alpha1.InstallationConfig{}, err
@@ -169,7 +174,7 @@ func (r *Reconciler) compileInstallationConfig(ctx context.Context, cfAPI *v1alp
 	}
 
 	return v1alpha1.InstallationConfig{
-		RootNamespace:           cfAPI.Spec.RootNamespace,
+		RootNamespace:           rootNs,
 		ContainerRegistrySecret: registrySecretName,
 		CFDomain:                kymaDomain,
 		UAAURL:                  uaaURL,
