@@ -12,6 +12,7 @@ const (
 	EventNormal  EventType = "Normal"
 )
 
+//counterfeiter:generate -o fake -fake-name EventRecorder . EventRecorder
 type EventRecorder interface {
 	Event(eventtype EventType, reason, message string)
 }
