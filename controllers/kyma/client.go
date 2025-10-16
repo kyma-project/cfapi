@@ -10,6 +10,7 @@ type Client struct {
 	Domain            *Domain
 	ContainerRegistry *ContainerRegistry
 	UAA               *UAA
+	Users             *Users
 }
 
 func NewClient(k8sClient client.Client, istioClient istioclient.Interface) *Client {
@@ -17,5 +18,6 @@ func NewClient(k8sClient client.Client, istioClient istioclient.Interface) *Clie
 		Domain:            NewDomain(istioClient),
 		ContainerRegistry: NewContainerRegistry(k8sClient),
 		UAA:               NewUAA(k8sClient),
+		Users:             NewUsers(k8sClient),
 	}
 }
