@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"strings"
+	"text/template"
 
 	"github.com/kyma-project/cfapi/api/v1alpha1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -88,6 +89,46 @@ func (y *YamlFile) Install(ctx context.Context, config v1alpha1.InstallationConf
 	}
 
 	result, err := newYamlBytesInstaller(y.k8sClient, yamlBytes).Install(ctx, config, eventRecorder)
+	if result.State == ResultStateSuccess {
+		eventRecorder.Event("InstallableDeployed", "Installable %s deployed", y.displayName)
+	}
+
+	return result, err
+}
+
+type YamlTemplate struct {
+	k8sClient            client.Client
+	yamlTemplateFilePath string
+	displayName          string
+}
+
+func NewYamlTemplate(k8sClient client.Client, yamlTemplateFilePath string, displayName string) *YamlTemplate {
+	return &YamlTemplate{
+		k8sClient:            k8sClient,
+		yamlTemplateFilePath: yamlTemplateFilePath,
+		displayName:          displayName,
+	}
+}
+
+func (y *YamlTemplate) Install(ctx context.Context, config v1alpha1.InstallationConfig, eventRecorder EventRecorder) (Result, error) {
+	tmpl, err := template.ParseFiles(y.yamlTemplateFilePath)
+	if err != nil {
+		return Result{
+			State:   ResultStateFailed,
+			Message: fmt.Sprintf("failed to parse the template %s: %w", y.yamlTemplateFilePath, err.Error()),
+		}, nil
+	}
+
+	buf := &bytes.Buffer{}
+	err = tmpl.ExecuteTemplate(buf, tmpl.Name(), config)
+	if err != nil {
+		return Result{
+			State:   ResultStateFailed,
+			Message: fmt.Sprintf("failed to execute template %s: %w", y.yamlTemplateFilePath, err.Error()),
+		}, nil
+	}
+
+	result, err := newYamlBytesInstaller(y.k8sClient, buf.Bytes()).Install(ctx, config, eventRecorder)
 	if result.State == ResultStateSuccess {
 		eventRecorder.Event("InstallableDeployed", "Installable %s deployed", y.displayName)
 	}

@@ -100,6 +100,7 @@ func (r *Reconciler) ReconcileResource(ctx context.Context, cfAPI *v1alpha1.CFAP
 	controllerutil.AddFinalizer(cfAPI, Finalizer)
 	if !cfAPI.DeletionTimestamp.IsZero() {
 		controllerutil.RemoveFinalizer(cfAPI, Finalizer)
+		return ctrl.Result{}, nil
 	}
 
 	installationConfig, err := r.compileInstallationConfig(ctx, cfAPI)
@@ -227,7 +228,7 @@ func (r *Reconciler) installInstallables(ctx context.Context, config v1alpha1.In
 		results = append(results, result)
 	}
 
-	slices.SortFunc(results, func(r1, r2 installable.Result) int {
+	slices.SortStableFunc(results, func(r1, r2 installable.Result) int {
 		return int(r2.State) - int(r1.State)
 	})
 
