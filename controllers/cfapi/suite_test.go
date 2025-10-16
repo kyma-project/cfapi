@@ -19,6 +19,7 @@ import (
 	istiov1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	istioclient "istio.io/client-go/pkg/clientset/versioned"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -106,6 +107,21 @@ var _ = BeforeEach(func() {
 		},
 		StringData: map[string]string{
 			"tokenurl": "https://worker1-q3zjpctt.authentication.eu12.hana.ondemand.com",
+		},
+	})).To(Succeed())
+
+	Expect(adminClient.Create(ctx, &rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "default-kyma-admins",
+		},
+		Subjects: []rbacv1.Subject{{
+			Kind:      "User",
+			Name:      "default.admin@sap.com",
+			Namespace: "kyma-system",
+		}},
+		RoleRef: rbacv1.RoleRef{
+			Kind: "ClusterRole",
+			Name: "cluster-admin",
 		},
 	})).To(Succeed())
 

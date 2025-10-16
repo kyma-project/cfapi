@@ -82,6 +82,7 @@ var _ = Describe("CFDomainReconciler Integration Tests", func() {
 				ContainerRegistrySecret: kyma.ContainerRegistryRegistrySecretName,
 				CFDomain:                "kyma-host.com",
 				UAAURL:                  "https://uaa.cf.eu12.hana.ondemand.com",
+				CFAdmins:                []string{"default.admin@sap.com"},
 			}))
 		}).Should(Succeed())
 	})
@@ -112,6 +113,21 @@ var _ = Describe("CFDomainReconciler Integration Tests", func() {
 			Eventually(func(g Gomega) {
 				g.Expect(adminClient.Get(ctx, client.ObjectKeyFromObject(cfAPI), cfAPI)).To(Succeed())
 				g.Expect(cfAPI.Status.InstallationConfig.UAAURL).To(Equal("my-own.uaa.com"))
+			}).Should(Succeed())
+		})
+	})
+
+	When("custom admins are specified", func() {
+		BeforeEach(func() {
+			Expect(k8s.Patch(ctx, adminClient, cfAPI, func() {
+				cfAPI.Spec.CFAdmins = []string{"custom-admin"}
+			})).To(Succeed())
+		})
+
+		It("uses them", func() {
+			Eventually(func(g Gomega) {
+				g.Expect(adminClient.Get(ctx, client.ObjectKeyFromObject(cfAPI), cfAPI)).To(Succeed())
+				g.Expect(cfAPI.Status.InstallationConfig.CFAdmins).To(ConsistOf("custom-admin"))
 			}).Should(Succeed())
 		})
 	})

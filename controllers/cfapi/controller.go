@@ -33,12 +33,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
+	"github.com/BooleanCat/go-functional/v2/it"
 	"github.com/go-logr/logr"
 	v1alpha1 "github.com/kyma-project/cfapi/api/v1alpha1"
 	"github.com/kyma-project/cfapi/controllers/installable"
 	"github.com/kyma-project/cfapi/controllers/kyma"
 	"github.com/kyma-project/cfapi/tools/k8s"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 )
@@ -173,11 +175,17 @@ func (r *Reconciler) compileInstallationConfig(ctx context.Context, cfAPI *v1alp
 		return v1alpha1.InstallationConfig{}, err
 	}
 
+	cfAdmins, err := r.computeCFAdmins(ctx, cfAPI)
+	if err != nil {
+		return v1alpha1.InstallationConfig{}, err
+	}
+
 	return v1alpha1.InstallationConfig{
 		RootNamespace:           rootNs,
 		ContainerRegistrySecret: registrySecretName,
 		CFDomain:                kymaDomain,
 		UAAURL:                  uaaURL,
+		CFAdmins:                cfAdmins,
 	}, nil
 }
 
@@ -187,6 +195,21 @@ func (r *Reconciler) computeUaaURL(ctx context.Context, cfAPI *v1alpha1.CFAPI) (
 	}
 
 	return r.kymaClient.UAA.GetURL(ctx)
+}
+
+func (r *Reconciler) computeCFAdmins(ctx context.Context, cfAPI *v1alpha1.CFAPI) ([]string, error) {
+	if len(cfAPI.Spec.CFAdmins) > 0 {
+		return cfAPI.Spec.CFAdmins, nil
+	}
+
+	adminSubjects, err := r.kymaClient.Users.GetClusterAdmins(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return slices.Collect(it.Map(slices.Values(adminSubjects), func(s rbacv1.Subject) string {
+		return s.Name
+	})), nil
 }
 
 func (r *Reconciler) installInstallables(ctx context.Context, config v1alpha1.InstallationConfig) (installable.Result, error) {

@@ -5,6 +5,7 @@ go 1.25
 replace golang.org/x/tools => golang.org/x/tools v0.37.0
 
 require (
+	github.com/BooleanCat/go-functional/v2 v2.5.1
 	github.com/gardener/cert-management v0.18.0
 	github.com/gardener/external-dns-management v0.29.0
 	github.com/go-logr/logr v1.4.3
@@ -14,6 +15,7 @@ require (
 	github.com/pivotal/kpack v0.17.0
 	gopkg.in/yaml.v3 v3.0.1
 	helm.sh/helm/v3 v3.19.0
+	istio.io/api v1.27.2-0.20251010085937-bc3692c751f3
 	istio.io/client-go v1.27.2
 	k8s.io/api v0.34.1
 	k8s.io/apiextensions-apiserver v0.34.1
@@ -151,7 +153,6 @@ require (
 	google.golang.org/protobuf v1.36.10 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.13.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
-	istio.io/api v1.27.2-0.20251010085937-bc3692c751f3 // indirect
 	k8s.io/apiserver v0.34.1 // indirect
 	k8s.io/cli-runtime v0.34.1 // indirect
 	k8s.io/component-base v0.34.1 // indirect
