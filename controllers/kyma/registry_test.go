@@ -50,7 +50,7 @@ var _ = Describe("Kyma", func() {
 					Expect(adminClient.Create(ctx, &corev1.Secret{
 						ObjectMeta: metav1.ObjectMeta{
 							Namespace: testNamespace,
-							Name:      kyma.ContainerRegistryRegistrySecretName,
+							Name:      kyma.ContainerRegistrySecretName,
 						},
 					})).To(Succeed())
 				})
@@ -58,7 +58,7 @@ var _ = Describe("Kyma", func() {
 				It("returns the secret", func() {
 					Expect(getSecretErr).NotTo(HaveOccurred())
 					Expect(secret.Namespace).To(Equal(testNamespace))
-					Expect(secret.Name).To(Equal(kyma.ContainerRegistryRegistrySecretName))
+					Expect(secret.Name).To(Equal(kyma.ContainerRegistrySecretName))
 				})
 			})
 		})

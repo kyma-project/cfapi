@@ -11,7 +11,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-const ContainerRegistryRegistrySecretName = "dockerregistry-config-external"
+const ContainerRegistrySecretName = "dockerregistry-config-external"
 
 type ContainerRegistry struct {
 	k8sClient client.Client
@@ -30,7 +30,7 @@ func (k *ContainerRegistry) GetRegistrySecret(ctx context.Context, namespace str
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
-			Name:      ContainerRegistryRegistrySecretName,
+			Name:      ContainerRegistrySecretName,
 		},
 	}
 

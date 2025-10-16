@@ -79,7 +79,7 @@ var _ = Describe("CFDomainReconciler Integration Tests", func() {
 			g.Expect(adminClient.Get(ctx, client.ObjectKeyFromObject(cfAPI), cfAPI)).To(Succeed())
 			g.Expect(cfAPI.Status.InstallationConfig).To(Equal(v1alpha1.InstallationConfig{
 				RootNamespace:           "cf",
-				ContainerRegistrySecret: kyma.ContainerRegistryRegistrySecretName,
+				ContainerRegistrySecret: kyma.ContainerRegistrySecretName,
 				CFDomain:                "kyma-host.com",
 				UAAURL:                  "https://uaa.cf.eu12.hana.ondemand.com",
 				CFAdmins:                []string{"default.admin@sap.com"},

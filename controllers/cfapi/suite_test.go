@@ -92,7 +92,7 @@ var _ = BeforeEach(func() {
 	Expect(adminClient.Create(ctx, &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: cfAPINamespace,
-			Name:      kyma.ContainerRegistryRegistrySecretName,
+			Name:      kyma.ContainerRegistrySecretName,
 		},
 		Type: corev1.SecretTypeDockerConfigJson,
 		Data: map[string][]byte{
