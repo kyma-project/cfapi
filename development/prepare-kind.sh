@@ -156,7 +156,7 @@ install_docker_registry() {
 
 install_gardener_cert_manager() {
   echo ">>> Installing Gateway API"
-  kubectl apply -f "$ROOT_DIR/dependencies/gateway-api"
+  kubectl apply --server-side -f "$ROOT_DIR/dependencies/gateway-api"
 
   echo ">>> Installing Vertical Pod Autoscaler"
   kubectl apply -f https://raw.githubusercontent.com/kubernetes/autoscaler/vpa-release-1.0/vertical-pod-autoscaler/deploy/vpa-v1-crd-gen.yaml

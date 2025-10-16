@@ -12,7 +12,7 @@ directories:
   - path: gateway-api
     githubRelease:
       slug: kubernetes-sigs/gateway-api
-      tag: v1.3.0
+      latest: true
       disableAutoChecksumValidation: true
       assetNames: ["experimental-install.yaml"]
   - path: kpack
