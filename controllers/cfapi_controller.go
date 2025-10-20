@@ -442,7 +442,7 @@ func (r *CFAPIReconciler) ensureDockerRegistry(ctx context.Context, cfAPI *v1alp
 		return fmt.Errorf("failed to install docker registry: %w", err)
 	}
 
-	err = r.waitForSecret("cfapi-system", "dockerregistry-config-external")
+	err = r.waitForSecret("cfapi-system", "dockerregistry-config")
 	if err != nil {
 		return fmt.Errorf("failed awaiting for the docker registry external secret: %w", err)
 	}
@@ -517,12 +517,12 @@ func (r *CFAPIReconciler) getAppContainerRegistry(ctx context.Context, cfAPI *v1
 		}, nil
 	}
 
-	logger.Info("Constructing app container registry from dockerregistry-config-external secret ")
+	logger.Info("Constructing app container registry from dockerregistry-config secret ")
 
 	secret := corev1.Secret{}
 	err := r.k8sClient.Get(context.Background(), client.ObjectKey{
 		Namespace: "cfapi-system",
-		Name:      "dockerregistry-config-external",
+		Name:      "dockerregistry-config",
 	}, &secret)
 	if err != nil {
 		return ContainerRegistry{}, fmt.Errorf("failed to get app container registry secret: %w", err)
