@@ -17,7 +17,7 @@ require (
 	github.com/pivotal/kpack v0.17.0
 	gopkg.in/yaml.v3 v3.0.1
 	helm.sh/helm/v3 v3.19.0
-	istio.io/api v1.27.2-0.20251010085937-bc3692c751f3
+	istio.io/api v1.28.0-beta.1
 	istio.io/client-go v1.27.3
 	k8s.io/api v0.34.1
 	k8s.io/apiextensions-apiserver v0.34.1
