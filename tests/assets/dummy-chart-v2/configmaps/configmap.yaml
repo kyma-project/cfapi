@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dummy-configmap-v2
+  namespace: {{ .Release.Namespace }}
+data:
+  helm-value: {{ .Values.configMapValue }}
+  secret-values: {{ include "dummy.secret" . }}
+  v2-key: v2-value
