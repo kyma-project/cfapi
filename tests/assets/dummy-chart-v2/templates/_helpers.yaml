@@ -1,0 +1,5 @@
+{{- define "dummy.secret" -}}
+{{- $caBundle := "" -}}
+{{- $caBundle = index (lookup "v1" "Secret" .Release.Namespace "dummy-secret").data "my-secret-key" | b64dec -}}
+{{ $caBundle }}
+{{- end -}}
