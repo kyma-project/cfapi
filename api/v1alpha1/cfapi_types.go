@@ -25,7 +25,6 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
@@ -41,8 +40,8 @@ var (
 	// GroupVersion is group version used to register these objects.
 	GroupVersion = schema.GroupVersion{Group: "operator.kyma-project.io", Version: "v1alpha1"}
 
-	ConditionTypeInstallation = "Installation"
-	ConditionReasonReady      = "Ready"
+	ConditionTypeConfiguration = "Configuration"
+	ConditionTypeInstallation  = "Installation"
 )
 
 type CFAPIStatus struct {
@@ -75,37 +74,6 @@ type InstallationConfig struct {
 	CFDomain string `json:"cfDomain"`
 	//+kubebuilder:validation:Optional
 	KorifiIngressHost string `json:"korifiIngressHost"`
-}
-
-func (s *CFAPIStatus) WithState(state State) *CFAPIStatus {
-	s.State = state
-	return s
-}
-
-func (s *CFAPIStatus) WithURL(url string) *CFAPIStatus {
-	s.URL = url
-	return s
-}
-
-func (s *CFAPIStatus) WithInstallConditionStatus(status metav1.ConditionStatus, objGeneration int64) *CFAPIStatus {
-	if s.Conditions == nil {
-		s.Conditions = make([]metav1.Condition, 0, 1)
-	}
-
-	condition := meta.FindStatusCondition(s.Conditions, ConditionTypeInstallation)
-
-	if condition == nil {
-		condition = &metav1.Condition{
-			Type:    ConditionTypeInstallation,
-			Reason:  ConditionReasonReady,
-			Message: "installation is ready and resources can be used",
-		}
-	}
-
-	condition.Status = status
-	condition.ObservedGeneration = objGeneration
-	meta.SetStatusCondition(&s.Conditions, *condition)
-	return s
 }
 
 type CFAPISpec struct {
