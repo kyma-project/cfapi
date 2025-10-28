@@ -10,7 +10,7 @@ spec:
   dnsName: cfapi.{{ .CFDomain }}
   ttl: 600
   targets:
-  - {{ .KorifiIngressHost }}
+  - apps.{{ .KorifiIngressHost }}
 ---
 apiVersion: dns.gardener.cloud/v1alpha1
 kind: DNSEntry
@@ -24,4 +24,4 @@ spec:
   dnsName: "*.apps.{{ .CFDomain }}"
   ttl: 600
   targets:
-  - {{ .KorifiIngressHost }}
+  - apps.{{ .KorifiIngressHost }}
