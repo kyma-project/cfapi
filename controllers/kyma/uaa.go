@@ -30,7 +30,7 @@ func (o *UAA) GetURL(ctx context.Context) (string, error) {
 	}
 	err := o.k8sClient.Get(context.Background(), client.ObjectKeyFromObject(btpServiceOperatorSecret), btpServiceOperatorSecret)
 	if err != nil {
-		return "", fmt.Errorf("failed to get the btp service operator secret: %w. Make sure the btp operator kyma module is enbled", err)
+		return "", fmt.Errorf("failed to get the btp service operator secret: %w", err)
 	}
 
 	tokenURLBytes, ok := btpServiceOperatorSecret.Data["tokenurl"]

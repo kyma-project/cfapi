@@ -17,7 +17,6 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -87,13 +86,6 @@ var _ = Describe("CFDomainReconciler Integration Tests", func() {
 				UAAURL:                  "https://uaa.cf.eu12.hana.ondemand.com",
 				CFAdmins:                []string{"default.admin@sap.com"},
 			}))
-		}).Should(Succeed())
-	})
-
-	It("sets the configuration status condition", func() {
-		Eventually(func(g Gomega) {
-			g.Expect(adminClient.Get(ctx, client.ObjectKeyFromObject(cfAPI), cfAPI)).To(Succeed())
-			g.Expect(meta.IsStatusConditionTrue(cfAPI.Status.Conditions, v1alpha1.ConditionTypeConfiguration)).To(BeTrue())
 		}).Should(Succeed())
 	})
 
@@ -250,13 +242,6 @@ var _ = Describe("CFDomainReconciler Integration Tests", func() {
 				)))
 			}).Should(Succeed())
 		})
-
-		It("sets the configuration status condition to false", func() {
-			Eventually(func(g Gomega) {
-				g.Expect(adminClient.Get(ctx, client.ObjectKeyFromObject(cfAPI), cfAPI)).To(Succeed())
-				g.Expect(meta.IsStatusConditionFalse(cfAPI.Status.Conditions, v1alpha1.ConditionTypeConfiguration)).To(BeTrue())
-			}).Should(Succeed())
-		})
 	})
 
 	When("alpha gateway istio feature is not enabled", func() {
@@ -283,13 +268,6 @@ var _ = Describe("CFDomainReconciler Integration Tests", func() {
 					HasReason(Equal("InvalidConfiguration")),
 					HasMessage(ContainSubstring("not enabled")),
 				)))
-			}).Should(Succeed())
-		})
-
-		It("sets the configuration status condition to false", func() {
-			Eventually(func(g Gomega) {
-				g.Expect(adminClient.Get(ctx, client.ObjectKeyFromObject(cfAPI), cfAPI)).To(Succeed())
-				g.Expect(meta.IsStatusConditionFalse(cfAPI.Status.Conditions, v1alpha1.ConditionTypeConfiguration)).To(BeTrue())
 			}).Should(Succeed())
 		})
 	})
@@ -393,13 +371,6 @@ var _ = Describe("CFDomainReconciler Integration Tests", func() {
 						HasType(Equal(conditions.StatusConditionReady)),
 						HasStatus(Equal(metav1.ConditionFalse)),
 					)))
-				}).Should(Succeed())
-			})
-
-			It("sets the configuration status condition to false", func() {
-				Eventually(func(g Gomega) {
-					g.Expect(adminClient.Get(ctx, client.ObjectKeyFromObject(cfAPI), cfAPI)).To(Succeed())
-					g.Expect(meta.IsStatusConditionFalse(cfAPI.Status.Conditions, v1alpha1.ConditionTypeConfiguration)).To(BeTrue())
 				}).Should(Succeed())
 			})
 		})

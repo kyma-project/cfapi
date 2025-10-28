@@ -111,24 +111,8 @@ func (r *Reconciler) ReconcileResource(ctx context.Context, cfAPI *v1alpha1.CFAP
 	if err != nil {
 		log.Error(err, "failed to compile CFAPI installation config")
 		cfAPI.Status.State = v1alpha1.StateWarning
-		meta.SetStatusCondition(&cfAPI.Status.Conditions, metav1.Condition{
-			Type:               v1alpha1.ConditionTypeConfiguration,
-			Status:             metav1.ConditionFalse,
-			ObservedGeneration: cfAPI.Generation,
-			LastTransitionTime: metav1.NewTime(time.Now()),
-			Reason:             "InvalidConfiguration",
-			Message:            err.Error(),
-		})
-
-		return ctrl.Result{}, k8s.NewNotReadyError().WithReason("InvalidConfiguration").WithMessage(err.Error()).WithRequeueAfter(r.requeueInterval)
+		return ctrl.Result{}, k8s.NewNotReadyError().WithReason("InvalidConfiguration").WithMessage(err.Error()).WithRequeue()
 	}
-	meta.SetStatusCondition(&cfAPI.Status.Conditions, metav1.Condition{
-		Type:               v1alpha1.ConditionTypeConfiguration,
-		Status:             metav1.ConditionTrue,
-		ObservedGeneration: cfAPI.Generation,
-		LastTransitionTime: metav1.NewTime(time.Now()),
-		Reason:             "ValidConiguration",
-	})
 
 	cfAPI.Status.InstallationConfig = installationConfig
 
@@ -179,7 +163,6 @@ func (r *Reconciler) applyInstallResultToStatus(installResult installable.Result
 			ObservedGeneration: cfAPI.Generation,
 			LastTransitionTime: metav1.NewTime(time.Now()),
 			Reason:             "InstallationInProgress",
-			Message:            installResult.Message,
 		})
 
 		return ctrl.Result{RequeueAfter: r.requeueInterval}, nil
@@ -193,7 +176,7 @@ func (r *Reconciler) compileInstallationConfig(ctx context.Context, cfAPI *v1alp
 	}
 
 	if !aphaGWAPIEnabled {
-		return v1alpha1.InstallationConfig{}, errors.New("alpha gateway API feature is not enabled in istio. To fix this, enable the `experimental` channel on the istio module and set `spec.experimental.pilot.enableAlphaGatewayAPI` to `true` on the `kyma-system/default` Istio resource")
+		return v1alpha1.InstallationConfig{}, errors.New("alpha gateway API feature is not enabled on the Istio resource")
 	}
 
 	rootNs := cfAPI.Spec.RootNamespace

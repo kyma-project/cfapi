@@ -3,7 +3,6 @@ package kyma
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -37,7 +36,7 @@ func (k *ContainerRegistry) GetRegistrySecret(ctx context.Context, namespace str
 
 	err := k.k8sClient.Get(ctx, client.ObjectKeyFromObject(secret), secret)
 	if err != nil {
-		return nil, fmt.Errorf("cound not get the kyma docker container registry secret: %w. Make sure a docker registry resource exists", err)
+		return nil, err
 	}
 
 	return secret, nil
