@@ -124,6 +124,8 @@ spec:
                     type: string
                   containerRegistrySecret:
                     type: string
+                  containerRegistryUrl:
+                    type: string
                   korifiIngressHost:
                     type: string
                   rootNamespace:

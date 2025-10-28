@@ -24,6 +24,8 @@ package cfapi
 import (
 	"context"
 	"errors"
+	"fmt"
+	"maps"
 	"slices"
 	"time"
 
@@ -38,6 +40,7 @@ import (
 	"github.com/BooleanCat/go-functional/v2/it"
 	"github.com/go-logr/logr"
 	v1alpha1 "github.com/kyma-project/cfapi/api/v1alpha1"
+	"github.com/kyma-project/cfapi/controllers/cfapi/secrets"
 	"github.com/kyma-project/cfapi/controllers/installable"
 	"github.com/kyma-project/cfapi/controllers/kyma"
 	"github.com/kyma-project/cfapi/tools/k8s"
@@ -55,6 +58,7 @@ type Reconciler struct {
 	k8sClient       client.Client
 	scheme          *runtime.Scheme
 	kymaClient      *kyma.Client
+	docker          *secrets.Docker
 	eventRecorder   record.EventRecorder
 	requeueInterval time.Duration
 	installables    []installable.Installable
@@ -64,6 +68,7 @@ func NewReconciler(
 	k8sClient client.Client,
 	scheme *runtime.Scheme,
 	kymaClient *kyma.Client,
+	docker *secrets.Docker,
 	eventRecorder record.EventRecorder,
 	log logr.Logger,
 	requeueInterval time.Duration,
@@ -73,6 +78,7 @@ func NewReconciler(
 		k8sClient:       k8sClient,
 		scheme:          scheme,
 		kymaClient:      kymaClient,
+		docker:          docker,
 		eventRecorder:   eventRecorder,
 		requeueInterval: requeueInterval,
 		installables:    installables,
@@ -184,7 +190,7 @@ func (r *Reconciler) compileInstallationConfig(ctx context.Context, cfAPI *v1alp
 		rootNs = "cf"
 	}
 
-	registrySecretName, err := r.ensureContainerRegistrySecret(ctx, cfAPI)
+	registrySecretName, registryURL, err := r.ensureContainerRegistry(ctx, cfAPI)
 	if err != nil {
 		return v1alpha1.InstallationConfig{}, err
 	}
@@ -212,6 +218,7 @@ func (r *Reconciler) compileInstallationConfig(ctx context.Context, cfAPI *v1alp
 	return v1alpha1.InstallationConfig{
 		RootNamespace:           rootNs,
 		ContainerRegistrySecret: registrySecretName,
+		ContainerRegistryURL:    registryURL,
 		CFDomain:                kymaDomain,
 		UAAURL:                  uaaURL,
 		CFAdmins:                cfAdmins,
@@ -289,7 +296,7 @@ func (r *Reconciler) installInstallables(ctx context.Context, config v1alpha1.In
 	return results[0], nil
 }
 
-func (r *Reconciler) ensureContainerRegistrySecret(ctx context.Context, cfAPI *v1alpha1.CFAPI) (string, error) {
+func (r *Reconciler) ensureContainerRegistry(ctx context.Context, cfAPI *v1alpha1.CFAPI) (string, string, error) {
 	if cfAPI.Spec.ContainerRegistrySecret != "" {
 		customSecret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
@@ -300,15 +307,31 @@ func (r *Reconciler) ensureContainerRegistrySecret(ctx context.Context, cfAPI *v
 
 		err := r.k8sClient.Get(ctx, client.ObjectKeyFromObject(customSecret), customSecret)
 		if err != nil {
-			return "", err
+			return "", "", err
 		}
-		return customSecret.Name, nil
+
+		registryConfig, err := r.docker.GetRegistryConfig(ctx, cfAPI.Namespace, cfAPI.Spec.ContainerRegistrySecret)
+		if err != nil {
+			return "", "", err
+		}
+
+		registryURLs := slices.Collect(maps.Keys(registryConfig.Auths))
+		if len(registryURLs) == 0 {
+			return "", "", fmt.Errorf("container registry secret %s does not specify container registries", cfAPI.Spec.ContainerRegistrySecret)
+		}
+
+		return customSecret.Name, registryURLs[0], nil
 	}
 
 	kymaRegistrySecret, err := r.kymaClient.ContainerRegistry.GetRegistrySecret(ctx, cfAPI.Namespace)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
-	return kymaRegistrySecret.Name, nil
+	kymaRegistryURL, err := r.kymaClient.ContainerRegistry.GetRegistryURL(ctx, cfAPI.Namespace)
+	if err != nil {
+		return "", "", err
+	}
+
+	return kymaRegistrySecret.Name, kymaRegistryURL, nil
 }

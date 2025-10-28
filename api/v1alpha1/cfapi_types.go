@@ -68,6 +68,8 @@ type InstallationConfig struct {
 	//+kubebuilder:validation:Optional
 	ContainerRegistrySecret string `json:"containerRegistrySecret"`
 	//+kubebuilder:validation:Optional
+	ContainerRegistryURL string `json:"containerRegistryUrl"`
+	//+kubebuilder:validation:Optional
 	UAAURL string `json:"uaaUrl"`
 	//+kubebuilder:validation:Optional
 	CFAdmins []string `json:"cfAdmins"`

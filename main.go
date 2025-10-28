@@ -42,10 +42,10 @@ import (
 
 	v1alpha1 "github.com/kyma-project/cfapi/api/v1alpha1"
 	"github.com/kyma-project/cfapi/controllers/cfapi"
+	"github.com/kyma-project/cfapi/controllers/cfapi/secrets"
 	"github.com/kyma-project/cfapi/controllers/helm"
 	"github.com/kyma-project/cfapi/controllers/installable"
 	"github.com/kyma-project/cfapi/controllers/installable/values"
-	"github.com/kyma-project/cfapi/controllers/installable/values/secrets"
 	"github.com/kyma-project/cfapi/controllers/kyma"
 	kymaistiov1alpha2 "github.com/kyma-project/istio/operator/api/v1alpha2"
 	istioclient "istio.io/client-go/pkg/clientset/versioned"
@@ -120,7 +120,7 @@ func main() {
 		installable.NewYamlFile(mgr.GetClient(), "./module-data/namespaces/namespaces.yaml", "Namespaces"),
 		installable.NewCertificates(mgr.GetClient(), installable.NewYamlTemplate(mgr.GetClient(), "./module-data/certificates/certificates.tmpl", "Korifi Certificates")),
 		installable.NewYamlGlob(mgr.GetClient(), "./module-data/kpack/release-*.yaml", "kpack"),
-		installable.NewHelmChart("./module-data/korifi-chart", "korifi", "korifi", values.NewKorifi(secrets.NewDocker(mgr.GetClient())), helmClient),
+		installable.NewHelmChart("./module-data/korifi-chart", "korifi", "korifi", values.NewKorifi(), helmClient),
 		installable.NewConditional(korifiGatewayavailable{}, installable.NewYamlTemplate(mgr.GetClient(), "./module-data/dns-entries/dns-entries.tmpl", "DNS Entries")),
 		installable.NewHelmChart("./module-data/btp-service-broker/helm", "cfapi-system", "btp-service-broker", values.NoValues{}, helmClient),
 		installable.NewAdmins(mgr.GetClient()),
@@ -131,6 +131,7 @@ func main() {
 		mgr.GetClient(),
 		mgr.GetScheme(),
 		kyma.NewClient(mgr.GetClient(), istioclient.NewForConfigOrDie(ctrl.GetConfigOrDie())),
+		secrets.NewDocker(mgr.GetClient()),
 		mgr.GetEventRecorderFor(operatorName),
 		controllersLog,
 		10*time.Second,

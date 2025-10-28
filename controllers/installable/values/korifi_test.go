@@ -1,17 +1,10 @@
 package values_test
 
 import (
-	"encoding/json"
-
 	v1alpha1 "github.com/kyma-project/cfapi/api/v1alpha1"
 	"github.com/kyma-project/cfapi/controllers/installable/values"
-	"github.com/kyma-project/cfapi/controllers/installable/values/secrets"
-	"github.com/kyma-project/cfapi/tools/k8s"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var _ = Describe("Korifi", func() {
@@ -23,33 +16,15 @@ var _ = Describe("Korifi", func() {
 	)
 
 	BeforeEach(func() {
-		config := secrets.DockerRegistryConfig{
-			Auths: map[string]secrets.DockerRegistryAuth{
-				"my-registry.com": {},
-			},
-		}
-		configBytes, err := json.Marshal(config)
-		Expect(err).NotTo(HaveOccurred())
-
-		registrySecret := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "cfapi-system",
-				Name:      "my-registry-secret",
-			},
-			Data: map[string][]byte{
-				corev1.DockerConfigJsonKey: configBytes,
-			},
-		}
-		Expect(adminClient.Create(ctx, registrySecret)).To(Succeed())
-
 		instCfg = v1alpha1.InstallationConfig{
 			RootNamespace:           "my-root-ns",
-			ContainerRegistrySecret: registrySecret.Name,
+			ContainerRegistrySecret: "my-registry-secret",
+			ContainerRegistryURL:    "my-registry.com",
 			UAAURL:                  "https://uaa.example.com",
 			CFDomain:                "korifi.example.com",
 		}
 
-		korifi = values.NewKorifi(secrets.NewDocker(adminClient))
+		korifi = values.NewKorifi()
 	})
 
 	JustBeforeEach(func() {
@@ -86,36 +61,5 @@ var _ = Describe("Korifi", func() {
 				},
 			},
 		}))
-	})
-
-	When("reading the container registry secret fails", func() {
-		BeforeEach(func() {
-			instCfg.ContainerRegistrySecret = "non-existent"
-		})
-
-		It("returns an error", func() {
-			Expect(getValuesErr).To(MatchError(ContainSubstring("failed to get docker config from secret")))
-		})
-	})
-
-	When("the container registry secret does not specify servers", func() {
-		BeforeEach(func() {
-			registrySecret := &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "cfapi-system",
-					Name:      "my-registry-secret",
-				},
-			}
-			Expect(adminClient.Get(ctx, client.ObjectKeyFromObject(registrySecret), registrySecret)).To(Succeed())
-			Expect(k8s.Patch(ctx, adminClient, registrySecret, func() {
-				registrySecret.Data = map[string][]byte{
-					corev1.DockerConfigJsonKey: []byte(`{"auths":{}}`),
-				}
-			})).To(Succeed())
-		})
-
-		It("returns an error", func() {
-			Expect(getValuesErr).To(MatchError(ContainSubstring("no registry server found")))
-		})
 	})
 })

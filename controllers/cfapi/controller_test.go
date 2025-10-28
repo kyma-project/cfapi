@@ -17,6 +17,7 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -82,6 +83,7 @@ var _ = Describe("CFDomainReconciler Integration Tests", func() {
 			g.Expect(cfAPI.Status.InstallationConfig).To(Equal(v1alpha1.InstallationConfig{
 				RootNamespace:           "cf",
 				ContainerRegistrySecret: kyma.ContainerRegistrySecretName,
+				ContainerRegistryURL:    "https://kyma-registry.com",
 				CFDomain:                "kyma-host.com",
 				UAAURL:                  "https://uaa.cf.eu12.hana.ondemand.com",
 				CFAdmins:                []string{"default.admin@sap.com"},
@@ -337,9 +339,8 @@ var _ = Describe("CFDomainReconciler Integration Tests", func() {
 					Namespace: cfAPINamespace,
 					Name:      customSecretName,
 				},
-				Type: corev1.SecretTypeDockerConfigJson,
 				Data: map[string][]byte{
-					corev1.DockerConfigJsonKey: []byte("{}"),
+					corev1.DockerConfigJsonKey: []byte(`{"auths":{"https://my-custom-registry.com": {}}}`),
 				},
 			})).To(Succeed())
 
@@ -352,7 +353,45 @@ var _ = Describe("CFDomainReconciler Integration Tests", func() {
 			Eventually(func(g Gomega) {
 				g.Expect(adminClient.Get(ctx, client.ObjectKeyFromObject(cfAPI), cfAPI)).To(Succeed())
 				g.Expect(cfAPI.Status.InstallationConfig.ContainerRegistrySecret).To(Equal(customSecretName))
+				g.Expect(cfAPI.Status.InstallationConfig.ContainerRegistryURL).To(Equal("https://my-custom-registry.com"))
 			}).Should(Succeed())
+		})
+
+		When("the custom registry secret does not specify registries", func() {
+			BeforeEach(func() {
+				customSecretName = uuid.NewString()
+				Expect(adminClient.Create(ctx, &corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: cfAPINamespace,
+						Name:      customSecretName,
+					},
+					Data: map[string][]byte{
+						corev1.DockerConfigJsonKey: []byte(`{"auths":{}}`),
+					},
+				})).To(Succeed())
+
+				Expect(k8s.Patch(ctx, adminClient, cfAPI, func() {
+					cfAPI.Spec.ContainerRegistrySecret = customSecretName
+				})).To(Succeed())
+			})
+
+			It("sets warning status on the cfapi", func() {
+				Eventually(func(g Gomega) {
+					g.Expect(adminClient.Get(ctx, client.ObjectKeyFromObject(cfAPI), cfAPI)).To(Succeed())
+					g.Expect(cfAPI.Status.State).To(Equal(v1alpha1.StateWarning))
+					g.Expect(cfAPI.Status.Conditions).To(ContainElement(SatisfyAll(
+						HasType(Equal(conditions.StatusConditionReady)),
+						HasStatus(Equal(metav1.ConditionFalse)),
+					)))
+				}).Should(Succeed())
+			})
+
+			It("sets the configuration status condition to false", func() {
+				Eventually(func(g Gomega) {
+					g.Expect(adminClient.Get(ctx, client.ObjectKeyFromObject(cfAPI), cfAPI)).To(Succeed())
+					g.Expect(meta.IsStatusConditionFalse(cfAPI.Status.Conditions, v1alpha1.ConditionTypeConfiguration)).To(BeTrue())
+				}).Should(Succeed())
+			})
 		})
 
 		When("the custom registry secret does not exists", func() {
