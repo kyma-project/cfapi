@@ -111,7 +111,7 @@ func (r *Reconciler) ReconcileResource(ctx context.Context, cfAPI *v1alpha1.CFAP
 	if err != nil {
 		log.Error(err, "failed to compile CFAPI installation config")
 		cfAPI.Status.State = v1alpha1.StateWarning
-		return ctrl.Result{}, k8s.NewNotReadyError().WithReason("InvalidConfiguration").WithMessage(err.Error()).WithRequeue()
+		return ctrl.Result{}, k8s.NewNotReadyError().WithReason("InvalidConfiguration").WithMessage(err.Error()).WithRequeueAfter(r.requeueInterval)
 	}
 
 	cfAPI.Status.InstallationConfig = installationConfig

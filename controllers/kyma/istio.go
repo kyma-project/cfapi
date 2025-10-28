@@ -29,7 +29,7 @@ func (i *Istio) IsAplhaGatewayAPIEnabled(ctx context.Context) (bool, error) {
 
 	err := i.k8sClient.Get(ctx, client.ObjectKeyFromObject(&istio), &istio)
 	if err != nil {
-		return false, fmt.Errorf("failed to get the istio resource: %w", err)
+		return false, fmt.Errorf("failed to get the istio resource: %w. Make sure the istio kyma module is enabled", err)
 	}
 
 	if istio.Spec.Experimental == nil {
