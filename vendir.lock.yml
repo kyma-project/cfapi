@@ -32,5 +32,11 @@ directories:
       tag: 1.22.1
       url: https://api.github.com/repos/kyma-project/istio/releases/255718046
     path: istio-kyma
+  - git:
+      commitTitle: release v0.38.0
+      sha: 047d8e586af581778db388c9223ebd060496ef33
+      tags:
+      - v0.38.0
+    path: oidc-webhook-authenticator
   path: dependencies
 kind: LockConfig

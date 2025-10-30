@@ -45,3 +45,13 @@ directories:
       latest: true
       disableAutoChecksumValidation: true
       assetNames: ["istio-manager-experimental.yaml"]
+  - path: oidc-webhook-authenticator
+    git:
+      url: https://github.com/gardener/oidc-webhook-authenticator
+      depth: 1
+      refSelection:
+        semver:
+          constraints: ">=0.30.0"
+    includePaths:
+      - config/crd/bases/authentication.gardener.cloud_openidconnects.yaml
+    newRootPath: config/crd/bases

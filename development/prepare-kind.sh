@@ -4,6 +4,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="$SCRIPT_DIR/.."
+VENDOR_DIR="${ROOT_DIR}/dependencies"
 
 export CI_MODE="${CI_MODE:-false}"
 SKIP_DEPLOY="${SKIP_DEPLOY:-false}"
@@ -103,10 +104,9 @@ install_metrics_server() {
 
   local dep_dir vendor_dir
   dep_dir="${ROOT_DIR}/tests/dependencies"
-  vendor_dir="${ROOT_DIR}/dependencies"
 
   trap "rm $dep_dir/insecure-metrics-server/components.yaml" EXIT
-  cp "$vendor_dir/metrics-server-local/components.yaml" "$dep_dir/insecure-metrics-server/components.yaml"
+  cp "$VENDOR_DIR/metrics-server-local/components.yaml" "$dep_dir/insecure-metrics-server/components.yaml"
   kubectl apply -k "$dep_dir/insecure-metrics-server"
 }
 
@@ -157,7 +157,7 @@ install_docker_registry() {
 
 install_gardener_cert_manager() {
   echo ">>> Installing Gateway API"
-  kubectl apply --server-side=true -f "$ROOT_DIR/dependencies/gateway-api"
+  kubectl apply --server-side=true -f "$VENDOR_DIR/gateway-api"
 
   echo ">>> Installing Vertical Pod Autoscaler"
   kubectl apply -f https://raw.githubusercontent.com/kubernetes/autoscaler/vpa-release-1.0/vertical-pod-autoscaler/deploy/vpa-v1-crd-gen.yaml
@@ -184,6 +184,13 @@ install_gardener_cert_manager() {
     --wait
 
   kubectl apply -f "$SCRIPT_DIR/assets/cert-issuer.yaml"
+}
+
+install_gardener_openidconnect_crds() {
+  echo "************************************************"
+  echo " Installing the Gardener OpenIDConnect CRDs "
+  echo "************************************************"
+  kubectl apply -f "$VENDOR_DIR/oidc-webhook-authenticator/authentication.gardener.cloud_openidconnects.yaml"
 }
 
 create_namespaces() {
@@ -337,6 +344,7 @@ main() {
 
     create_namespaces
     install_gardener_cert_manager
+    install_gardener_openidconnect_crds
     install_istio
     install_docker_registry
     install_metrics_server
