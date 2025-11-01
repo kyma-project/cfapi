@@ -6,3 +6,6 @@ metadata:
 spec:
   rootNamespace: cf
   uaa: $UAA_URL
+  containerRegistrySecret: dockerhub-secret
+  containerRepositoryPrefix: index.docker.io/korifi/
+  builderRepository: index.docker.io/korifi/kpack-builder

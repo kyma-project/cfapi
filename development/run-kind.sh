@@ -24,6 +24,13 @@ tmp_dir="$(mktemp -d)"
 trap "rm -rf $tmp_dir" EXIT
 
 apply_cfapi() {
+
+  kubectl delete secret -n cfapi-system dockerhub-secret --ignore-not-found
+  kubectl create secret -n cfapi-system docker-registry dockerhub-secret \
+    --docker-server="https://index.docker.io/v1" \
+    --docker-username="$(vault kv get -field=username concourse/main/release-pipeline/dockerhub-auth)" \
+    --docker-password="$(vault kv get -field=password concourse/main/release-pipeline/dockerhub-auth)"
+
   cat "$SCRIPT_DIR/assets/cf-api.yaml" | envsubst | kubectl apply -f -
   kubectl -n cfapi-system wait --for=jsonpath='{.status.state}'=Ready cfapis/default-cf-api --timeout=10m
 

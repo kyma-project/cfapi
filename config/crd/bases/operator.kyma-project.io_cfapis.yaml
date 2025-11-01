@@ -45,16 +45,23 @@ spec:
             type: object
           spec:
             properties:
+              builderRepository:
+                type: string
               cfadmins:
                 items:
                   type: string
                 type: array
               containerRegistrySecret:
                 type: string
+              containerRepositoryPrefix:
+                type: string
               rootNamespace:
                 type: string
               uaa:
                 type: string
+            required:
+            - builderRepository
+            - containerRepositoryPrefix
             type: object
           status:
             properties:
@@ -116,6 +123,8 @@ spec:
                 type: array
               installationConfig:
                 properties:
+                  builderRepository:
+                    type: string
                   cfAdmins:
                     items:
                       type: string
@@ -125,6 +134,8 @@ spec:
                   containerRegistrySecret:
                     type: string
                   containerRegistryUrl:
+                    type: string
+                  containerRepositoryPrefix:
                     type: string
                   korifiIngressHost:
                     type: string

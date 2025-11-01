@@ -114,6 +114,7 @@ func main() {
 
 	helmClient := helm.NewClient()
 	installables := []installable.Installable{
+		installable.NewHelmChart("./module-data/prerequisites-chart", "korifi", "korifi-prerequisites", values.NewPrerequisites(), helmClient),
 		installable.NewYamlTemplate(mgr.GetClient(), "./module-data/oidc/oidc-uaa-experimental.tmpl", "OIDC configuration"),
 		installable.NewYamlFile(mgr.GetClient(), "./module-data/gateway-api/experimental-install.yaml", "Gateway API"),
 		installable.NewYamlFile(mgr.GetClient(), "./module-data/envoy-filter/empty-envoy-filter.yaml", "Envoy Filter"),

@@ -19,7 +19,7 @@ func (k *Korifi) GetValues(ctx context.Context, config v1alpha1.InstallationConf
 		"adminUserName":                "cf-admin",
 		"generateInternalCertificates": false,
 		"containerRegistrySecrets":     []string{config.ContainerRegistrySecret},
-		"containerRepositoryPrefix":    config.ContainerRegistryURL + "/",
+		"containerRepositoryPrefix":    config.ContainerRepositoryPrefix,
 		"defaultAppDomainName":         "apps." + config.CFDomain,
 		"api": map[string]any{
 			"apiServer": map[string]any{
@@ -28,7 +28,7 @@ func (k *Korifi) GetValues(ctx context.Context, config v1alpha1.InstallationConf
 			"uaaURL": config.UAAURL,
 		},
 		"kpackImageBuilder": map[string]any{
-			"builderRepository": config.ContainerRegistryURL + "/cfapi/kpack-builder",
+			"builderRepository": config.BuilderRepository,
 		},
 		"networking": map[string]any{
 			"gatewayClass": "istio",

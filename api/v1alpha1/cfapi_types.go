@@ -69,6 +69,10 @@ type InstallationConfig struct {
 	//+kubebuilder:validation:Optional
 	ContainerRegistryURL string `json:"containerRegistryUrl"`
 	//+kubebuilder:validation:Optional
+	ContainerRepositoryPrefix string `json:"containerRepositoryPrefix"`
+	//+kubebuilder:validation:Optional
+	BuilderRepository string `json:"builderRepository"`
+	//+kubebuilder:validation:Optional
 	UAAURL string `json:"uaaUrl"`
 	//+kubebuilder:validation:Optional
 	CFAdmins []string `json:"cfAdmins"`
@@ -79,10 +83,12 @@ type InstallationConfig struct {
 }
 
 type CFAPISpec struct {
-	RootNamespace           string   `json:"rootNamespace,omitempty"`
-	ContainerRegistrySecret string   `json:"containerRegistrySecret,omitempty"`
-	UAA                     string   `json:"uaa,omitempty"`
-	CFAdmins                []string `json:"cfadmins,omitempty"`
+	RootNamespace             string   `json:"rootNamespace,omitempty"`
+	ContainerRegistrySecret   string   `json:"containerRegistrySecret,omitempty"`
+	ContainerRepositoryPrefix string   `json:"containerRepositoryPrefix"`
+	BuilderRepository         string   `json:"builderRepository"`
+	UAA                       string   `json:"uaa,omitempty"`
+	CFAdmins                  []string `json:"cfadmins,omitempty"`
 }
 
 //+kubebuilder:object:root=true

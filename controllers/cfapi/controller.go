@@ -212,6 +212,16 @@ func (r *Reconciler) compileInstallationConfig(ctx context.Context, cfAPI *v1alp
 		return v1alpha1.InstallationConfig{}, err
 	}
 
+	containerRepositoryPrefix := registryURL + "/"
+	if cfAPI.Spec.ContainerRepositoryPrefix != "" {
+		containerRepositoryPrefix = cfAPI.Spec.ContainerRepositoryPrefix
+	}
+
+	builderRepository := registryURL + "/cfapi/kpack-builder"
+	if cfAPI.Spec.BuilderRepository != "" {
+		builderRepository = cfAPI.Spec.BuilderRepository
+	}
+
 	kymaDomain, err := r.kymaClient.Domain.Get(ctx)
 	if err != nil {
 		return v1alpha1.InstallationConfig{}, err
@@ -233,13 +243,15 @@ func (r *Reconciler) compileInstallationConfig(ctx context.Context, cfAPI *v1alp
 	}
 
 	return v1alpha1.InstallationConfig{
-		RootNamespace:           rootNs,
-		ContainerRegistrySecret: registrySecretName,
-		ContainerRegistryURL:    registryURL,
-		CFDomain:                kymaDomain,
-		UAAURL:                  uaaURL,
-		CFAdmins:                cfAdmins,
-		KorifiIngressHost:       korifiIngressHost,
+		RootNamespace:             rootNs,
+		ContainerRegistrySecret:   registrySecretName,
+		ContainerRepositoryPrefix: containerRepositoryPrefix,
+		ContainerRegistryURL:      registryURL,
+		BuilderRepository:         builderRepository,
+		CFDomain:                  kymaDomain,
+		UAAURL:                    uaaURL,
+		CFAdmins:                  cfAdmins,
+		KorifiIngressHost:         korifiIngressHost,
 	}, nil
 }
 
