@@ -1,0 +1,5 @@
+rootNamespace: cf
+cfDomain:
+korifiIngressHost:
+uaaUrl:
+cfapiAdmins: []

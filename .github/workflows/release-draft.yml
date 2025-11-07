@@ -46,8 +46,13 @@ jobs:
       with:
         go-version: 'stable'
 
+    - uses: alexellis/arkade-get@master
+      with:
+        kubectl: latest
+        helm: latest
+
     - name: Run tests
-      run: make test
+      run: make test CI_MODE=true
 
   create-draft-release:
     runs-on: [ ubuntu-latest ]

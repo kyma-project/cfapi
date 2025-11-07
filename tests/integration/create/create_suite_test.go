@@ -3,22 +3,17 @@ package create_test
 import (
 	"context"
 	"encoding/json"
+	"os/exec"
 	"testing"
 	"time"
-
-	golog "log"
 
 	gardenerv1alpha1 "github.com/gardener/cert-management/pkg/apis/cert/v1alpha1"
 	"github.com/google/uuid"
 	"github.com/kyma-project/cfapi/api/v1alpha1"
 	"github.com/kyma-project/cfapi/tests/helpers/fail_handler"
-	"github.com/kyma-project/cfapi/tests/integration/helpers"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"helm.sh/helm/v3/pkg/action"
-	"helm.sh/helm/v3/pkg/cli"
 	corev1 "k8s.io/api/core/v1"
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -102,7 +97,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 			Name:      uuid.NewString(),
 		},
 		Spec: v1alpha1.CFAPISpec{
-			RootNamespace: "cf",
+			UseSelfSignedCertificates: true,
 		},
 	}
 	Expect(k8sClient.Create(ctx, cfAPI)).To(Succeed())
@@ -159,22 +154,14 @@ var _ = SynchronizedAfterSuite(func() {}, func() {
 		},
 	})).To(Succeed())
 
-	deleteNamespace("cf")
-	Expect(deleteHelmChart("cfapi-system", "btp-service-broker")).To(Succeed())
-	Expect(deleteHelmChart("korifi", "korifi")).To(Succeed())
-	deleteNamespace("korifi")
-	Eventually(func(g Gomega) {
-		g.Expect(helpers.DeleteYamlFilesInDir(ctx, "../../../dependencies/gateway-api")).To(Succeed())
-	}).Should(Succeed())
-	Eventually(func(g Gomega) {
-		g.Expect(helpers.DeleteYamlFilesInDir(ctx, "../../../dependencies/kpack")).To(Succeed())
-	}).Should(Succeed())
-	Eventually(func(g Gomega) {
-		g.Expect(helpers.DeleteYamlFilesInDir(ctx, "../../../dependencies/metrics-server-local")).To(Succeed())
-	}).Should(Succeed())
-	Eventually(func(g Gomega) {
-		g.Expect(helpers.DeleteYamlFilesInDir(ctx, "../../../module-data/envoy-filter")).To(Succeed())
-	}).Should(Succeed())
+	Expect(run("kubectl", "delete", "--ignore-not-found", "namespace", "cf")).To(Succeed())
+	Expect(run("helm", "delete", "--ignore-not-found", "btp-service-broker", "-n", "cfapi-system", "--wait")).To(Succeed())
+	Expect(run("helm", "delete", "--ignore-not-found", "cfapi-config", "-n", "korifi", "--wait")).To(Succeed())
+	Expect(run("helm", "delete", "--ignore-not-found", "korifi", "-n", "korifi", "--wait")).To(Succeed())
+	Expect(run("helm", "delete", "--ignore-not-found", "korifi-prerequisites", "-n", "korifi", "--wait")).To(Succeed())
+	Expect(run("kubectl", "delete", "--ignore-not-found", "namespace", "korifi")).To(Succeed())
+	Expect(run("kubectl", "delete", "--ignore-not-found", "-f", "../../../module-data/vendor/gateway-api")).To(Succeed())
+	Expect(run("kubectl", "delete", "--ignore-not-found", "-f", "../../../module-data/vendor/kpack")).To(Succeed())
 
 	Expect(k8sClient.Delete(ctx, &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
@@ -182,6 +169,11 @@ var _ = SynchronizedAfterSuite(func() {}, func() {
 		},
 	})).To(Succeed())
 })
+
+func run(command string, args ...string) error {
+	cmd := exec.Command(command, args...)
+	return cmd.Run()
+}
 
 func createK8sClient() client.Client {
 	config, err := controllerruntime.GetConfig()
@@ -191,36 +183,4 @@ func createK8sClient() client.Client {
 	Expect(err).NotTo(HaveOccurred())
 
 	return k
-}
-
-func deleteNamespace(nsName string) {
-	ns := &corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: nsName,
-		},
-	}
-
-	Expect(k8sClient.Delete(ctx, ns)).To(Succeed())
-	Eventually(func(g Gomega) {
-		err := k8sClient.Get(ctx, client.ObjectKeyFromObject(ns), ns)
-		g.Expect(k8serrors.IsNotFound(err)).To(BeTrue())
-	}).Should(Succeed())
-}
-
-func deleteHelmChart(ns string, chart string) error {
-	settings := cli.New()
-	actionConfig := new(action.Configuration)
-	err := actionConfig.Init(settings.RESTClientGetter(), ns,
-		"secret", golog.Printf)
-	if err != nil {
-		return err
-	}
-
-	uninstallClient := action.NewUninstall(actionConfig)
-	uninstallClient.IgnoreNotFound = true
-	uninstallClient.Wait = true
-	uninstallClient.Timeout = 5 * time.Minute
-
-	_, err = uninstallClient.Run(chart)
-	return err
 }

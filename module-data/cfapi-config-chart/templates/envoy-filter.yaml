@@ -1,11 +1,11 @@
 apiVersion: networking.istio.io/v1alpha3
 kind: EnvoyFilter
 metadata:
-  name: ef-removeserver
+  name: removeserver
   namespace: istio-system
 spec:
   configPatches:
-  - applyTo: NETWORK_FILTER 
+  - applyTo: NETWORK_FILTER
     match:
       listener:
         filterChain:

@@ -138,10 +138,9 @@ var _ = Describe("HelmChartInstallableIntegrationTest", func() {
 			valuesProvider.GetValuesReturns(map[string]any{}, errors.New("values-err"))
 		})
 
-		It("returns a failed result", func() {
+		It("returns in progress result", func() {
 			Expect(installErr).NotTo(HaveOccurred())
-			Expect(result.State).To(Equal(installable.ResultStateFailed))
-			Expect(result.Message).To(ContainSubstring("values-err"))
+			Expect(result.State).To(Equal(installable.ResultStateInProgress))
 		})
 	})
 

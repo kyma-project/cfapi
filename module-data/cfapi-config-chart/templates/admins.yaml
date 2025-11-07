@@ -1,0 +1,19 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  annotations:
+    cloudfoundry.org/propagate-cf-role: "true"
+  name: cfapi-admins
+  namespace: {{ .Values.rootNamespace }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: korifi-controllers-admin
+subjects:
+{{- $rootNamespace := .Values.rootNamespace -}}
+{{- range .Values.cfapiAdmins }}
+- apiGroup: rbac.authorization.k8s.io
+  kind: User
+  name: {{ . }}
+  namespace: {{ $rootNamespace }}
+{{- end }}

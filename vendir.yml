@@ -1,14 +1,8 @@
 apiVersion: vendir.k14s.io/v1alpha1
 kind: Config
 directories:
-- path: dependencies
+- path: module-data/vendor
   contents:
-  - path: metrics-server-local
-    githubRelease:
-      slug: kubernetes-sigs/metrics-server
-      latest: true
-      disableAutoChecksumValidation: true
-      assetNames: ["components.yaml"]
   - path: gateway-api
     githubRelease:
       slug: kubernetes-sigs/gateway-api
@@ -20,11 +14,20 @@ directories:
       slug: pivotal/kpack
       latest: true
       disableAutoChecksumValidation: true
-  - path: korifi
+  - path: korifi-chart
     helmChart:
       name: korifi
+      version: "v0.16.1"
       repository:
         url: https://cloudfoundry.github.io/korifi
+- path: tests/dependencies/vendor
+  contents:
+  - path: metrics-server-local
+    githubRelease:
+      slug: kubernetes-sigs/metrics-server
+      latest: true
+      disableAutoChecksumValidation: true
+      assetNames: ["components.yaml"]
   - path: kyma-docker-registry
     githubRelease:
       slug: kyma-project/docker-registry
@@ -45,3 +48,13 @@ directories:
       latest: true
       disableAutoChecksumValidation: true
       assetNames: ["istio-manager-experimental.yaml"]
+  - path: oidc-webhook-authenticator
+    git:
+      url: https://github.com/gardener/oidc-webhook-authenticator
+      depth: 1
+      refSelection:
+        semver:
+          constraints: ">=0.30.0"
+    includePaths:
+      - config/crd/bases/authentication.gardener.cloud_openidconnects.yaml
+    newRootPath: config/crd/bases

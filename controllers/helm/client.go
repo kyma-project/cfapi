@@ -59,7 +59,7 @@ func (c *Client) Apply(ctx context.Context, chartPath string, releaseNamespace s
 	}
 	equalVersions := chart.Metadata.Version == latestRelease.Chart.Metadata.Version
 
-	if equalValues && equalVersions {
+	if equalValues && equalVersions && latestRelease.Info.Status != release.StatusFailed {
 		log.Info("helm chart does not need update")
 		return HelmResult{
 			ReleaseStatus: latestRelease.Info.Status,
@@ -106,7 +106,7 @@ func getLatestReleases(releaseNamespace string, releaseName string) (*release.Re
 	listClient := action.NewList(actionConfig)
 	listClient.Sort = action.ByDateDesc
 	listClient.Limit = 1
-	listClient.Filter = releaseName
+	listClient.Filter = fmt.Sprintf("^%s$", releaseName)
 
 	versions, err := listClient.Run()
 	if err != nil {

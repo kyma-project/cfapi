@@ -24,6 +24,8 @@ package cfapi
 import (
 	"context"
 	"errors"
+	"fmt"
+	"maps"
 	"slices"
 	"time"
 
@@ -38,6 +40,7 @@ import (
 	"github.com/BooleanCat/go-functional/v2/it"
 	"github.com/go-logr/logr"
 	v1alpha1 "github.com/kyma-project/cfapi/api/v1alpha1"
+	"github.com/kyma-project/cfapi/controllers/cfapi/secrets"
 	"github.com/kyma-project/cfapi/controllers/installable"
 	"github.com/kyma-project/cfapi/controllers/kyma"
 	"github.com/kyma-project/cfapi/tools/k8s"
@@ -55,6 +58,7 @@ type Reconciler struct {
 	k8sClient       client.Client
 	scheme          *runtime.Scheme
 	kymaClient      *kyma.Client
+	docker          *secrets.Docker
 	eventRecorder   record.EventRecorder
 	requeueInterval time.Duration
 	installables    []installable.Installable
@@ -64,6 +68,7 @@ func NewReconciler(
 	k8sClient client.Client,
 	scheme *runtime.Scheme,
 	kymaClient *kyma.Client,
+	docker *secrets.Docker,
 	eventRecorder record.EventRecorder,
 	log logr.Logger,
 	requeueInterval time.Duration,
@@ -73,6 +78,7 @@ func NewReconciler(
 		k8sClient:       k8sClient,
 		scheme:          scheme,
 		kymaClient:      kymaClient,
+		docker:          docker,
 		eventRecorder:   eventRecorder,
 		requeueInterval: requeueInterval,
 		installables:    installables,
@@ -111,8 +117,24 @@ func (r *Reconciler) ReconcileResource(ctx context.Context, cfAPI *v1alpha1.CFAP
 	if err != nil {
 		log.Error(err, "failed to compile CFAPI installation config")
 		cfAPI.Status.State = v1alpha1.StateWarning
-		return ctrl.Result{}, k8s.NewNotReadyError().WithReason("InvalidConfiguration").WithMessage(err.Error()).WithRequeue()
+		meta.SetStatusCondition(&cfAPI.Status.Conditions, metav1.Condition{
+			Type:               v1alpha1.ConditionTypeConfiguration,
+			Status:             metav1.ConditionFalse,
+			ObservedGeneration: cfAPI.Generation,
+			LastTransitionTime: metav1.NewTime(time.Now()),
+			Reason:             "InvalidConfiguration",
+			Message:            err.Error(),
+		})
+
+		return ctrl.Result{}, k8s.NewNotReadyError().WithReason("InvalidConfiguration").WithMessage(err.Error()).WithRequeueAfter(r.requeueInterval)
 	}
+	meta.SetStatusCondition(&cfAPI.Status.Conditions, metav1.Condition{
+		Type:               v1alpha1.ConditionTypeConfiguration,
+		Status:             metav1.ConditionTrue,
+		ObservedGeneration: cfAPI.Generation,
+		LastTransitionTime: metav1.NewTime(time.Now()),
+		Reason:             "ValidConiguration",
+	})
 
 	cfAPI.Status.InstallationConfig = installationConfig
 
@@ -163,6 +185,7 @@ func (r *Reconciler) applyInstallResultToStatus(installResult installable.Result
 			ObservedGeneration: cfAPI.Generation,
 			LastTransitionTime: metav1.NewTime(time.Now()),
 			Reason:             "InstallationInProgress",
+			Message:            installResult.Message,
 		})
 
 		return ctrl.Result{RequeueAfter: r.requeueInterval}, nil
@@ -176,7 +199,7 @@ func (r *Reconciler) compileInstallationConfig(ctx context.Context, cfAPI *v1alp
 	}
 
 	if !aphaGWAPIEnabled {
-		return v1alpha1.InstallationConfig{}, errors.New("alpha gateway API feature is not enabled on the Istio resource")
+		return v1alpha1.InstallationConfig{}, errors.New("alpha gateway API feature is not enabled in istio. To fix this, enable the `experimental` channel on the istio module and set `spec.experimental.pilot.enableAlphaGatewayAPI` to `true` on the `kyma-system/default` Istio resource")
 	}
 
 	rootNs := cfAPI.Spec.RootNamespace
@@ -184,9 +207,19 @@ func (r *Reconciler) compileInstallationConfig(ctx context.Context, cfAPI *v1alp
 		rootNs = "cf"
 	}
 
-	registrySecretName, err := r.ensureContainerRegistrySecret(ctx, cfAPI)
+	registrySecretName, registryURL, err := r.ensureContainerRegistry(ctx, cfAPI)
 	if err != nil {
 		return v1alpha1.InstallationConfig{}, err
+	}
+
+	containerRepositoryPrefix := registryURL + "/"
+	if cfAPI.Spec.ContainerRepositoryPrefix != "" {
+		containerRepositoryPrefix = cfAPI.Spec.ContainerRepositoryPrefix
+	}
+
+	builderRepository := registryURL + "/cfapi/kpack-builder"
+	if cfAPI.Spec.BuilderRepository != "" {
+		builderRepository = cfAPI.Spec.BuilderRepository
 	}
 
 	kymaDomain, err := r.kymaClient.Domain.Get(ctx)
@@ -210,12 +243,16 @@ func (r *Reconciler) compileInstallationConfig(ctx context.Context, cfAPI *v1alp
 	}
 
 	return v1alpha1.InstallationConfig{
-		RootNamespace:           rootNs,
-		ContainerRegistrySecret: registrySecretName,
-		CFDomain:                kymaDomain,
-		UAAURL:                  uaaURL,
-		CFAdmins:                cfAdmins,
-		KorifiIngressHost:       korifiIngressHost,
+		RootNamespace:             rootNs,
+		ContainerRegistrySecret:   registrySecretName,
+		ContainerRepositoryPrefix: containerRepositoryPrefix,
+		ContainerRegistryURL:      registryURL,
+		BuilderRepository:         builderRepository,
+		CFDomain:                  kymaDomain,
+		UAAURL:                    uaaURL,
+		CFAdmins:                  cfAdmins,
+		KorifiIngressHost:         korifiIngressHost,
+		UseSelfSignedCertificates: cfAPI.Spec.UseSelfSignedCertificates,
 	}, nil
 }
 
@@ -289,7 +326,7 @@ func (r *Reconciler) installInstallables(ctx context.Context, config v1alpha1.In
 	return results[0], nil
 }
 
-func (r *Reconciler) ensureContainerRegistrySecret(ctx context.Context, cfAPI *v1alpha1.CFAPI) (string, error) {
+func (r *Reconciler) ensureContainerRegistry(ctx context.Context, cfAPI *v1alpha1.CFAPI) (string, string, error) {
 	if cfAPI.Spec.ContainerRegistrySecret != "" {
 		customSecret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
@@ -300,15 +337,31 @@ func (r *Reconciler) ensureContainerRegistrySecret(ctx context.Context, cfAPI *v
 
 		err := r.k8sClient.Get(ctx, client.ObjectKeyFromObject(customSecret), customSecret)
 		if err != nil {
-			return "", err
+			return "", "", err
 		}
-		return customSecret.Name, nil
+
+		registryConfig, err := r.docker.GetRegistryConfig(ctx, cfAPI.Namespace, cfAPI.Spec.ContainerRegistrySecret)
+		if err != nil {
+			return "", "", err
+		}
+
+		registryURLs := slices.Collect(maps.Keys(registryConfig.Auths))
+		if len(registryURLs) == 0 {
+			return "", "", fmt.Errorf("container registry secret %s does not specify container registries", cfAPI.Spec.ContainerRegistrySecret)
+		}
+
+		return customSecret.Name, registryURLs[0], nil
 	}
 
 	kymaRegistrySecret, err := r.kymaClient.ContainerRegistry.GetRegistrySecret(ctx, cfAPI.Namespace)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
-	return kymaRegistrySecret.Name, nil
+	kymaRegistryURL, err := r.kymaClient.ContainerRegistry.GetRegistryURL(ctx, cfAPI.Namespace)
+	if err != nil {
+		return "", "", err
+	}
+
+	return kymaRegistrySecret.Name, kymaRegistryURL, nil
 }

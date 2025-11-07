@@ -5,12 +5,12 @@ metadata:
     # Let Gardener manage this DNS entry.
     dns.gardener.cloud/class: garden
   name: cf-api-ingress
-  namespace: korifi
+  namespace: {{ .Release.Namespace }}
 spec:
-  dnsName: cfapi.{{ .CFDomain }}
+  dnsName: cfapi.{{ .Values.cfDomain }}
   ttl: 600
   targets:
-  - apps.{{ .KorifiIngressHost }}
+  - {{ .Values.korifiIngressHost }}
 ---
 apiVersion: dns.gardener.cloud/v1alpha1
 kind: DNSEntry
@@ -19,9 +19,9 @@ metadata:
     # Let Gardener manage this DNS entry.
     dns.gardener.cloud/class: garden
   name: cf-apps-ingress
-  namespace: korifi
+  namespace: {{ .Release.Namespace }}
 spec:
-  dnsName: "*.apps.{{ .CFDomain }}"
+  dnsName: "*.apps.{{ .Values.cfDomain }}"
   ttl: 600
   targets:
-  - apps.{{ .KorifiIngressHost }}
+  - {{ .Values.korifiIngressHost }}

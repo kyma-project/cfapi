@@ -24,7 +24,7 @@ tmp_dir="$(mktemp -d)"
 trap "rm -rf $tmp_dir" EXIT
 
 apply_cfapi() {
-  cat "$SCRIPT_DIR/assets/cf-api.yaml" | envsubst | kubectl apply -f -
+  kubectl apply -f "$SCRIPT_DIR/assets/cf-api.yaml"
   kubectl -n cfapi-system wait --for=jsonpath='{.status.state}'=Ready cfapis/default-cf-api --timeout=10m
 
   configure_gateway_service korifi-gateway korifi-istio "$KORIFI_GW_TLS_PORT"

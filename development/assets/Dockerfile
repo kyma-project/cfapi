@@ -26,8 +26,6 @@ COPY --from=uploader /manager .
 COPY --chown=65532:65532 /module-data .
 COPY --from=uploader --chown=65532:65532  /module-data module-data/
 
-RUN yq -i eval '.spec.isCA = true'  module-data/certificates/certificates.tmpl
-
 RUN rm -rf /module-data/btp-service-broker
 COPY --from=uploader /workspace/btp-service-broker /module-data/btp-service-broker
 
@@ -37,7 +35,7 @@ COPY --from=uploader /workspace/korifi-chart /korifi-chart
 # built one
 RUN if [ $(ls -A "/korifi-chart" | wc -l) -ne 0 ]; then \
         echo "Korifi files found, replacing Korifi module"; \
-        rm -rf /module-data/korifi-chart/* && cp -a /korifi-chart/* /module-data/korifi-chart/; \
+        rm -rf /module-data/vendor/korifi-chart/* && cp -a /korifi-chart/* /module-data/vendor/korifi-chart/; \
     fi
 
 #--------

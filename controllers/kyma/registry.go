@@ -3,6 +3,7 @@ package kyma
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -36,10 +37,22 @@ func (k *ContainerRegistry) GetRegistrySecret(ctx context.Context, namespace str
 
 	err := k.k8sClient.Get(ctx, client.ObjectKeyFromObject(secret), secret)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not get the kyma docker container registry secret: %w. Make sure a docker registry resource exists", err)
 	}
 
 	return secret, nil
+}
+
+func (k *ContainerRegistry) GetRegistryURL(ctx context.Context, namespace string) (string, error) {
+	registrySecret, err := k.GetRegistrySecret(ctx, namespace)
+	if err != nil {
+		return "", err
+	}
+	registryURL, ok := registrySecret.Data["pushRegAddr"]
+	if !ok {
+		return "", fmt.Errorf("registry secret %s/%s is missing the pushRegAddr key", registrySecret.Namespace, registrySecret.Name)
+	}
+	return string(registryURL), nil
 }
 
 func (k *ContainerRegistry) dockerRegistryModuleIsEnabled(ctx context.Context) bool {

@@ -12,7 +12,6 @@ COPY api api/
 COPY controllers controllers/
 COPY tools tools/
 COPY module-data module-data/
-COPY dependencies dependencies/
 
 # cache deps before building and copying source so that we don't need to re-download as much
 # and so that source changes don't invalidate our downloaded layer
@@ -32,12 +31,6 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -ldflags
 
 
 ENV BTP_SERVICE_BROKER_RELEASE_DIR=${BTP_SERVICE_BROKER_RELEASE_DIR}
-
-COPY dependencies/kpack module-data/kpack/
-
-COPY dependencies/gateway-api module-data/gateway-api/
-
-COPY dependencies/korifi module-data/korifi-chart/
 
 WORKDIR /workspace/module-data/btp-service-broker
 COPY $BTP_SERVICE_BROKER_RELEASE_DIR/helm helm
