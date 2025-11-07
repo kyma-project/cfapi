@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	v1alpha1 "github.com/kyma-project/cfapi/api/v1alpha1"
 	"github.com/kyma-project/cfapi/controllers/cfapi"
+	"github.com/kyma-project/cfapi/controllers/cfapi/secrets"
 	"github.com/kyma-project/cfapi/controllers/installable/fake"
 	"github.com/kyma-project/cfapi/controllers/kyma"
 	"github.com/kyma-project/cfapi/tests/helpers"
@@ -62,9 +63,9 @@ var _ = BeforeEach(func() {
 	testEnv = &envtest.Environment{
 		CRDDirectoryPaths: []string{
 			filepath.Join("..", "..", "config", "crd", "bases"),
-			filepath.Join("..", "..", "dependencies", "kyma-docker-registry"),
-			filepath.Join("..", "..", "dependencies", "istio-kyma"),
-			filepath.Join("..", "..", "dependencies", "istio", "manifests", "charts", "base", "files"),
+			filepath.Join("..", "..", "tests", "dependencies", "vendor", "kyma-docker-registry"),
+			filepath.Join("..", "..", "tests", "dependencies", "vendor", "istio-kyma"),
+			filepath.Join("..", "..", "tests", "dependencies", "vendor", "istio", "manifests", "charts", "base", "files"),
 		},
 		ErrorIfCRDPathMissing: true,
 	}
@@ -97,9 +98,8 @@ var _ = BeforeEach(func() {
 			Namespace: cfAPINamespace,
 			Name:      kyma.ContainerRegistrySecretName,
 		},
-		Type: corev1.SecretTypeDockerConfigJson,
-		Data: map[string][]byte{
-			corev1.DockerConfigJsonKey: []byte("{}"),
+		StringData: map[string]string{
+			"pushRegAddr": "https://kyma-registry.com",
 		},
 	})).To(Succeed())
 
@@ -175,6 +175,7 @@ var _ = BeforeEach(func() {
 		k8sManager.GetClient(),
 		k8sManager.GetScheme(),
 		kymaClient,
+		secrets.NewDocker(adminClient),
 		k8sManager.GetEventRecorderFor("cfapi"),
 		ctrl.Log.WithName("controllers").WithName("cfapi"),
 		100*time.Millisecond,

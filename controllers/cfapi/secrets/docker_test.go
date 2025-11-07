@@ -3,7 +3,7 @@ package secrets_test
 import (
 	"encoding/json"
 
-	"github.com/kyma-project/cfapi/controllers/installable/values/secrets"
+	"github.com/kyma-project/cfapi/controllers/cfapi/secrets"
 	"github.com/kyma-project/cfapi/tools/k8s"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"

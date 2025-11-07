@@ -10,62 +10,76 @@ Once installed, one could use the cf cli to connect and deploy workloads.
 | Property | Optional | Default | Description |
 |-----|-----|-----|-----|
 | RootNamespace | Optional | `cf` | Root namespace for CF resources |
-| ContainerRegistrySecret | Optional | `cfapi-system/dockerregistry-config` | Container registry secret used to push application images. It has to be of type `docker-registry`  |
+| ContainerRegistrySecret | Optional | `dockerregistry-config` | Container registry secret used to push application images. It has to be of type `docker-registry`  |
+| ContainerRepositoryPrefix | Optional | The prefix of the container repository where package and droplet images will be pushed. More details [here](https://github.com/cloudfoundry/korifi/blob/main/INSTALL.md#install-korifi)
+| BuilderRepository | Optional | Container image repository to store the kpack `ClusterBuilder` image. More details [here](https://github.com/cloudfoundry/korifi/blob/main/INSTALL.md#install-korifi)
 | UAA | Optional | In case of a SAP managed Kyma, the UAA will be derived from the BTP service operator config |  UAA URL to be used for authentication |
 | CFAdmins | Optional | By default Kyma cluster-admins will become CF admins | List of users, which will become CF administrators.A user is expected in format sap.ids:\<sap email\> example sap.ids:samir.zeort@sap.com  |
+| UseSelfSignedCertificates | Optional | Use self signed certificates for CFAPI and workloads. Defaults to `false`.
 
 ## Dependencies
-* **Istio Kyma Module**
 
-  That is normally installed on a SAP managed Kyma
-* **Docker Registry**
+### Istio Kyma Module
+The istio kyma module is usually installed on a kyma system. However, we require that its exprimental `alphaGatewayAPI` feature is enabled. In order to do that, first set the istio moduel channel to `experimental`, and then set its `spec.experimental.pilot.enableAlphaGatewayAPI` to `true`
 
-  That is an external docker registry needed for storing/loading application images. If not specified in the CFAPI CR, the CFAPI kyma module deploys a local registry (Dockerregistry CR) which is defined in the docker-registry kyma module, see https://github.com/kyma-project/docker-registry. The local docker registry is not suitable for large-scale productive setups.
-* **UAA**
+### Container Image Registry
+Used for application source and droplet images. If not configured, the CFAPI module would use the registry provided by the [docker registry module](https://github.com/kyma-project/docker-registry), or issue an error if not enabled.
 
-  A running UAA server is a must for CFAPI installation. In case of SAP managed Kyma, the UAA is already installed so no additional installation required.
+### UAA
+Used to authenticate the user when running `cf` commands, such as `cf push`. If not configured, the CFAPI module would default to the BTP subaccount UAA instance
 
 ## Installation
-1. ### Setup a Kyma environment ###
+### Setup a Kyma environment
 
-2. ### Istio installed ###
+### Istio Module
 
-    If Istio Kyma module is not installed, you can do it with:
+#### Managed Istio module
+In the Kyma dashboard
+* set the module release channel to `exprimental`
+* set `spec.experimental.pilot.enableAlphaGatewayAPI` to `true` on the default Istio resource
+* make sure the module eventually becomes ready
 
-```
+#### Manual installation
+```bash
 kubectl label namespace cfapi-system istio-injection=enabled --overwrite
-kubectl apply -f https://github.com/kyma-project/istio/releases/latest/download/istio-manager.yaml
+kubectl apply -f https://github.com/kyma-project/istio/releases/latest/download/istio-manager-experimental.yaml
 kubectl apply -f https://github.com/kyma-project/istio/releases/latest/download/istio-default-cr.yaml
 ```
 
-3. ### Optionally deploy docker registry module
-In case you want to use an existing docker registry, you do not need to install that.
-In all other cases, see https://github.com/kyma-project/docker-registry/blob/main/docs/user/README.md
+Then enable the GatewayAPI aplha support:
+
+```bash
+kubectl -n kyma-system patch  istios.operator.kyma-project.io default --type=merge -p='{"spec":{"experimental": {"pilot": {"enableAlphaGatewayAPI": true}}}}'
 ```
+
+### Docker registry
+
+#### Managed Docker Registry module
+In the Kyma dashboard, enable the `docker-registry` module and make sure it eventually becomes ready.
+
+#### Manual installation
+```bash
 kubectl apply -f https://github.com/kyma-project/docker-registry/releases/latest/download/dockerregistry-operator.yaml
+kubectl apply -f https://github.com/kyma-project/docker-registry/releases/latest/download/default-dockerregistry-cr.yaml
 ```
 
-4. ### Deploy CF API ###
+### CFAPI module
+#### Managed CFAPI module
+In the Kyma dashboard, enable the `cfapi` module and make sure it eventually becomes ready. Once ready the CF url is set on its status.
 
-Deploy the resources from a particular release /in the example below 0.2.0/ version to kyma
-```
+
+#### Manual installation
+```bash
 kubectl create namespace cfapi-system
 kubectl apply -f https://github.com/kyma-project/cfapi/releases/latest/download/cfapi-operator.yaml
 kubectl apply -f https://github.com/kyma-project/cfapi/releases/latest/download/cfapi-default-cr.yaml
 ```
 
-  Wait for a Ready state of the CFAPI resource and read the CF URL
-```
-kubectl get -n cfapi-system cfapi
-NAME             STATE   URL
-default-cf-api   Ready   https://cfapi.cc6e362.kyma.ondemand.com
-```
+Make sure that the CFAPI resource eventually becomes ready. Once that is true, the CF url is set on its status
 
-5.  ### CF login ###
-
-    Set cf cli to point to CF API
-```
-cf login --sso -a https://cfapi.cc6e362.kyma.ondemand.com
+### CF login
+```bash
+cf login --sso -a <cf-url>
 ```
 
 ## Usage

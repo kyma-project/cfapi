@@ -10,9 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"text/template"
 
-	"github.com/go-logr/logr"
 	"github.com/kyma-project/cfapi/api/v1alpha1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -24,20 +22,62 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-type yamlBytesInstaller struct {
-	k8sClient client.Client
-	yamlBytes []byte
+type Yaml struct {
+	k8sClient   client.Client
+	yamlGlob    string
+	displayName string
 }
 
-func newYamlBytesInstaller(k8sClient client.Client, yamlBytes []byte) *yamlBytesInstaller {
-	return &yamlBytesInstaller{
-		k8sClient: k8sClient,
-		yamlBytes: yamlBytes,
+func NewYaml(k8sClient client.Client, yamlGlob string, displayName string) *Yaml {
+	return &Yaml{
+		k8sClient:   k8sClient,
+		yamlGlob:    yamlGlob,
+		displayName: displayName,
 	}
 }
 
-func (y *yamlBytesInstaller) Install(ctx context.Context, config v1alpha1.InstallationConfig, eventRecorder EventRecorder) (Result, error) {
-	objects, err := parseToUnstructuredObjects(string(y.yamlBytes))
+func (y *Yaml) Install(ctx context.Context, config v1alpha1.InstallationConfig, eventRecorder EventRecorder) (Result, error) {
+	matchedFiles, err := filepath.Glob(y.yamlGlob)
+	if err != nil {
+		return Result{}, err
+	}
+
+	if len(matchedFiles) == 0 {
+		return Result{
+			State:   ResultStateFailed,
+			Message: fmt.Sprintf("no matches found for pattern %s", y.yamlGlob),
+		}, nil
+	}
+
+	for _, file := range matchedFiles {
+		result, err := y.installFile(ctx, file)
+		if err != nil {
+			return Result{}, err
+		}
+
+		if result.State != ResultStateSuccess {
+			eventRecorder.Event(EventWarning, "InstallableFailed", fmt.Sprintf("Installable %s failed", y.displayName))
+			return result, nil
+		}
+	}
+
+	eventRecorder.Event(EventNormal, "InstallableDeployed", fmt.Sprintf("Installable %s deployed", y.displayName))
+	return Result{
+		State:   ResultStateSuccess,
+		Message: fmt.Sprintf("%s installed successfully", y.displayName),
+	}, nil
+}
+
+func (y *Yaml) installFile(ctx context.Context, yamlFilePath string) (Result, error) {
+	yamlBytes, err := os.ReadFile(yamlFilePath)
+	if err != nil {
+		return Result{
+			State:   ResultStateFailed,
+			Message: fmt.Sprintf("failed to read file %s: %s", yamlFilePath, err.Error()),
+		}, nil
+	}
+
+	objects, err := parseToUnstructuredObjects(string(yamlBytes))
 	if err != nil {
 		return Result{
 			State:   ResultStateFailed,
@@ -57,7 +97,7 @@ func (y *yamlBytesInstaller) Install(ctx context.Context, config v1alpha1.Instal
 	}, nil
 }
 
-func (y *yamlBytesInstaller) createOrUpdate(ctx context.Context, unstructuredObj *unstructured.Unstructured) error {
+func (y *Yaml) createOrUpdate(ctx context.Context, unstructuredObj *unstructured.Unstructured) error {
 	var partialObj metav1.PartialObjectMetadata
 	err := runtime.DefaultUnstructuredConverter.FromUnstructured(unstructuredObj.Object, &partialObj)
 	if err != nil {
@@ -83,127 +123,6 @@ func (y *yamlBytesInstaller) createOrUpdate(ctx context.Context, unstructuredObj
 	}
 
 	return nil
-}
-
-func setResourceVersion(unstructuredObj *unstructured.Unstructured, resourceVersion string) error {
-	metaAccessor, err := meta.Accessor(unstructuredObj)
-	if err != nil {
-		return fmt.Errorf("failed to get meta accessor for %s/%s: %w", unstructuredObj.GetNamespace(), unstructuredObj.GetName(), err)
-	}
-	metaAccessor.SetResourceVersion(resourceVersion)
-
-	return nil
-}
-
-type YamlFile struct {
-	k8sClient    client.Client
-	yamlFilePath string
-	displayName  string
-}
-
-func NewYamlFile(k8sClient client.Client, yamlFilePath string, displayName string) *YamlFile {
-	return &YamlFile{
-		k8sClient:    k8sClient,
-		yamlFilePath: yamlFilePath,
-		displayName:  displayName,
-	}
-}
-
-func (y *YamlFile) Install(ctx context.Context, config v1alpha1.InstallationConfig, eventRecorder EventRecorder) (Result, error) {
-	yamlBytes, err := os.ReadFile(y.yamlFilePath)
-	if err != nil {
-		return Result{
-			State:   ResultStateFailed,
-			Message: fmt.Sprintf("failed to read file %s: %s", y.yamlFilePath, err.Error()),
-		}, nil
-	}
-
-	result, err := newYamlBytesInstaller(y.k8sClient, yamlBytes).Install(ctx, config, eventRecorder)
-	if result.State == ResultStateSuccess {
-		eventRecorder.Event(EventNormal, "InstallableDeployed", fmt.Sprintf("Installable %s deployed", y.displayName))
-	}
-
-	return result, err
-}
-
-type YamlTemplate struct {
-	k8sClient            client.Client
-	yamlTemplateFilePath string
-	displayName          string
-}
-
-func NewYamlTemplate(k8sClient client.Client, yamlTemplateFilePath string, displayName string) *YamlTemplate {
-	return &YamlTemplate{
-		k8sClient:            k8sClient,
-		yamlTemplateFilePath: yamlTemplateFilePath,
-		displayName:          displayName,
-	}
-}
-
-func (y *YamlTemplate) Install(ctx context.Context, config v1alpha1.InstallationConfig, eventRecorder EventRecorder) (Result, error) {
-	log := logr.FromContextOrDiscard(ctx).WithName("yaml")
-	tmpl, err := template.ParseFiles(y.yamlTemplateFilePath)
-	if err != nil {
-		log.Error(err, "failed to parse the template")
-		return Result{
-			State:   ResultStateFailed,
-			Message: fmt.Sprintf("failed to parse the template %s: %s", y.yamlTemplateFilePath, err.Error()),
-		}, nil
-	}
-
-	buf := &bytes.Buffer{}
-	err = tmpl.ExecuteTemplate(buf, tmpl.Name(), config)
-	if err != nil {
-		log.Error(err, "failed to execute template")
-		return Result{
-			State:   ResultStateFailed,
-			Message: fmt.Sprintf("failed to execute template %s: %s", y.yamlTemplateFilePath, err.Error()),
-		}, nil
-	}
-
-	result, err := newYamlBytesInstaller(y.k8sClient, buf.Bytes()).Install(ctx, config, eventRecorder)
-	if result.State == ResultStateSuccess {
-		eventRecorder.Event(EventNormal, "InstallableDeployed", fmt.Sprintf("Installable %s deployed", y.displayName))
-	}
-
-	return result, err
-}
-
-type YamlGlob struct {
-	k8sClient   client.Client
-	yamlGlob    string
-	displayName string
-}
-
-func NewYamlGlob(k8sClient client.Client, yamlGlob string, displayName string) *YamlGlob {
-	return &YamlGlob{
-		k8sClient:   k8sClient,
-		yamlGlob:    yamlGlob,
-		displayName: displayName,
-	}
-}
-
-func (y *YamlGlob) Install(ctx context.Context, config v1alpha1.InstallationConfig, eventRecorder EventRecorder) (Result, error) {
-	matchedFiles, err := filepath.Glob(y.yamlGlob)
-	if err != nil {
-		return Result{}, err
-	}
-
-	for _, file := range matchedFiles {
-		result, err := NewYamlFile(y.k8sClient, file, fmt.Sprintf("%s: %s", y.displayName, file)).Install(ctx, config, eventRecorder)
-		if err != nil {
-			return Result{}, err
-		}
-
-		if result.State != ResultStateSuccess {
-			return result, nil
-		}
-	}
-
-	return Result{
-		State:   ResultStateSuccess,
-		Message: fmt.Sprintf("%s installed successfully", y.displayName),
-	}, nil
 }
 
 func parseToUnstructuredObjects(yamlContent string) ([]*unstructured.Unstructured, error) {
@@ -235,4 +154,14 @@ func parseToUnstructuredObjects(yamlContent string) ([]*unstructured.Unstructure
 
 		objects = append(objects, &unstructuredObj)
 	}
+}
+
+func setResourceVersion(unstructuredObj *unstructured.Unstructured, resourceVersion string) error {
+	metaAccessor, err := meta.Accessor(unstructuredObj)
+	if err != nil {
+		return fmt.Errorf("failed to get meta accessor for %s/%s: %w", unstructuredObj.GetNamespace(), unstructuredObj.GetName(), err)
+	}
+	metaAccessor.SetResourceVersion(resourceVersion)
+
+	return nil
 }

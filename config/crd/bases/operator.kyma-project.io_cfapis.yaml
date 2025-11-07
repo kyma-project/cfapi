@@ -45,16 +45,40 @@ spec:
             type: object
           spec:
             properties:
+              builderRepository:
+                description: Container image repository to store the Korifi `ClusterBuilder`
+                  image. Defaults to `container_registry_url_from_secret + "/cfapi/kpack-builder"`
+                type: string
               cfadmins:
+                description: List of users to ba assigned with the Korifi CFAdmin
+                  role. Defaults to the Kyma cluster admin users
                 items:
                   type: string
                 type: array
               containerRegistrySecret:
+                description: The container registry secret to be used when pushing
+                  droplets and workloads images. Defaults to the Kyma docker registry
+                  module secret (`dockerregistry-config`)
+                type: string
+              containerRepositoryPrefix:
+                description: The prefix of the container repository where package
+                  and droplet images will be pushed. This is suffixed with the app
+                  GUID and `-packages` or `-droplets`. For example, a value of `index.docker.io/korifi/`
+                  will result in `index.docker.io/korifi/<appGUID>-packages` and `index.docker.io/korifi/<appGUID>-droplets`
+                  being pushed. Defaults to `container_registry_url_from_secret +
+                  "/"`
                 type: string
               rootNamespace:
+                description: The Korifi root namespace. Defaults to `cf`
                 type: string
               uaa:
+                description: The UAA url, used for getting user authentication tokens.
+                  Defaults to the subaccount UAA
                 type: string
+              useSelfSignedCertificates:
+                description: Whether to use self-signed certificates for the Korif
+                  API and workloads. Defaults to `false`
+                type: boolean
             type: object
           status:
             properties:
@@ -116,6 +140,8 @@ spec:
                 type: array
               installationConfig:
                 properties:
+                  builderRepository:
+                    type: string
                   cfAdmins:
                     items:
                       type: string
@@ -124,12 +150,18 @@ spec:
                     type: string
                   containerRegistrySecret:
                     type: string
+                  containerRegistryUrl:
+                    type: string
+                  containerRepositoryPrefix:
+                    type: string
                   korifiIngressHost:
                     type: string
                   rootNamespace:
                     type: string
                   uaaUrl:
                     type: string
+                  useSelfSignedCertificates:
+                    type: boolean
                 type: object
               observedGeneration:
                 format: int64

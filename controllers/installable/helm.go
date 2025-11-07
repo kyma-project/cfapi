@@ -44,7 +44,7 @@ func (h *HelmChart) Install(ctx context.Context, config v1alpha1.InstallationCon
 	if err != nil {
 		log.Error(err, "failed to get helm chart values")
 		return Result{
-			State:   ResultStateFailed,
+			State:   ResultStateInProgress,
 			Message: fmt.Sprintf("failed to get helm chart %s values: %s", h.name, err.Error()),
 		}, nil
 	}

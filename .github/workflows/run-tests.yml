@@ -90,6 +90,11 @@ jobs:
       with:
         go-version: 'stable'
 
+    - uses: alexellis/arkade-get@master
+      with:
+        kubectl: latest
+        helm: latest
+
     - name: Create Kind Cluster
       # We use kind-action@main as the `cloud_provider` option has not been released yet
       uses: helm/kind-action@main

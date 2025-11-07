@@ -5,4 +5,3 @@ metadata:
   namespace: cfapi-system
 spec:
   rootNamespace: cf
-  appImagePullSecret: ""

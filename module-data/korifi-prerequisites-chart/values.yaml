@@ -1,0 +1,9 @@
+useSelfSignedCertificates: false
+cfDomain:
+
+containerRegistrySecret:
+  name: dockerregistry-config
+  propagation:
+    enabled: false
+    sourceNamespace:
+    destinationNamespace:

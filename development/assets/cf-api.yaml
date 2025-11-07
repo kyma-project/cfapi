@@ -4,5 +4,4 @@ metadata:
   name: default-cf-api
   namespace: cfapi-system
 spec:
-  rootNamespace: cf
-  uaa: $UAA_URL
+  useSelfSignedCertificates: true

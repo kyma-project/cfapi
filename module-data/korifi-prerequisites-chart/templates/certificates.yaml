@@ -2,34 +2,36 @@ apiVersion: cert.gardener.cloud/v1alpha1
 kind: Certificate
 metadata:
   name: korifi-api-ingress-cert
-  namespace: korifi
+  namespace: {{ .Release.Namespace }}
 spec:
-  commonName: "{{ .CFDomain }}"
+  commonName: "{{ .Values.cfDomain }}"
   dnsNames:
-  - "cfapi.{{ .CFDomain }}"
-  - "*.apps.{{ .CFDomain }}"
+  - "cfapi.{{ .Values.cfDomain }}"
+  - "*.apps.{{ .Values.cfDomain }}"
+  isCA: {{ .Values.useSelfSignedCertificates }}
   secretRef:
     name: korifi-api-ingress-cert
-    namespace: korifi
+    namespace: {{ .Release.Namespace }}
 ---
 apiVersion: cert.gardener.cloud/v1alpha1
 kind: Certificate
 metadata:
   name: korifi-workloads-ingress-cert
-  namespace: korifi
+  namespace: {{ .Release.Namespace }}
 spec:
-  commonName: "{{ .CFDomain }}"
+  commonName: "{{ .Values.cfDomain }}"
   dnsNames:
-  - "*.apps.{{ .CFDomain }}"
+  - "*.apps.{{ .Values.cfDomain }}"
+  isCA: {{ .Values.useSelfSignedCertificates }}
   secretRef:
     name: korifi-workloads-ingress-cert
-    namespace: korifi
+    namespace: {{ .Release.Namespace }}
 ---
 apiVersion: cert.gardener.cloud/v1alpha1
 kind: Certificate
 metadata:
   name: korifi-api-internal-cert
-  namespace: korifi
+  namespace: {{ .Release.Namespace }}
 spec:
   commonName: korifi-api-svc.korifi
   dnsNames:
@@ -40,13 +42,13 @@ spec:
     namespace: kyma-system
   secretRef:
     name: korifi-api-internal-cert
-    namespace: korifi
+    namespace: {{ .Release.Namespace }}
 ---
 apiVersion: cert.gardener.cloud/v1alpha1
 kind: Certificate
 metadata:
   name: korifi-controllers-webhook-cert
-  namespace: korifi
+  namespace: {{ .Release.Namespace }}
 spec:
   commonName: korifi-controllers-webhook-service.korifi
   dnsNames:
@@ -58,13 +60,13 @@ spec:
     namespace: kyma-system
   secretRef:
     name: korifi-controllers-webhook-cert
-    namespace: korifi
+    namespace: {{ .Release.Namespace }}
 ---
 apiVersion: cert.gardener.cloud/v1alpha1
 kind: Certificate
 metadata:
   name: korifi-kpack-image-builder-webhook-cert
-  namespace: korifi
+  namespace: {{ .Release.Namespace }}
 spec:
   commonName: korifi-kpack-image-builder-webhook-service.korifi
   dnsNames:
@@ -76,13 +78,13 @@ spec:
     namespace: kyma-system
   secretRef:
     name: korifi-kpack-image-builder-webhook-cert
-    namespace: korifi
+    namespace: {{ .Release.Namespace }}
 ---
 apiVersion: cert.gardener.cloud/v1alpha1
 kind: Certificate
 metadata:
   name: korifi-statefulset-runner-webhook-cert
-  namespace: korifi
+  namespace: {{ .Release.Namespace }}
 spec:
   commonName: korifi-statefulset-runner-webhook-service.korifi
   dnsNames:
@@ -94,4 +96,4 @@ spec:
     namespace: kyma-system
   secretRef:
     name: korifi-statefulset-runner-webhook-cert
-    namespace: korifi
+    namespace: {{ .Release.Namespace }}

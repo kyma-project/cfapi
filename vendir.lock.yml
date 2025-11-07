@@ -2,10 +2,6 @@ apiVersion: vendir.k14s.io/v1alpha1
 directories:
 - contents:
   - githubRelease:
-      tag: v0.8.0
-      url: https://api.github.com/repos/kubernetes-sigs/metrics-server/releases/229645413
-    path: metrics-server-local
-  - githubRelease:
       tag: v1.4.0
       url: https://api.github.com/repos/kubernetes-sigs/gateway-api/releases/252387623
     path: gateway-api
@@ -16,21 +12,32 @@ directories:
   - helmChart:
       appVersion: ""
       version: 0.16.1
-    path: korifi
+    path: korifi-chart
+  path: module-data/vendor
+- contents:
+  - githubRelease:
+      tag: v0.8.0
+      url: https://api.github.com/repos/kubernetes-sigs/metrics-server/releases/229645413
+    path: metrics-server-local
   - githubRelease:
       tag: 0.10.0
       url: https://api.github.com/repos/kyma-project/docker-registry/releases/247312117
     path: kyma-docker-registry
   - git:
-      commitTitle: 'Automator: update proxy@release-1.27 in istio/istio@release-1.27
-        (#58017)'
-      sha: df538c2279a633544e6c0961a03ab772729933be
+      commitTitle: running update_deps.sh for RC.1 (#58129)
+      sha: b8d1df54465060428c2a2a38286e360beb85fb31
       tags:
-      - 1.27.3
+      - 1.28.0
     path: istio
   - githubRelease:
-      tag: 1.22.1
-      url: https://api.github.com/repos/kyma-project/istio/releases/255718046
+      tag: 1.23.0
+      url: https://api.github.com/repos/kyma-project/istio/releases/259235362
     path: istio-kyma
-  path: dependencies
+  - git:
+      commitTitle: release v0.38.0
+      sha: 047d8e586af581778db388c9223ebd060496ef33
+      tags:
+      - v0.38.0
+    path: oidc-webhook-authenticator
+  path: tests/dependencies/vendor
 kind: LockConfig

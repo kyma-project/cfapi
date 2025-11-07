@@ -25,7 +25,6 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
@@ -41,8 +40,8 @@ var (
 	// GroupVersion is group version used to register these objects.
 	GroupVersion = schema.GroupVersion{Group: "operator.kyma-project.io", Version: "v1alpha1"}
 
-	ConditionTypeInstallation = "Installation"
-	ConditionReasonReady      = "Ready"
+	ConditionTypeConfiguration = "Configuration"
+	ConditionTypeInstallation  = "Installation"
 )
 
 type CFAPIStatus struct {
@@ -68,6 +67,12 @@ type InstallationConfig struct {
 	//+kubebuilder:validation:Optional
 	ContainerRegistrySecret string `json:"containerRegistrySecret"`
 	//+kubebuilder:validation:Optional
+	ContainerRegistryURL string `json:"containerRegistryUrl"`
+	//+kubebuilder:validation:Optional
+	ContainerRepositoryPrefix string `json:"containerRepositoryPrefix"`
+	//+kubebuilder:validation:Optional
+	BuilderRepository string `json:"builderRepository"`
+	//+kubebuilder:validation:Optional
 	UAAURL string `json:"uaaUrl"`
 	//+kubebuilder:validation:Optional
 	CFAdmins []string `json:"cfAdmins"`
@@ -75,44 +80,32 @@ type InstallationConfig struct {
 	CFDomain string `json:"cfDomain"`
 	//+kubebuilder:validation:Optional
 	KorifiIngressHost string `json:"korifiIngressHost"`
-}
-
-func (s *CFAPIStatus) WithState(state State) *CFAPIStatus {
-	s.State = state
-	return s
-}
-
-func (s *CFAPIStatus) WithURL(url string) *CFAPIStatus {
-	s.URL = url
-	return s
-}
-
-func (s *CFAPIStatus) WithInstallConditionStatus(status metav1.ConditionStatus, objGeneration int64) *CFAPIStatus {
-	if s.Conditions == nil {
-		s.Conditions = make([]metav1.Condition, 0, 1)
-	}
-
-	condition := meta.FindStatusCondition(s.Conditions, ConditionTypeInstallation)
-
-	if condition == nil {
-		condition = &metav1.Condition{
-			Type:    ConditionTypeInstallation,
-			Reason:  ConditionReasonReady,
-			Message: "installation is ready and resources can be used",
-		}
-	}
-
-	condition.Status = status
-	condition.ObservedGeneration = objGeneration
-	meta.SetStatusCondition(&s.Conditions, *condition)
-	return s
+	//+kubebuilder:validation:Optional
+	UseSelfSignedCertificates bool `json:"useSelfSignedCertificates"`
 }
 
 type CFAPISpec struct {
-	RootNamespace           string   `json:"rootNamespace,omitempty"`
-	ContainerRegistrySecret string   `json:"containerRegistrySecret,omitempty"`
-	UAA                     string   `json:"uaa,omitempty"`
-	CFAdmins                []string `json:"cfadmins,omitempty"`
+	// The Korifi root namespace. Defaults to `cf`
+	//+kubebuilder:validation:Optional
+	RootNamespace string `json:"rootNamespace,omitempty"`
+	// The container registry secret to be used when pushing droplets and workloads images. Defaults to the Kyma docker registry module secret (`dockerregistry-config`)
+	//+kubebuilder:validation:Optional
+	ContainerRegistrySecret string `json:"containerRegistrySecret,omitempty"`
+	// The prefix of the container repository where package and droplet images will be pushed. This is suffixed with the app GUID and `-packages` or `-droplets`. For example, a value of `index.docker.io/korifi/` will result in `index.docker.io/korifi/<appGUID>-packages` and `index.docker.io/korifi/<appGUID>-droplets` being pushed. Defaults to `container_registry_url_from_secret + "/"`
+	//+kubebuilder:validation:Optional
+	ContainerRepositoryPrefix string `json:"containerRepositoryPrefix"`
+	// Container image repository to store the Korifi `ClusterBuilder` image. Defaults to `container_registry_url_from_secret + "/cfapi/kpack-builder"`
+	//+kubebuilder:validation:Optional
+	BuilderRepository string `json:"builderRepository"`
+	// The UAA url, used for getting user authentication tokens. Defaults to the subaccount UAA
+	//+kubebuilder:validation:Optional
+	UAA string `json:"uaa,omitempty"`
+	// List of users to ba assigned with the Korifi CFAdmin role. Defaults to the Kyma cluster admin users
+	//+kubebuilder:validation:Optional
+	CFAdmins []string `json:"cfadmins,omitempty"`
+	// Whether to use self-signed certificates for the Korif API and workloads. Defaults to `false`
+	//+kubebuilder:validation:Optional
+	UseSelfSignedCertificates bool `json:"useSelfSignedCertificates"`
 }
 
 //+kubebuilder:object:root=true

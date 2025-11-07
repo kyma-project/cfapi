@@ -48,8 +48,8 @@ var _ = BeforeEach(func() {
 
 	testEnv = &envtest.Environment{
 		CRDDirectoryPaths: []string{
-			filepath.Join("..", "..", "dependencies", "istio", "manifests", "charts", "base", "files"),
-			filepath.Join("..", "..", "dependencies", "istio-kyma"),
+			filepath.Join("..", "..", "tests", "dependencies", "vendor", "istio", "manifests", "charts", "base", "files"),
+			filepath.Join("..", "..", "tests", "dependencies", "vendor", "istio-kyma"),
 		},
 		ErrorIfCRDPathMissing: true,
 	}

@@ -36,7 +36,7 @@ var _ = Describe("Kyma", func() {
 		When("the docker registry custom resource exists", func() {
 			BeforeEach(func() {
 				_, err := envtest.InstallCRDs(testEnv.Config, envtest.CRDInstallOptions{
-					Paths: []string{filepath.Join("..", "..", "dependencies", "kyma-docker-registry")},
+					Paths: []string{filepath.Join("..", "..", "tests", "dependencies", "vendor", "kyma-docker-registry")},
 				})
 				Expect(err).NotTo(HaveOccurred())
 			})
@@ -60,6 +60,51 @@ var _ = Describe("Kyma", func() {
 					Expect(secret.Namespace).To(Equal(testNamespace))
 					Expect(secret.Name).To(Equal(kyma.ContainerRegistrySecretName))
 				})
+			})
+		})
+	})
+
+	Describe("GetRegistryURL", func() {
+		var (
+			registryURL string
+			err         error
+			secretData  map[string]string
+		)
+
+		BeforeEach(func() {
+			_, err = envtest.InstallCRDs(testEnv.Config, envtest.CRDInstallOptions{
+				Paths: []string{filepath.Join("..", "..", "tests", "dependencies", "vendor", "kyma-docker-registry")},
+			})
+			Expect(err).NotTo(HaveOccurred())
+			secretData = map[string]string{
+				"pushRegAddr": "dockerregistry.kyma-system.svc.cluster.local:5000",
+			}
+		})
+
+		JustBeforeEach(func() {
+			Expect(adminClient.Create(ctx, &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: testNamespace,
+					Name:      kyma.ContainerRegistrySecretName,
+				},
+				StringData: secretData,
+			})).To(Succeed())
+
+			registryURL, err = kymaRegistry.GetRegistryURL(ctx, testNamespace)
+		})
+
+		It("returns the push registry url", func() {
+			Expect(err).NotTo(HaveOccurred())
+			Expect(registryURL).To(Equal("dockerregistry.kyma-system.svc.cluster.local:5000"))
+		})
+
+		When("the pushRegAddr key is missing", func() {
+			BeforeEach(func() {
+				secretData = map[string]string{}
+			})
+
+			It("returns an error", func() {
+				Expect(err).To(MatchError(ContainSubstring("pushRegAddr")))
 			})
 		})
 	})
