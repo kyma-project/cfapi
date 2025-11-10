@@ -58,3 +58,13 @@ directories:
     includePaths:
       - config/crd/bases/authentication.gardener.cloud_openidconnects.yaml
     newRootPath: config/crd/bases
+  - path: gardener-cert-manager
+    git:
+      url: https://github.com/gardener/cert-management
+      depth: 1
+      refSelection:
+        semver:
+          constraints: ">=0.19.0"
+    includePaths:
+      - pkg/apis/cert/crds/cert.gardener.cloud_issuers.yaml
+    newRootPath: pkg/apis/cert/crds

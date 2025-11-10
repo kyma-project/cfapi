@@ -39,6 +39,7 @@ import (
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
+	certv1alpha1 "github.com/gardener/cert-management/pkg/apis/cert/v1alpha1"
 	v1alpha1 "github.com/kyma-project/cfapi/api/v1alpha1"
 	"github.com/kyma-project/cfapi/controllers/cfapi"
 	"github.com/kyma-project/cfapi/controllers/cfapi/secrets"
@@ -76,6 +77,7 @@ func init() { //nolint:gochecknoinits
 	utilruntime.Must(v1alpha1.AddToScheme(scheme))
 	utilruntime.Must(kymaistiov1alpha2.AddToScheme(scheme))
 	utilruntime.Must(apiextv1.AddToScheme(scheme))
+	utilruntime.Must(certv1alpha1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 
@@ -114,10 +116,11 @@ func main() {
 	helmClient := helm.NewClient()
 	installables := []installable.Installable{
 		installable.NewYaml(mgr.GetClient(), "./module-data/namespaces/namespaces.yaml", "Namespaces"),
+		installable.NewYaml(mgr.GetClient(), "./module-data/issuers/issuers.yaml", "CertIssuers"),
 		installable.NewYaml(mgr.GetClient(), "./module-data/vendor/gateway-api/experimental-install.yaml", "Gateway API"),
 		installable.NewYaml(mgr.GetClient(), "./module-data/vendor/kpack/release-*.yaml", "kpack"),
-		installable.NewHelmChart("./module-data/korifi-prerequisites-chart", "korifi", "korifi-prerequisites", values.NewPrerequisites(), helmClient),
-		installable.NewHelmChart("./module-data/vendor/korifi-chart", "korifi", "korifi", values.NewKorifi(), helmClient),
+		installable.NewHelmChart("./module-data/korifi-prerequisites-chart", "korifi", "korifi-prerequisites", values.NewPrerequisites(mgr.GetClient()), helmClient),
+		installable.NewHelmChart("./module-data/vendor/korifi-chart", "korifi", "korifi", values.NewKorifi(mgr.GetClient(), "korifi"), helmClient),
 		installable.NewHelmChart("./module-data/cfapi-config-chart", "korifi", "cfapi-config", values.NewCFAPIConfig(), helmClient),
 		installable.NewHelmChart("./module-data/btp-service-broker/helm", "cfapi-system", "btp-service-broker", values.NoValues{}, helmClient),
 	}
