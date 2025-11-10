@@ -118,6 +118,7 @@ rules:
   - cert.gardener.cloud
   resources:
   - certificates
+  - issuers
   verbs:
   - get
   - watch

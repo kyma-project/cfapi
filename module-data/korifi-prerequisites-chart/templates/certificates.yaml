@@ -8,7 +8,10 @@ spec:
   dnsNames:
   - "cfapi.{{ .Values.cfDomain }}"
   - "*.apps.{{ .Values.cfDomain }}"
-  isCA: {{ .Values.useSelfSignedCertificates }}
+# Gardener cert manager does not allow specifying isCA for non-self-signed certifcates event to false
+{{- if .Values.useSelfSignedCertificates }}
+  isCA: true
+{{ end }}
   secretRef:
     name: korifi-api-ingress-cert
     namespace: {{ .Release.Namespace }}
@@ -22,7 +25,10 @@ spec:
   commonName: "{{ .Values.cfDomain }}"
   dnsNames:
   - "*.apps.{{ .Values.cfDomain }}"
-  isCA: {{ .Values.useSelfSignedCertificates }}
+# Gardener cert manager does not allow specifying isCA for non-self-signed certifcates event to false
+{{- if .Values.useSelfSignedCertificates }}
+  isCA: true
+{{ end }}
   secretRef:
     name: korifi-workloads-ingress-cert
     namespace: {{ .Release.Namespace }}
@@ -38,8 +44,8 @@ spec:
   - korifi-api-svc.korifi.svc.cluster.local
   isCA: true
   issuerRef:
-    name: kim-snatch-kyma
-    namespace: kyma-system
+    name: {{ .Values.selfSignedIssuer }}
+    namespace: {{ .Values.systemNamespace }}
   secretRef:
     name: korifi-api-internal-cert
     namespace: {{ .Release.Namespace }}
@@ -56,8 +62,8 @@ spec:
   - korifi-controllers-webhook-service.korifi.svc.cluster.local
   isCA: true
   issuerRef:
-    name: kim-snatch-kyma
-    namespace: kyma-system
+    name: {{ .Values.selfSignedIssuer }}
+    namespace: {{ .Values.systemNamespace }}
   secretRef:
     name: korifi-controllers-webhook-cert
     namespace: {{ .Release.Namespace }}
@@ -74,8 +80,8 @@ spec:
   - korifi-kpack-image-builder-webhook-service.korifi.svc.cluster.local
   isCA: true
   issuerRef:
-    name: kim-snatch-kyma
-    namespace: kyma-system
+    name: {{ .Values.selfSignedIssuer }}
+    namespace: {{ .Values.systemNamespace }}
   secretRef:
     name: korifi-kpack-image-builder-webhook-cert
     namespace: {{ .Release.Namespace }}
@@ -92,8 +98,8 @@ spec:
   - korifi-statefulset-runner-webhook-service.korifi.svc.cluster.local
   isCA: true
   issuerRef:
-    name: kim-snatch-kyma
-    namespace: kyma-system
+    name: {{ .Values.selfSignedIssuer }}
+    namespace: {{ .Values.systemNamespace }}
   secretRef:
     name: korifi-statefulset-runner-webhook-cert
     namespace: {{ .Release.Namespace }}

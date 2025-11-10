@@ -160,6 +160,7 @@ var _ = SynchronizedAfterSuite(func() {}, func() {
 	Expect(run("helm", "delete", "--ignore-not-found", "korifi", "-n", "korifi", "--wait")).To(Succeed())
 	Expect(run("helm", "delete", "--ignore-not-found", "korifi-prerequisites", "-n", "korifi", "--wait")).To(Succeed())
 	Expect(run("kubectl", "delete", "--ignore-not-found", "namespace", "korifi")).To(Succeed())
+	Expect(run("kubectl", "delete", "--ignore-not-found", "-f", "../../../module-data/issuers/issuers.yaml")).To(Succeed())
 	Expect(run("kubectl", "delete", "--ignore-not-found", "-f", "../../../module-data/vendor/gateway-api")).To(Succeed())
 	Expect(run("kubectl", "delete", "--ignore-not-found", "-f", "../../../module-data/vendor/kpack")).To(Succeed())
 

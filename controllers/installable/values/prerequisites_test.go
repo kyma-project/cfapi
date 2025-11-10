@@ -1,12 +1,14 @@
 package values_test
 
 import (
+	certv1alpha1 "github.com/gardener/cert-management/pkg/apis/cert/v1alpha1"
 	v1alpha1 "github.com/kyma-project/cfapi/api/v1alpha1"
 	"github.com/kyma-project/cfapi/controllers/installable/values"
 	"github.com/kyma-project/cfapi/controllers/kyma"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var _ = Describe("Prerequisites", func() {
@@ -14,9 +16,20 @@ var _ = Describe("Prerequisites", func() {
 		prerequisites *values.Prerequisites
 		instCfg       v1alpha1.InstallationConfig
 		helmValues    map[string]any
+		err           error
 	)
 
 	BeforeEach(func() {
+		Expect(adminClient.Create(ctx, &certv1alpha1.Issuer{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "kyma-system",
+				Name:      "cfapi-self-signed-issuer",
+			},
+			Spec: certv1alpha1.IssuerSpec{
+				SelfSigned: &certv1alpha1.SelfSignedSpec{},
+			},
+		})).To(Succeed())
+
 		instCfg = v1alpha1.InstallationConfig{
 			CFDomain:                  "korifi.example.com",
 			UseSelfSignedCertificates: true,
@@ -24,19 +37,20 @@ var _ = Describe("Prerequisites", func() {
 			RootNamespace:             "my-root-ns",
 		}
 
-		prerequisites = values.NewPrerequisites()
+		prerequisites = values.NewPrerequisites(adminClient)
 	})
 
 	JustBeforeEach(func() {
-		var err error
 		helmValues, err = prerequisites.GetValues(ctx, instCfg)
-		Expect(err).NotTo(HaveOccurred())
 	})
 
 	It("returns helm values", func() {
+		Expect(err).NotTo(HaveOccurred())
 		Expect(helmValues).To(MatchAllKeys(Keys{
+			"systemNamespace":           Equal("kyma-system"),
 			"cfDomain":                  Equal("korifi.example.com"),
 			"useSelfSignedCertificates": Equal(true),
+			"selfSignedIssuer":          Equal("cfapi-self-signed-issuer"),
 			"containerRegistrySecret": MatchAllKeys(Keys{
 				"name": Equal(kyma.ContainerRegistrySecretName),
 				"propagation": MatchAllKeys(Keys{
@@ -52,6 +66,7 @@ var _ = Describe("Prerequisites", func() {
 		})
 
 		It("returns helm values", func() {
+			Expect(err).NotTo(HaveOccurred())
 			Expect(helmValues).To(MatchKeys(IgnoreExtras, Keys{
 				"containerRegistrySecret": MatchAllKeys(Keys{
 					"name": Equal("custom-registry-secret"),
@@ -62,6 +77,22 @@ var _ = Describe("Prerequisites", func() {
 					}),
 				}),
 			}))
+		})
+	})
+
+	When("the self-signed issuer does not exist", func() {
+		BeforeEach(func() {
+			selfSignedIssuer := &certv1alpha1.Issuer{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "kyma-system",
+					Name:      "cfapi-self-signed-issuer",
+				},
+			}
+			Expect(adminClient.Delete(ctx, selfSignedIssuer)).To(Succeed())
+		})
+
+		It("returns an error", func() {
+			Expect(err).To(MatchError(ContainSubstring("not found")))
 		})
 	})
 })

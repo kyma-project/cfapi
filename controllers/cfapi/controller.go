@@ -86,14 +86,6 @@ func NewReconciler(
 	return k8s.NewPatchingReconciler(ctrl.Log, k8sClient, apiReconciler)
 }
 
-// +kubebuilder:rbac:groups=operator.kyma-project.io,resources=cfapi,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=operator.kyma-project.io,resources=cfapi/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=operator.kyma-project.io,resources=cfapi/finalizers,verbs=update
-// +kubebuilder:rbac:groups="",resources=events,verbs=create;patch;get;list;watch
-// +kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups="",resources=configmaps,verbs=create;patch;delete
-// +kubebuilder:rbac:groups="apps",resources=deployments,verbs=create;patch;delete
-
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) *builder.Builder {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&v1alpha1.CFAPI{})

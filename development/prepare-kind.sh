@@ -200,7 +200,11 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: kyma-system
-
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cfapi-system
 ---
 apiVersion: v1
 kind: Namespace

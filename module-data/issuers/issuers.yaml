@@ -2,6 +2,6 @@ apiVersion: cert.gardener.cloud/v1alpha1
 kind: Issuer
 metadata:
   namespace: kyma-system
-  name: default-issuer
+  name: cfapi-self-signed-issuer
 spec:
   selfSigned: {}
