@@ -9,6 +9,15 @@ updates:
       patterns:
         - "*"
 
+- package-ecosystem: "gomod"
+  directory: "/components/btp-service-broker"
+  schedule:
+    interval: "daily"
+  groups:
+    gomod:
+      patterns:
+        - "*"
+
 - package-ecosystem: "docker"
   directory: "/"
   schedule:
