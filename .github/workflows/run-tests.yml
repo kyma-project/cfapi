@@ -10,6 +10,12 @@ on:
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
+    inputs:
+      debug_enabled:
+        type: boolean
+        description: 'Run the build with tmate debugging enabled (https://github.com/marketplace/actions/debugging-with-tmate)'
+        required: false
+        default: false
 
 jobs:
   linter:
@@ -94,6 +100,7 @@ jobs:
       with:
         kubectl: latest
         helm: latest
+        k9s: latest
 
     - name: Create Kind Cluster
       uses: helm/kind-action@v1.13.0
@@ -101,6 +108,13 @@ jobs:
         config: ./development/assets/kind-config.yaml
         cloud_provider: true
         cluster_name: cfapi
+
+    # Enable tmate debugging of manually-triggered workflows if the input option was provided
+    - name: Setup tmate session
+      uses: mxschmitt/action-tmate@v3
+      with:
+        detached: true
+      if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
 
     - name: Run tests
       run: make test-integration CI_MODE=true
