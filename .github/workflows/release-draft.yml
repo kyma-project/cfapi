@@ -46,6 +46,13 @@ jobs:
       with:
         go-version: 'stable'
 
+    - name: Create Kind Cluster
+      uses: helm/kind-action@v1.13.0
+      with:
+        config: ./development/assets/kind-config.yaml
+        cloud_provider: true
+        cluster_name: cfapi
+
     - uses: alexellis/arkade-get@master
       with:
         kubectl: latest
