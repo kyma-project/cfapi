@@ -97,7 +97,11 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 			Name:      uuid.NewString(),
 		},
 		Spec: v1alpha1.CFAPISpec{
-			UseSelfSignedCertificates: true,
+			UseSelfSignedCertificates:                 true,
+			ContainerRegistrySecret:                   "dockerregistry-config",
+			ContainerRepositoryPrefix:                 "dockerregistry.kyma-system.svc.cluster.local:5000/",
+			BuilderRepository:                         "dockerregistry.kyma-system.svc.cluster.local:5000/cfapi/kpack-builder",
+			DisableContainerRegistrySecretPropagation: true,
 		},
 	}
 	Expect(k8sClient.Create(ctx, cfAPI)).To(Succeed())

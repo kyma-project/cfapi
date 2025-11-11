@@ -31,6 +31,10 @@ func (p *Prerequisites) GetValues(ctx context.Context, config v1alpha1.Installat
 	}
 
 	propagationEnabled := config.ContainerRegistrySecret != kyma.ContainerRegistrySecretName
+	if config.DisableContainerRegistrySecretPropagation {
+		propagationEnabled = false
+	}
+
 	propagationConfig := map[string]any{
 		"enabled": propagationEnabled,
 	}

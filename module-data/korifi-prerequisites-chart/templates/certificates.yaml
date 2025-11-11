@@ -7,7 +7,6 @@ spec:
   commonName: "{{ .Values.cfDomain }}"
   dnsNames:
   - "cfapi.{{ .Values.cfDomain }}"
-  - "*.apps.{{ .Values.cfDomain }}"
 # Gardener cert manager does not allow specifying isCA for non-self-signed certifcates event to false
 {{- if .Values.useSelfSignedCertificates }}
   isCA: true
@@ -22,7 +21,7 @@ metadata:
   name: korifi-workloads-ingress-cert
   namespace: {{ .Release.Namespace }}
 spec:
-  commonName: "{{ .Values.cfDomain }}"
+  commonName: "apps.{{ .Values.cfDomain }}"
   dnsNames:
   - "*.apps.{{ .Values.cfDomain }}"
 # Gardener cert manager does not allow specifying isCA for non-self-signed certifcates event to false

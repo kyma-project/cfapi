@@ -245,6 +245,7 @@ func (r *Reconciler) compileInstallationConfig(ctx context.Context, cfAPI *v1alp
 		CFAdmins:                  cfAdmins,
 		KorifiIngressHost:         korifiIngressHost,
 		UseSelfSignedCertificates: cfAPI.Spec.UseSelfSignedCertificates,
+		DisableContainerRegistrySecretPropagation: cfAPI.Spec.DisableContainerRegistrySecretPropagation,
 	}, nil
 }
 

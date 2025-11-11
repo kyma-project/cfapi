@@ -5,3 +5,7 @@ metadata:
   namespace: cfapi-system
 spec:
   useSelfSignedCertificates: true
+  containerRegistrySecret: "dockerregistry-config"
+  containerRepositoryPrefix: "dockerregistry.kyma-system.svc.cluster.local:5000/"
+  builderRepository: "dockerregistry.kyma-system.svc.cluster.local:5000/cfapi/kpack-builder"
+  disableContainerRegistrySecretPropagation: true
