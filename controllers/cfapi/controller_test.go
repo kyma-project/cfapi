@@ -11,7 +11,6 @@ import (
 	. "github.com/kyma-project/cfapi/tests/helpers"
 	. "github.com/kyma-project/cfapi/tests/matchers"
 	"github.com/kyma-project/cfapi/tools/k8s"
-	"github.com/kyma-project/cfapi/tools/k8s/conditions"
 	"github.com/kyma-project/istio/operator/api/v1alpha2"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -261,12 +260,6 @@ var _ = Describe("CFDomainReconciler Integration Tests", func() {
 			Eventually(func(g Gomega) {
 				g.Expect(adminClient.Get(ctx, client.ObjectKeyFromObject(cfAPI), cfAPI)).To(Succeed())
 				g.Expect(cfAPI.Status.State).To(Equal(v1alpha1.StateWarning))
-				g.Expect(cfAPI.Status.Conditions).To(ContainElement(SatisfyAll(
-					HasType(Equal(conditions.StatusConditionReady)),
-					HasStatus(Equal(metav1.ConditionFalse)),
-					HasReason(Equal("InvalidConfiguration")),
-					HasMessage(ContainSubstring("not found")),
-				)))
 			}).Should(Succeed())
 		})
 
@@ -296,12 +289,6 @@ var _ = Describe("CFDomainReconciler Integration Tests", func() {
 			Eventually(func(g Gomega) {
 				g.Expect(adminClient.Get(ctx, client.ObjectKeyFromObject(cfAPI), cfAPI)).To(Succeed())
 				g.Expect(cfAPI.Status.State).To(Equal(v1alpha1.StateWarning))
-				g.Expect(cfAPI.Status.Conditions).To(ContainElement(SatisfyAll(
-					HasType(Equal(conditions.StatusConditionReady)),
-					HasStatus(Equal(metav1.ConditionFalse)),
-					HasReason(Equal("InvalidConfiguration")),
-					HasMessage(ContainSubstring("not enabled")),
-				)))
 			}).Should(Succeed())
 		})
 
@@ -418,10 +405,6 @@ var _ = Describe("CFDomainReconciler Integration Tests", func() {
 				Eventually(func(g Gomega) {
 					g.Expect(adminClient.Get(ctx, client.ObjectKeyFromObject(cfAPI), cfAPI)).To(Succeed())
 					g.Expect(cfAPI.Status.State).To(Equal(v1alpha1.StateWarning))
-					g.Expect(cfAPI.Status.Conditions).To(ContainElement(SatisfyAll(
-						HasType(Equal(conditions.StatusConditionReady)),
-						HasStatus(Equal(metav1.ConditionFalse)),
-					)))
 				}).Should(Succeed())
 			})
 
@@ -445,10 +428,6 @@ var _ = Describe("CFDomainReconciler Integration Tests", func() {
 				Eventually(func(g Gomega) {
 					g.Expect(adminClient.Get(ctx, client.ObjectKeyFromObject(cfAPI), cfAPI)).To(Succeed())
 					g.Expect(cfAPI.Status.State).To(Equal(v1alpha1.StateWarning))
-					g.Expect(cfAPI.Status.Conditions).To(ContainElement(SatisfyAll(
-						HasType(Equal(conditions.StatusConditionReady)),
-						HasStatus(Equal(metav1.ConditionFalse)),
-					)))
 				}).Should(Succeed())
 			})
 

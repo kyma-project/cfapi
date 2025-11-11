@@ -8,9 +8,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/google/uuid"
 	"github.com/kyma-project/cfapi/api/v1alpha1"
-	. "github.com/kyma-project/cfapi/tests/matchers"
 	"github.com/kyma-project/cfapi/tools/k8s"
-	"github.com/kyma-project/cfapi/tools/k8s/conditions"
 	"github.com/kyma-project/cfapi/tools/k8s/fake"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -151,17 +149,6 @@ var _ = Describe("Reconcile", func() {
 		Expect(updatedOrg.Spec.UAA).To(Equal("https://my-uaa.example.org"))
 	})
 
-	It("sets the Ready condition to true", func() {
-		Expect(fakeStatusWriter.PatchCallCount()).To(Equal(1))
-		_, updatedObject, _, _ := fakeStatusWriter.PatchArgsForCall(0)
-		updatedOrg, ok := updatedObject.(*v1alpha1.CFAPI)
-		Expect(ok).To(BeTrue())
-		Expect(updatedOrg.Status.Conditions).To(ContainElement(SatisfyAll(
-			HasType(Equal(conditions.StatusConditionReady)),
-			HasStatus(Equal(metav1.ConditionTrue)),
-		)))
-	})
-
 	When("patching the object fails", func() {
 		BeforeEach(func() {
 			fakeClient.PatchReturns(errors.New("patch-object-error"))
@@ -209,131 +196,10 @@ var _ = Describe("Reconcile", func() {
 			Expect(fakeStatusWriter.PatchCallCount()).To(Equal(1))
 		})
 
-		It("sets the ready condition to false with unknown reason", func() {
-			Expect(fakeStatusWriter.PatchCallCount()).To(Equal(1))
-			_, updatedObject, _, _ := fakeStatusWriter.PatchArgsForCall(0)
-			updatedOrg, ok := updatedObject.(*v1alpha1.CFAPI)
-			Expect(ok).To(BeTrue())
-
-			Expect(updatedOrg.Status.Conditions).To(ContainElement(SatisfyAll(
-				HasType(Equal(conditions.StatusConditionReady)),
-				HasStatus(Equal(metav1.ConditionFalse)),
-				HasReason(Equal("Unknown")),
-			)))
-		})
-
-		When("the object reconciliation fails with NotReady error", func() {
-			BeforeEach(func() {
-				objectReconciler.reconcileResourceError = k8s.NewNotReadyError()
-			})
-
-			It("sets the ready condition to false with unknown reason", func() {
-				Expect(fakeStatusWriter.PatchCallCount()).To(Equal(1))
-				_, updatedObject, _, _ := fakeStatusWriter.PatchArgsForCall(0)
-				updatedOrg, ok := updatedObject.(*v1alpha1.CFAPI)
-				Expect(ok).To(BeTrue())
-
-				Expect(updatedOrg.Status.Conditions).To(ContainElement(SatisfyAll(
-					HasType(Equal(conditions.StatusConditionReady)),
-					HasStatus(Equal(metav1.ConditionFalse)),
-					HasReason(Equal("Unknown")),
-					HasMessage(BeEmpty()),
-				)))
-			})
-
-			When("reason is specified", func() {
-				BeforeEach(func() {
-					objectReconciler.reconcileResourceError = k8s.NewNotReadyError().WithReason("TestReason")
-				})
-
-				It("sets the ready condition to false with the reason specified", func() {
-					Expect(fakeStatusWriter.PatchCallCount()).To(Equal(1))
-					_, updatedObject, _, _ := fakeStatusWriter.PatchArgsForCall(0)
-					updatedOrg, ok := updatedObject.(*v1alpha1.CFAPI)
-					Expect(ok).To(BeTrue())
-
-					Expect(updatedOrg.Status.Conditions).To(ContainElement(SatisfyAll(
-						HasType(Equal(conditions.StatusConditionReady)),
-						HasStatus(Equal(metav1.ConditionFalse)),
-						HasReason(Equal("TestReason")),
-					)))
-				})
-			})
-
-			When("message is specified", func() {
-				BeforeEach(func() {
-					objectReconciler.reconcileResourceError = k8s.NewNotReadyError().WithMessage("TestMessage")
-				})
-
-				It("sets the ready condition to false with the message specified", func() {
-					Expect(fakeStatusWriter.PatchCallCount()).To(Equal(1))
-					_, updatedObject, _, _ := fakeStatusWriter.PatchArgsForCall(0)
-					updatedOrg, ok := updatedObject.(*v1alpha1.CFAPI)
-					Expect(ok).To(BeTrue())
-
-					Expect(updatedOrg.Status.Conditions).To(ContainElement(SatisfyAll(
-						HasType(Equal(conditions.StatusConditionReady)),
-						HasStatus(Equal(metav1.ConditionFalse)),
-						HasMessage(Equal("TestMessage")),
-					)))
-				})
-			})
-
-			When("cause is specified", func() {
-				BeforeEach(func() {
-					objectReconciler.reconcileResourceError = k8s.NewNotReadyError().WithCause(errors.New("test-err"))
-				})
-
-				It("sets the ready condition to false with the error as message", func() {
-					Expect(fakeStatusWriter.PatchCallCount()).To(Equal(1))
-					_, updatedObject, _, _ := fakeStatusWriter.PatchArgsForCall(0)
-					updatedOrg, ok := updatedObject.(*v1alpha1.CFAPI)
-					Expect(ok).To(BeTrue())
-
-					Expect(updatedOrg.Status.Conditions).To(ContainElement(SatisfyAll(
-						HasType(Equal(conditions.StatusConditionReady)),
-						HasStatus(Equal(metav1.ConditionFalse)),
-						HasMessage(Equal("test-err")),
-					)))
-				})
-			})
-
-			When("cause and message are specified", func() {
-				BeforeEach(func() {
-					objectReconciler.reconcileResourceError = k8s.NewNotReadyError().
-						WithCause(errors.New("test-err")).
-						WithMessage("TestMessage")
-				})
-
-				It("combines the cause error and the message", func() {
-					Expect(fakeStatusWriter.PatchCallCount()).To(Equal(1))
-					_, updatedObject, _, _ := fakeStatusWriter.PatchArgsForCall(0)
-					updatedOrg, ok := updatedObject.(*v1alpha1.CFAPI)
-					Expect(ok).To(BeTrue())
-
-					Expect(updatedOrg.Status.Conditions).To(ContainElement(SatisfyAll(
-						HasType(Equal(conditions.StatusConditionReady)),
-						HasStatus(Equal(metav1.ConditionFalse)),
-						HasMessage(Equal("TestMessage: test-err")),
-					)))
-				})
-			})
-
+		Describe("object reconciliation fails with NotReady error", func() {
 			When("requeue is specified", func() {
 				BeforeEach(func() {
 					objectReconciler.reconcileResourceError = k8s.NewNotReadyError().WithRequeue()
-				})
-
-				It("sets the ready condition to false", func() {
-					Expect(fakeStatusWriter.PatchCallCount()).To(Equal(1))
-					_, updatedObject, _, _ := fakeStatusWriter.PatchArgsForCall(0)
-					updatedOrg, ok := updatedObject.(*v1alpha1.CFAPI)
-					Expect(ok).To(BeTrue())
-
-					Expect(updatedOrg.Status.Conditions).To(ContainElement(SatisfyAll(
-						HasType(Equal(conditions.StatusConditionReady)),
-						HasStatus(Equal(metav1.ConditionFalse)),
-					)))
 				})
 
 				It("requeues the reconcile event", func() {
@@ -347,18 +213,6 @@ var _ = Describe("Reconcile", func() {
 					objectReconciler.reconcileResourceError = k8s.NewNotReadyError().WithRequeueAfter(time.Minute)
 				})
 
-				It("sets the ready condition to false", func() {
-					Expect(fakeStatusWriter.PatchCallCount()).To(Equal(1))
-					_, updatedObject, _, _ := fakeStatusWriter.PatchArgsForCall(0)
-					updatedOrg, ok := updatedObject.(*v1alpha1.CFAPI)
-					Expect(ok).To(BeTrue())
-
-					Expect(updatedOrg.Status.Conditions).To(ContainElement(SatisfyAll(
-						HasType(Equal(conditions.StatusConditionReady)),
-						HasStatus(Equal(metav1.ConditionFalse)),
-					)))
-				})
-
 				It("requeues the reconcile event", func() {
 					Expect(result).To(Equal(ctrl.Result{RequeueAfter: time.Minute}))
 					Expect(err).NotTo(HaveOccurred())
@@ -368,18 +222,6 @@ var _ = Describe("Reconcile", func() {
 			When("no requeue is specified", func() {
 				BeforeEach(func() {
 					objectReconciler.reconcileResourceError = k8s.NewNotReadyError().WithNoRequeue()
-				})
-
-				It("sets the ready condition to false", func() {
-					Expect(fakeStatusWriter.PatchCallCount()).To(Equal(1))
-					_, updatedObject, _, _ := fakeStatusWriter.PatchArgsForCall(0)
-					updatedOrg, ok := updatedObject.(*v1alpha1.CFAPI)
-					Expect(ok).To(BeTrue())
-
-					Expect(updatedOrg.Status.Conditions).To(ContainElement(SatisfyAll(
-						HasType(Equal(conditions.StatusConditionReady)),
-						HasStatus(Equal(metav1.ConditionFalse)),
-					)))
 				})
 
 				It("does not requeue the reconcile event", func() {

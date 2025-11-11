@@ -10,9 +10,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/google/uuid"
 	"github.com/kyma-project/cfapi/tools"
-	"github.com/kyma-project/cfapi/tools/k8s/conditions"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/meta"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -43,7 +41,7 @@ func (r *PatchingReconciler[T]) Reconcile(ctx context.Context, req ctrl.Request)
 		WithValues("namespace", req.Namespace, "name", req.Name, "logID", uuid.NewString())
 	ctx = logr.NewContext(ctx, log)
 
-	runtimeObj := any(new(T)).(conditions.RuntimeObjectWithStatusConditions)
+	runtimeObj := any(new(T)).(client.Object)
 
 	err := r.k8sClient.Get(ctx, req.NamespacedName, runtimeObj)
 	if err != nil {
@@ -60,26 +58,13 @@ func (r *PatchingReconciler[T]) Reconcile(ctx context.Context, req ctrl.Request)
 	)
 
 	err = Patch(ctx, r.k8sClient, runtimeObj, func() {
-		readyConditionBuilder := conditions.NewReadyConditionBuilder(runtimeObj)
-		defer func() {
-			meta.SetStatusCondition(runtimeObj.StatusConditions(), readyConditionBuilder.WithError(delegateErr).Build())
-		}()
-
 		result, delegateErr = r.objectReconciler.ReconcileResource(ctx, any(runtimeObj).(*T))
 		if delegateErr == nil {
-			readyConditionBuilder.Ready()
 			return
 		}
 
 		var notReadyErr NotReadyError
 		if errors.As(delegateErr, &notReadyErr) {
-			reason := notReadyErr.reason
-			if reason == "" {
-				reason = "Unknown"
-			}
-
-			readyConditionBuilder.WithReason(reason).WithMessage(notReadyErr.message)
-
 			if notReadyErr.noRequeue {
 				result = ctrl.Result{}
 				delegateErr = nil
