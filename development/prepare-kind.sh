@@ -171,6 +171,7 @@ install_gardener_cert_manager() {
   # `controller.enabled=true` - not sure whether we want a controller for DNS manadement, provided we are running on kind
   helm upgrade --install \
     external-dns-management gardener-charts/external-dns-management \
+    --version 0.28.0 \
     --namespace kyma-system \
     --set external-dns-management.enabled=true \
     --set controller.enabled=true \
@@ -179,6 +180,7 @@ install_gardener_cert_manager() {
   # configuration.issuerNamespace=kyma-system - cert manager will treat issuers in that namespace as issuers from the `default` cluster, see https://github.com/gardener/cert-management#using-the-cert-controller-manager
   helm upgrade --install \
     cert-management gardener-charts/cert-management \
+    --version 0.18.0 \
     --namespace kyma-system \
     --set configuration.issuerNamespace=kyma-system \
     --set configuration.defaultIssuer=default-issuer \
