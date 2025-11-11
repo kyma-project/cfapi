@@ -96,8 +96,7 @@ jobs:
         helm: latest
 
     - name: Create Kind Cluster
-      # We use kind-action@main as the `cloud_provider` option has not been released yet
-      uses: helm/kind-action@main
+      uses: helm/kind-action@v1.13.0
       with:
         config: ./development/assets/kind-config.yaml
         cloud_provider: true
