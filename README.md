@@ -10,12 +10,12 @@ Once installed, one could use the cf cli to connect and deploy workloads.
 | Property | Optional | Default | Description |
 |-----|-----|-----|-----|
 | RootNamespace | Optional | `cf` | Root namespace for CF resources |
-| ContainerRegistrySecret | Optional | `dockerregistry-config` | Container registry secret used to push application images. It has to be of type `docker-registry`  |
+| ContainerRegistrySecret | Optional | `dockerregistry-config-external` | Container registry secret used to push application images. It has to be of type `docker-registry`  |
 | ContainerRepositoryPrefix | Optional | The prefix of the container repository where package and droplet images will be pushed. More details [here](https://github.com/cloudfoundry/korifi/blob/main/INSTALL.md#install-korifi)
 | BuilderRepository | Optional | Container image repository to store the kpack `ClusterBuilder` image. More details [here](https://github.com/cloudfoundry/korifi/blob/main/INSTALL.md#install-korifi)
 | UAA | Optional | In case of a SAP managed Kyma, the UAA will be derived from the BTP service operator config |  UAA URL to be used for authentication |
-| CFAdmins | Optional | By default Kyma cluster-admins will become CF admins | List of users, which will become CF administrators.A user is expected in format sap.ids:\<sap email\> example sap.ids:samir.zeort@sap.com  |
-| UseSelfSignedCertificates | Optional | Use self signed certificates for CFAPI and workloads. Defaults to `false`.
+| CFAdmins | Optional | By default Kyma cluster-admins will become CF admins | List of users, which will become CF administrators. A user is expected in format sap.ids:\<sap email\> example sap.ids:samir.zeort@sap.com  |
+| UseSelfSignedCertificates | Optional | Use self signed certificates for CF API and workloads. Defaults to `false`. |
 
 ## Dependencies
 
@@ -55,7 +55,7 @@ kubectl -n kyma-system patch  istios.operator.kyma-project.io default --type=mer
 ### Docker registry
 
 #### Managed Docker Registry module
-In the Kyma dashboard, enable the `docker-registry` module and make sure it eventually becomes ready.
+In the Kyma dashboard, enable the `docker-registry` module and enable its external access. Make sure it eventually becomes ready.
 
 #### Manual installation
 ```bash
@@ -63,23 +63,37 @@ kubectl apply -f https://github.com/kyma-project/docker-registry/releases/latest
 kubectl apply -f https://github.com/kyma-project/docker-registry/releases/latest/download/default-dockerregistry-cr.yaml
 ```
 
+Then enable the registry external access:
+
+```bash
+kubectl -n kyma-system patch dockerregistries.operator.kyma-project.io default --type=merge -p='{"spec":{"externalAccess": {"enabled": true}}}'```
+
+
 ### CFAPI module
 #### Managed CFAPI module
 In the Kyma dashboard, enable the `cfapi` module and make sure it eventually becomes ready. Once ready the CF url is set on its status.
 
 
 #### Manual installation
+
 ```bash
 kubectl create namespace cfapi-system
 kubectl apply -f https://github.com/kyma-project/cfapi/releases/latest/download/cfapi-operator.yaml
 kubectl apply -f https://github.com/kyma-project/cfapi/releases/latest/download/cfapi-default-cr.yaml
 ```
 
-Make sure that the CFAPI resource eventually becomes ready. Once that is true, the CF url is set on its status
+Make sure that the CFAPI resource eventually becomes ready. Once that is true, the CF url is set on its status:
+
+```bash
+kubectl -n cfapi-system get cfapis.operator.kyma-project.io default-cf-api
+
+NAME             STATE   URL
+default-cf-api   Ready   https://cfapi.kind-127-0-0-1.nip.io
+```
 
 ### CF login
 ```bash
-cf login --sso -a <cf-url>
+cf login --sso -a <cfapi-url>
 ```
 
 ## Usage

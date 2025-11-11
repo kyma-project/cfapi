@@ -58,7 +58,7 @@ spec:
               containerRegistrySecret:
                 description: The container registry secret to be used when pushing
                   droplets and workloads images. Defaults to the Kyma docker registry
-                  module secret (`dockerregistry-config`)
+                  module secret (`dockerregistry-config-external`)
                 type: string
               containerRepositoryPrefix:
                 description: The prefix of the container repository where package
@@ -68,6 +68,10 @@ spec:
                   being pushed. Defaults to `container_registry_url_from_secret +
                   "/"`
                 type: string
+              disableContainerRegistrySecretPropagation:
+                description: Whether to disable container registry secret propagation
+                  to workload namepsaces.
+                type: boolean
               rootNamespace:
                 description: The Korifi root namespace. Defaults to `cf`
                 type: string
@@ -154,6 +158,8 @@ spec:
                     type: string
                   containerRepositoryPrefix:
                     type: string
+                  disableContainerRegistrySecretPropagation:
+                    type: boolean
                   korifiIngressHost:
                     type: string
                   rootNamespace:

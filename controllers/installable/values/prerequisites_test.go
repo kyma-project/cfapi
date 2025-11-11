@@ -78,6 +78,24 @@ var _ = Describe("Prerequisites", func() {
 				}),
 			}))
 		})
+
+		When("container registry secret propagation is disabled", func() {
+			BeforeEach(func() {
+				instCfg.DisableContainerRegistrySecretPropagation = true
+			})
+
+			It("returns helm values", func() {
+				Expect(err).NotTo(HaveOccurred())
+				Expect(helmValues).To(MatchKeys(IgnoreExtras, Keys{
+					"containerRegistrySecret": MatchAllKeys(Keys{
+						"name": Equal("custom-registry-secret"),
+						"propagation": MatchAllKeys(Keys{
+							"enabled": Equal(false),
+						}),
+					}),
+				}))
+			})
+		})
 	})
 
 	When("the self-signed issuer does not exist", func() {

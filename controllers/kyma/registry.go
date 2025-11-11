@@ -12,7 +12,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-const ContainerRegistrySecretName = "dockerregistry-config"
+const ContainerRegistrySecretName = "dockerregistry-config-external"
 
 type ContainerRegistry struct {
 	k8sClient client.Client
@@ -37,7 +37,7 @@ func (k *ContainerRegistry) GetRegistrySecret(ctx context.Context, namespace str
 
 	err := k.k8sClient.Get(ctx, client.ObjectKeyFromObject(secret), secret)
 	if err != nil {
-		return nil, fmt.Errorf("could not get the kyma docker container registry secret: %w. Make sure a docker registry resource exists", err)
+		return nil, fmt.Errorf("could not get the kyma docker container registry external secret: %w. Make sure a docker registry resource exists and has its external access is enabled", err)
 	}
 
 	return secret, nil

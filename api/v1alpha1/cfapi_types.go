@@ -67,6 +67,8 @@ type InstallationConfig struct {
 	//+kubebuilder:validation:Optional
 	ContainerRegistrySecret string `json:"containerRegistrySecret"`
 	//+kubebuilder:validation:Optional
+	DisableContainerRegistrySecretPropagation bool `json:"disableContainerRegistrySecretPropagation,omitempty"`
+	//+kubebuilder:validation:Optional
 	ContainerRegistryURL string `json:"containerRegistryUrl"`
 	//+kubebuilder:validation:Optional
 	ContainerRepositoryPrefix string `json:"containerRepositoryPrefix"`
@@ -88,9 +90,12 @@ type CFAPISpec struct {
 	// The Korifi root namespace. Defaults to `cf`
 	//+kubebuilder:validation:Optional
 	RootNamespace string `json:"rootNamespace,omitempty"`
-	// The container registry secret to be used when pushing droplets and workloads images. Defaults to the Kyma docker registry module secret (`dockerregistry-config`)
+	// The container registry secret to be used when pushing droplets and workloads images. Defaults to the Kyma docker registry module secret (`dockerregistry-config-external`)
 	//+kubebuilder:validation:Optional
 	ContainerRegistrySecret string `json:"containerRegistrySecret,omitempty"`
+	// Whether to disable container registry secret propagation to workload namepsaces.
+	//+kubebuilder:validation:Optional
+	DisableContainerRegistrySecretPropagation bool `json:"disableContainerRegistrySecretPropagation,omitempty"`
 	// The prefix of the container repository where package and droplet images will be pushed. This is suffixed with the app GUID and `-packages` or `-droplets`. For example, a value of `index.docker.io/korifi/` will result in `index.docker.io/korifi/<appGUID>-packages` and `index.docker.io/korifi/<appGUID>-droplets` being pushed. Defaults to `container_registry_url_from_secret + "/"`
 	//+kubebuilder:validation:Optional
 	ContainerRepositoryPrefix string `json:"containerRepositoryPrefix"`
