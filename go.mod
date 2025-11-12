@@ -7,7 +7,7 @@ replace golang.org/x/tools => golang.org/x/tools v0.37.0
 require (
 	github.com/BooleanCat/go-functional/v2 v2.5.1
 	github.com/gardener/cert-management v0.19.0
-	github.com/gardener/external-dns-management v0.31.0
+	github.com/gardener/external-dns-management v0.32.0
 	github.com/go-logr/logr v1.4.3
 	github.com/google/uuid v1.6.0
 	github.com/kyma-project/istio/operator v0.0.0-00010101000000-000000000000
