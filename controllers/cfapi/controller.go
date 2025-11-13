@@ -26,6 +26,7 @@ import (
 	"errors"
 	"fmt"
 	"maps"
+	"reflect"
 	"slices"
 	"time"
 
@@ -62,6 +63,7 @@ type Reconciler struct {
 	eventRecorder   record.EventRecorder
 	requeueInterval time.Duration
 	installables    []installable.Installable
+	uninstallables  []installable.Uninstallable
 }
 
 func NewReconciler(
@@ -72,7 +74,8 @@ func NewReconciler(
 	eventRecorder record.EventRecorder,
 	log logr.Logger,
 	requeueInterval time.Duration,
-	installables ...installable.Installable,
+	installables []installable.Installable,
+	uninstallables []installable.Uninstallable,
 ) *k8s.PatchingReconciler[v1alpha1.CFAPI] {
 	apiReconciler := &Reconciler{
 		k8sClient:       k8sClient,
@@ -82,6 +85,7 @@ func NewReconciler(
 		eventRecorder:   eventRecorder,
 		requeueInterval: requeueInterval,
 		installables:    installables,
+		uninstallables:  uninstallables,
 	}
 	return k8s.NewPatchingReconciler(ctrl.Log, k8sClient, apiReconciler)
 }
@@ -100,9 +104,7 @@ func (r *Reconciler) ReconcileResource(ctx context.Context, cfAPI *v1alpha1.CFAP
 
 	controllerutil.AddFinalizer(cfAPI, Finalizer)
 	if !cfAPI.DeletionTimestamp.IsZero() {
-		log.Info("deleting CFAPI %s/%s", cfAPI.Namespace, cfAPI.Name)
-		controllerutil.RemoveFinalizer(cfAPI, Finalizer)
-		return ctrl.Result{}, nil
+		return r.finalize(ctx, cfAPI)
 	}
 
 	installationConfig, err := r.compileInstallationConfig(ctx, cfAPI)
@@ -130,7 +132,7 @@ func (r *Reconciler) ReconcileResource(ctx context.Context, cfAPI *v1alpha1.CFAP
 
 	cfAPI.Status.InstallationConfig = installationConfig
 
-	installResult, err := r.installInstallables(ctx, installationConfig, installable.NewCFAPIEventRecorder(r.eventRecorder, cfAPI))
+	installResult, err := r.install(ctx, installationConfig, installable.NewCFAPIEventRecorder(r.eventRecorder, cfAPI))
 	if err != nil {
 		log.Error(err, "failed to install installables")
 		return ctrl.Result{}, err
@@ -301,7 +303,7 @@ func (r *Reconciler) computeKorifiIngressHost(ctx context.Context) (string, erro
 	return hostname, nil
 }
 
-func (r *Reconciler) installInstallables(ctx context.Context, config v1alpha1.InstallationConfig, eventRecorder installable.EventRecorder) (installable.Result, error) {
+func (r *Reconciler) install(ctx context.Context, config v1alpha1.InstallationConfig, eventRecorder installable.EventRecorder) (installable.Result, error) {
 	results := []installable.Result{}
 
 	for _, inst := range r.installables {
@@ -357,4 +359,56 @@ func (r *Reconciler) ensureContainerRegistry(ctx context.Context, cfAPI *v1alpha
 	}
 
 	return kymaRegistrySecret.Name, kymaRegistryURL, nil
+}
+
+func (r *Reconciler) finalize(ctx context.Context, cfAPI *v1alpha1.CFAPI) (ctrl.Result, error) {
+	log := logr.FromContextOrDiscard(ctx)
+
+	log.Info("finalizing CFAPI")
+	cfAPI.Status.State = v1alpha1.StateDeleting
+
+	uninstallConfig := cfAPI.Status.InstallationConfig
+	if reflect.ValueOf(uninstallConfig).IsZero() {
+		log.Info("installation has not started, skipping uninstall")
+		controllerutil.RemoveFinalizer(cfAPI, Finalizer)
+		return ctrl.Result{}, nil
+	}
+
+	uninstallResult, err := r.uninstall(ctx, uninstallConfig, installable.NewCFAPIEventRecorder(r.eventRecorder, cfAPI))
+	if err != nil {
+		log.Error(err, "failed to uninstall uninstallables")
+		return ctrl.Result{}, err
+	}
+
+	if uninstallResult.State != installable.ResultStateSuccess {
+		log.Info("uninstallables are still being uninstalled", "uninstallResult", uninstallResult)
+		meta.SetStatusCondition(&cfAPI.Status.Conditions, metav1.Condition{
+			Type:               v1alpha1.ConditionTypeDeletion,
+			Status:             metav1.ConditionFalse,
+			ObservedGeneration: cfAPI.Generation,
+			LastTransitionTime: metav1.NewTime(time.Now()),
+			Reason:             "DeletionInProgress",
+			Message:            uninstallResult.Message,
+		})
+		return ctrl.Result{RequeueAfter: r.requeueInterval}, nil
+	}
+
+	controllerutil.RemoveFinalizer(cfAPI, Finalizer)
+	return ctrl.Result{}, nil
+}
+
+func (r *Reconciler) uninstall(ctx context.Context, config v1alpha1.InstallationConfig, eventRecorder installable.EventRecorder) (installable.Result, error) {
+	for _, uninst := range r.uninstallables {
+		result, err := uninst.Uninstall(ctx, config, eventRecorder)
+		if err != nil {
+			return installable.Result{}, err
+		}
+		if result.State != installable.ResultStateSuccess {
+			return result, nil
+		}
+	}
+
+	return installable.Result{
+		State: installable.ResultStateSuccess,
+	}, nil
 }

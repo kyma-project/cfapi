@@ -13,11 +13,12 @@ import (
 	"github.com/kyma-project/cfapi/api/v1alpha1"
 	"github.com/kyma-project/cfapi/controllers/installable"
 	corev1 "k8s.io/api/core/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var _ = Describe("Yaml", func() {
-	Describe("File", func() {
+	Describe("Install File", func() {
 		var (
 			yamlContent string
 
@@ -143,7 +144,7 @@ metadata:
 		})
 	})
 
-	Describe("YamlGlob", func() {
+	Describe("Install YamlGlob", func() {
 		var (
 			yamlGlob   *installable.Yaml
 			result     installable.Result
@@ -201,6 +202,115 @@ metadata:
 				},
 			}
 			Expect(adminClient.Get(ctx, client.ObjectKeyFromObject(expectedMap), expectedMap)).To(Succeed())
+		})
+	})
+
+	Describe("Uninstall", func() {
+		var (
+			yamlContent string
+
+			uninstallResult installable.Result
+			uninstallErr    error
+		)
+
+		BeforeEach(func() {
+			yamlContent = ""
+		})
+
+		JustBeforeEach(func() {
+			yamlFile, err := os.CreateTemp("", "")
+			Expect(err).NotTo(HaveOccurred())
+			DeferCleanup(func() {
+				Expect(os.RemoveAll(yamlFile.Name())).To(Succeed())
+			})
+
+			_, err = io.WriteString(yamlFile, yamlContent)
+			Expect(err).NotTo(HaveOccurred())
+
+			uninstallResult, uninstallErr = installable.NewYaml(adminClient, yamlFile.Name(), "test-file").
+				Uninstall(ctx, v1alpha1.InstallationConfig{}, eventRecorder)
+		})
+
+		It("succeeds for empty yaml", func() {
+			Expect(uninstallErr).NotTo(HaveOccurred())
+			Expect(uninstallResult.State).To(Equal(installable.ResultStateSuccess))
+		})
+
+		When("the yaml contains objects", func() {
+			BeforeEach(func() {
+				yamlContent = fmt.Sprintf(
+					`apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: map1
+  namespace: %s
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: map2
+  namespace: %s`, testNamespace, testNamespace)
+			})
+
+			It("retuns success", func() {
+				Expect(uninstallErr).NotTo(HaveOccurred())
+				Expect(uninstallResult.State).To(Equal(installable.ResultStateSuccess))
+			})
+
+			When("the objects to be deleted exist", func() {
+				BeforeEach(func() {
+					Expect(adminClient.Create(ctx, &corev1.ConfigMap{
+						ObjectMeta: metav1.ObjectMeta{
+							Namespace: testNamespace,
+							Name:      "map1",
+						},
+					})).To(Succeed())
+					Expect(adminClient.Create(ctx, &corev1.ConfigMap{
+						ObjectMeta: metav1.ObjectMeta{
+							Namespace: testNamespace,
+							Name:      "map2",
+						},
+					})).To(Succeed())
+				})
+
+				It("deletes them and returns in progress result", func() {
+					Expect(uninstallErr).NotTo(HaveOccurred())
+					Expect(uninstallResult.State).To(Equal(installable.ResultStateInProgress))
+
+					err := adminClient.Get(ctx, client.ObjectKey{Name: "map1", Namespace: testNamespace}, &corev1.ConfigMap{})
+					Expect(k8serrors.IsNotFound(err)).To(BeTrue())
+
+					err = adminClient.Get(ctx, client.ObjectKey{Name: "map2", Namespace: testNamespace}, &corev1.ConfigMap{})
+					Expect(k8serrors.IsNotFound(err)).To(BeTrue())
+				})
+			})
+		})
+
+		When("the yaml is invalid", func() {
+			BeforeEach(func() {
+				yamlContent = "invalid-yaml"
+			})
+
+			It("returns a failed result", func() {
+				Expect(uninstallErr).NotTo(HaveOccurred())
+				Expect(uninstallResult.State).To(Equal(installable.ResultStateFailed))
+			})
+		})
+
+		When("the yaml file does not exist", func() {
+			var (
+				installResult1 installable.Result
+				installErr1    error
+			)
+			BeforeEach(func() {
+				installResult1, installErr1 = installable.NewYaml(adminClient, "file-does-not-exist", "").
+					Install(ctx, v1alpha1.InstallationConfig{}, eventRecorder)
+			})
+
+			It("returns an error", func() {
+				Expect(installErr1).NotTo(HaveOccurred())
+				Expect(installResult1.State).To(Equal(installable.ResultStateFailed))
+			})
 		})
 	})
 })

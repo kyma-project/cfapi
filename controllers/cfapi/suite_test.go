@@ -10,6 +10,7 @@ import (
 	v1alpha1 "github.com/kyma-project/cfapi/api/v1alpha1"
 	"github.com/kyma-project/cfapi/controllers/cfapi"
 	"github.com/kyma-project/cfapi/controllers/cfapi/secrets"
+	"github.com/kyma-project/cfapi/controllers/installable"
 	"github.com/kyma-project/cfapi/controllers/installable/fake"
 	"github.com/kyma-project/cfapi/controllers/kyma"
 	"github.com/kyma-project/cfapi/tests/helpers"
@@ -29,6 +30,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -36,12 +38,16 @@ var (
 	stopManager     context.CancelFunc
 	stopClientCache context.CancelFunc
 	testEnv         *envtest.Environment
+	k8sManager      manager.Manager
 	adminClient     client.Client
 	ctx             context.Context
 	cfAPINamespace  string
 
 	firstInstallable  *fake.Installable
 	secondInstallable *fake.Installable
+
+	firstUninstallable  *fake.Uninstallable
+	secondUninstallable *fake.Uninstallable
 )
 
 func TestNetworkingControllers(t *testing.T) {
@@ -77,7 +83,7 @@ var _ = BeforeEach(func() {
 	Expect(istiov1beta1.AddToScheme(scheme.Scheme)).To(Succeed())
 	Expect(kymaistiov1alpha2.AddToScheme(testEnv.Scheme)).To(Succeed())
 
-	k8sManager := helpers.NewK8sManager(testEnv, filepath.Join("config", "rbac", "role.yaml"))
+	k8sManager = helpers.NewK8sManager(testEnv, filepath.Join("config", "rbac", "role.yaml"))
 
 	adminClient, stopClientCache = helpers.NewCachedClient(testEnv.Config)
 
@@ -169,6 +175,8 @@ var _ = BeforeEach(func() {
 
 	firstInstallable = new(fake.Installable)
 	secondInstallable = new(fake.Installable)
+	firstUninstallable = new(fake.Uninstallable)
+	secondUninstallable = new(fake.Uninstallable)
 
 	kymaClient := kyma.NewClient(adminClient, istioClient)
 	err = cfapi.NewReconciler(
@@ -179,8 +187,8 @@ var _ = BeforeEach(func() {
 		k8sManager.GetEventRecorderFor("cfapi"),
 		ctrl.Log.WithName("controllers").WithName("cfapi"),
 		100*time.Millisecond,
-		firstInstallable,
-		secondInstallable,
+		[]installable.Installable{firstInstallable, secondInstallable},
+		[]installable.Uninstallable{firstUninstallable, secondUninstallable},
 	).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 

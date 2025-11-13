@@ -3,7 +3,6 @@ package create_test
 import (
 	"context"
 	"encoding/json"
-	"os/exec"
 	"testing"
 	"time"
 
@@ -23,6 +22,7 @@ import (
 	buildv1alpha2 "github.com/pivotal/kpack/pkg/apis/build/v1alpha2"
 	v1alpha3 "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	rbacv1 "k8s.io/api/rbac/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/kubectl/pkg/scheme"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -151,22 +151,18 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 })
 
 var _ = SynchronizedAfterSuite(func() {}, func() {
-	Expect(k8sClient.Delete(ctx, &v1alpha1.CFAPI{
+	cfAPI := &v1alpha1.CFAPI{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "cfapi-system",
 			Name:      cfAPIName,
 		},
-	})).To(Succeed())
+	}
+	Expect(k8sClient.Delete(ctx, cfAPI)).To(Succeed())
 
-	Expect(run("kubectl", "delete", "--ignore-not-found", "namespace", "cf")).To(Succeed())
-	Expect(run("helm", "delete", "--ignore-not-found", "btp-service-broker", "-n", "cfapi-system", "--wait")).To(Succeed())
-	Expect(run("helm", "delete", "--ignore-not-found", "cfapi-config", "-n", "korifi", "--wait")).To(Succeed())
-	Expect(run("helm", "delete", "--ignore-not-found", "korifi", "-n", "korifi", "--wait")).To(Succeed())
-	Expect(run("helm", "delete", "--ignore-not-found", "korifi-prerequisites", "-n", "korifi", "--wait")).To(Succeed())
-	Expect(run("kubectl", "delete", "--ignore-not-found", "namespace", "korifi")).To(Succeed())
-	Expect(run("kubectl", "delete", "--ignore-not-found", "-f", "../../../module-data/issuers/issuers.yaml")).To(Succeed())
-	Expect(run("kubectl", "delete", "--ignore-not-found", "-f", "../../../module-data/vendor/gateway-api")).To(Succeed())
-	Expect(run("kubectl", "delete", "--ignore-not-found", "-f", "../../../module-data/vendor/kpack")).To(Succeed())
+	Eventually(func(g Gomega) {
+		err := k8sClient.Get(ctx, client.ObjectKeyFromObject(cfAPI), cfAPI)
+		g.Expect(k8serrors.IsNotFound(err)).To(BeTrue())
+	}).Should(Succeed())
 
 	Expect(k8sClient.Delete(ctx, &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
@@ -174,11 +170,6 @@ var _ = SynchronizedAfterSuite(func() {}, func() {
 		},
 	})).To(Succeed())
 })
-
-func run(command string, args ...string) error {
-	cmd := exec.Command(command, args...)
-	return cmd.Run()
-}
 
 func createK8sClient() client.Client {
 	config, err := controllerruntime.GetConfig()

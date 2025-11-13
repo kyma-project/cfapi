@@ -42,6 +42,7 @@ var (
 
 	ConditionTypeConfiguration = "Configuration"
 	ConditionTypeInstallation  = "Installation"
+	ConditionTypeDeletion      = "Deletion"
 )
 
 type CFAPIStatus struct {

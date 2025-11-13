@@ -76,6 +76,13 @@ var _ = Describe("CFDomainReconciler Integration Tests", func() {
 		}).Should(Succeed())
 	})
 
+	It("does not call the uninstallables", func() {
+		Consistently(func(g Gomega) {
+			g.Expect(firstUninstallable.UninstallCallCount()).To(BeZero())
+			g.Expect(secondUninstallable.UninstallCallCount()).To(BeZero())
+		}).Should(Succeed())
+	})
+
 	It("sets install config on the status", func() {
 		Eventually(func(g Gomega) {
 			g.Expect(adminClient.Get(ctx, client.ObjectKeyFromObject(cfAPI), cfAPI)).To(Succeed())
@@ -435,6 +442,112 @@ var _ = Describe("CFDomainReconciler Integration Tests", func() {
 				Eventually(func(g Gomega) {
 					g.Expect(adminClient.Get(ctx, client.ObjectKeyFromObject(cfAPI), cfAPI)).To(Succeed())
 					g.Expect(meta.IsStatusConditionFalse(cfAPI.Status.Conditions, v1alpha1.ConditionTypeConfiguration)).To(BeTrue())
+				}).Should(Succeed())
+			})
+		})
+	})
+
+	When("deleting the CFAPI resource", func() {
+		var uninstConfig v1alpha1.InstallationConfig
+
+		BeforeEach(func() {
+			Eventually(func(g Gomega) {
+				g.Expect(adminClient.Get(ctx, client.ObjectKeyFromObject(cfAPI), cfAPI)).To(Succeed())
+				g.Expect(cfAPI.Finalizers).To(ContainElement(cfapi.Finalizer))
+			}).Should(Succeed())
+
+			uninstConfig = cfAPI.Status.InstallationConfig
+		})
+
+		JustBeforeEach(func() {
+			Expect(k8sManager.GetClient().Delete(ctx, cfAPI)).To(Succeed())
+		})
+
+		It("uninstalls uninstallables", func() {
+			Eventually(func(g Gomega) {
+				err := adminClient.Get(ctx, client.ObjectKeyFromObject(cfAPI), cfAPI)
+				g.Expect(k8serrors.IsNotFound(err)).To(BeTrue())
+
+				g.Expect(firstUninstallable.UninstallCallCount()).To(BeNumerically(">", 0))
+				_, actualFirstUninstallableConfig, _ := firstUninstallable.UninstallArgsForCall(firstUninstallable.UninstallCallCount() - 1)
+				g.Expect(actualFirstUninstallableConfig).To(Equal(uninstConfig))
+
+				g.Expect(secondUninstallable.UninstallCallCount()).To(BeNumerically(">", 0))
+				_, actualSecondUninstallableConfig, _ := secondUninstallable.UninstallArgsForCall(secondUninstallable.UninstallCallCount() - 1)
+				g.Expect(actualSecondUninstallableConfig).To(Equal(uninstConfig))
+			}).Should(Succeed())
+		})
+
+		When("an uninstallable returns an error", func() {
+			BeforeEach(func() {
+				firstUninstallable.UninstallReturns(installable.Result{}, errors.New("uninstall-failed"))
+			})
+
+			It("does not let the resource go", func() {
+				Consistently(func(g Gomega) {
+					g.Expect(adminClient.Get(ctx, client.ObjectKeyFromObject(cfAPI), cfAPI)).To(Succeed())
+				}).Should(Succeed())
+			})
+
+			It("does not invoke the next uninstallable", func() {
+				Consistently(func(g Gomega) {
+					g.Expect(secondUninstallable.UninstallCallCount()).To(BeZero())
+				}).Should(Succeed())
+			})
+		})
+
+		When("an uninstallable returns in progress", func() { //nolint:dupl
+			BeforeEach(func() {
+				firstUninstallable.UninstallReturns(installable.Result{
+					State:   installable.ResultStateInProgress,
+					Message: "i-am-uninstalling",
+				}, nil)
+			})
+
+			It("does not let the resource go", func() {
+				EventuallyShouldHold(func(g Gomega) {
+					g.Expect(adminClient.Get(ctx, client.ObjectKeyFromObject(cfAPI), cfAPI)).To(Succeed())
+					g.Expect(cfAPI.Status.State).To(Equal(v1alpha1.StateDeleting))
+					g.Expect(cfAPI.Status.Conditions).To(ContainElement(SatisfyAll(
+						HasType(Equal(v1alpha1.ConditionTypeDeletion)),
+						HasStatus(Equal(metav1.ConditionFalse)),
+						HasReason(Equal("DeletionInProgress")),
+						HasMessage(Equal("i-am-uninstalling")),
+					)))
+				})
+			})
+
+			It("does not invoke the next uninstallable", func() {
+				Consistently(func(g Gomega) {
+					g.Expect(secondUninstallable.UninstallCallCount()).To(BeZero())
+				}).Should(Succeed())
+			})
+		})
+
+		When("an uninstallable returns failed", func() { //nolint:dupl
+			BeforeEach(func() {
+				firstUninstallable.UninstallReturns(installable.Result{
+					State:   installable.ResultStateFailed,
+					Message: "i-failed",
+				}, nil)
+			})
+
+			It("does not let the resource go", func() {
+				EventuallyShouldHold(func(g Gomega) {
+					g.Expect(adminClient.Get(ctx, client.ObjectKeyFromObject(cfAPI), cfAPI)).To(Succeed())
+					g.Expect(cfAPI.Status.State).To(Equal(v1alpha1.StateDeleting))
+					g.Expect(cfAPI.Status.Conditions).To(ContainElement(SatisfyAll(
+						HasType(Equal(v1alpha1.ConditionTypeDeletion)),
+						HasStatus(Equal(metav1.ConditionFalse)),
+						HasReason(Equal("DeletionInProgress")),
+						HasMessage(Equal("i-failed")),
+					)))
+				})
+			})
+
+			It("does not invoke the next uninstallable", func() {
+				Consistently(func(g Gomega) {
+					g.Expect(secondUninstallable.UninstallCallCount()).To(BeZero())
 				}).Should(Succeed())
 			})
 		})

@@ -69,6 +69,56 @@ func (c *Client) Apply(ctx context.Context, chartPath string, releaseNamespace s
 	return c.upgrade(ctx, chart, releaseNamespace, releaseName, values)
 }
 
+func (c *Client) Uninstall(ctx context.Context, releaseNamespace string, releaseName string) (HelmResult, error) {
+	log := logr.FromContextOrDiscard(ctx).WithName("helm-delete").WithValues("chart", releaseName)
+	log.Info("starting delete")
+
+	latestRelease, err := getLatestReleases(releaseNamespace, releaseName)
+	if err != nil {
+		log.Error(err, "failed to get latest release")
+		return HelmResult{}, fmt.Errorf("failed to get latest release %s in namespace %s: %w", releaseName, releaseNamespace, err)
+	}
+
+	if latestRelease == nil {
+		log.Info("release not found, nothing to uninstall")
+		return HelmResult{}, nil
+	}
+
+	if latestRelease.Info.Status == release.StatusUninstalling {
+		log.Info("uninstall operation is ongoing", "releaseStatus", latestRelease.Info.Status)
+		return HelmResult{
+			ReleaseStatus: latestRelease.Info.Status,
+			Message:       "operation pending",
+		}, nil
+	}
+
+	actionConfig, err := newHelmActionConfig(releaseNamespace)
+	if err != nil {
+		return HelmResult{}, fmt.Errorf("failed to init helm action config: %w", err)
+	}
+
+	uninstallAction := action.NewUninstall(actionConfig)
+	uninstallAction.IgnoreNotFound = true
+
+	uninstResult, err := uninstallAction.Run(releaseName)
+	if err != nil {
+		return HelmResult{
+			ReleaseStatus: release.StatusUnknown,
+			Message:       err.Error(),
+		}, nil
+	}
+
+	helmResult := HelmResult{}
+	if uninstResult != nil {
+		if uninstResult.Release != nil && uninstResult.Release.Info != nil {
+			helmResult.ReleaseStatus = uninstResult.Release.Info.Status
+		}
+		helmResult.Message = uninstResult.Info
+	}
+
+	return helmResult, nil
+}
+
 func equalValues(values1, values2 map[string]any) (bool, error) {
 	v1, err := marshalUnmarshal(values1)
 	if err != nil {
