@@ -35,8 +35,6 @@ var _ = Describe("Korifi", func() {
 			"korifi-workloads-ingress-cert",
 			"korifi-api-internal-cert",
 			"korifi-controllers-webhook-cert",
-			"korifi-kpack-image-builder-webhook-cert",
-			"korifi-statefulset-runner-webhook-cert",
 		} {
 			Expect(adminClient.Create(ctx, &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{

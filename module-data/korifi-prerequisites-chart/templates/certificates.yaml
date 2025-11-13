@@ -66,39 +66,3 @@ spec:
   secretRef:
     name: korifi-controllers-webhook-cert
     namespace: {{ .Release.Namespace }}
----
-apiVersion: cert.gardener.cloud/v1alpha1
-kind: Certificate
-metadata:
-  name: korifi-kpack-image-builder-webhook-cert
-  namespace: {{ .Release.Namespace }}
-spec:
-  commonName: korifi-kpack-image-builder-webhook-service.korifi
-  dnsNames:
-  - korifi-kpack-image-builder-webhook-service.korifi.svc
-  - korifi-kpack-image-builder-webhook-service.korifi.svc.cluster.local
-  isCA: true
-  issuerRef:
-    name: {{ .Values.selfSignedIssuer }}
-    namespace: {{ .Values.systemNamespace }}
-  secretRef:
-    name: korifi-kpack-image-builder-webhook-cert
-    namespace: {{ .Release.Namespace }}
----
-apiVersion: cert.gardener.cloud/v1alpha1
-kind: Certificate
-metadata:
-  name: korifi-statefulset-runner-webhook-cert
-  namespace: {{ .Release.Namespace }}
-spec:
-  commonName: korifi-statefulset-runner-webhook-service.korifi
-  dnsNames:
-  - korifi-statefulset-runner-webhook-service.korifi.svc
-  - korifi-statefulset-runner-webhook-service.korifi.svc.cluster.local
-  isCA: true
-  issuerRef:
-    name: {{ .Values.selfSignedIssuer }}
-    namespace: {{ .Values.systemNamespace }}
-  secretRef:
-    name: korifi-statefulset-runner-webhook-cert
-    namespace: {{ .Release.Namespace }}

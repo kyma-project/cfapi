@@ -64,8 +64,6 @@ func (k *Korifi) ensureCertificateSecrets(ctx context.Context) error {
 		"korifi-workloads-ingress-cert",
 		"korifi-api-internal-cert",
 		"korifi-controllers-webhook-cert",
-		"korifi-kpack-image-builder-webhook-cert",
-		"korifi-statefulset-runner-webhook-cert",
 	} {
 		certSecret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
