@@ -15,7 +15,7 @@ api:
   authProxy:
     caCert: ""
     host: ""
-  image: index.docker.io/cloudfoundry/korifi-api@sha256:fc108285599acf8a52d6965c8add37f5a4936d28da2464d611e5f197cad7f321
+  image: index.docker.io/cloudfoundry/korifi-api@sha256:c49bce183af1cbe8103157b36162cc37a32bf8e21e5d3170b70c53cf60478948
   include: true
   infoConfig:
     custom: {}
@@ -40,12 +40,12 @@ api:
       memory: 100Mi
   tolerations: []
   userCertificateExpirationWarningDuration: 168h
-containerRegistryCACertSecret: null
+containerRegistryCACertSecret: ""
 containerRegistrySecrets:
 - image-registry-credentials
 controllers:
   extraVCAPApplicationValues: {}
-  image: index.docker.io/cloudfoundry/korifi-controllers@sha256:ef36e1d33ccea4a5999af3ff415bd4c89e922cab29dff07c672a1a8b34e676f2
+  image: index.docker.io/cloudfoundry/korifi-controllers@sha256:3a83d457eb02725010211925e12a9db94f14f70c77aac90da1e7de804633f45d
   maxRetainedBuildsPerApp: 5
   maxRetainedPackagesPerApp: 5
   namespaceLabels: {}
@@ -61,13 +61,12 @@ controllers:
     requests:
       cpu: 50m
       memory: 100Mi
-  taskTTL: 30d
+  taskTTL: 720h
   tolerations: []
   webhookCertSecret: korifi-controllers-webhook-cert
   workloadsTLSSecret: korifi-workloads-ingress-cert
 crds:
   include: true
-debug: false
 defaultAppDomainName: null
 eksContainerRegistryRoleARN: ""
 experimental:
@@ -94,32 +93,13 @@ generateInternalCertificates: true
 helm:
   hooksImage: alpine/k8s:1.25.2
 jobTaskRunner:
-  image: index.docker.io/cloudfoundry/korifi-job-task-runner@sha256:2ec5028a306e8a3eeaf412f016ba19efce53936c4998c22cec39059cc4a285a9
   include: true
   jobTTL: 24h
-  replicas: 1
-  resources:
-    limits:
-      cpu: 1000m
-      memory: 1Gi
-    requests:
-      cpu: 50m
-      memory: 100Mi
 kpackImageBuilder:
   builderReadinessTimeout: 30s
   builderRepository: ""
   clusterBuilderName: ""
-  image: index.docker.io/cloudfoundry/korifi-kpack-image-builder@sha256:95d114b48fa709667ee648162745fc3c8a8f3b008c371c70e4e6aa73b55ac863
   include: true
-  replicas: 1
-  resources:
-    limits:
-      cpu: 1000m
-      memory: 1Gi
-    requests:
-      cpu: 50m
-      memory: 100Mi
-  webhookCertSecret: korifi-kpack-image-builder-webhook-cert
 logLevel: info
 metadata:
   annotations:
@@ -130,78 +110,43 @@ metadata:
         - git:
             dirty: true
             remoteURL: https://github.com/cloudfoundry/korifi.git
-            sha: c16b9dcb043598b89f2ec81b3a1c31a4673ad98f
+            sha: 8db8d6a88ad7149ea65e84173a983b7947866179
         - tagged:
             tags:
             - latest
-            - 0.16.1
-        url: index.docker.io/cloudfoundry/korifi-api@sha256:fc108285599acf8a52d6965c8add37f5a4936d28da2464d611e5f197cad7f321
+            - 0.17.0
+        url: index.docker.io/cloudfoundry/korifi-api@sha256:c49bce183af1cbe8103157b36162cc37a32bf8e21e5d3170b70c53cf60478948
       - origins:
         - local:
             path: /tmp/build/a625eeb5/korifi
         - git:
             dirty: true
             remoteURL: https://github.com/cloudfoundry/korifi.git
-            sha: c16b9dcb043598b89f2ec81b3a1c31a4673ad98f
+            sha: 8db8d6a88ad7149ea65e84173a983b7947866179
         - tagged:
             tags:
             - latest
-            - 0.16.1
-        url: index.docker.io/cloudfoundry/korifi-controllers@sha256:ef36e1d33ccea4a5999af3ff415bd4c89e922cab29dff07c672a1a8b34e676f2
+            - 0.17.0
+        url: index.docker.io/cloudfoundry/korifi-controllers@sha256:3a83d457eb02725010211925e12a9db94f14f70c77aac90da1e7de804633f45d
       - origins:
         - local:
             path: /tmp/build/a625eeb5/korifi
         - git:
             dirty: true
             remoteURL: https://github.com/cloudfoundry/korifi.git
-            sha: c16b9dcb043598b89f2ec81b3a1c31a4673ad98f
+            sha: 8db8d6a88ad7149ea65e84173a983b7947866179
         - tagged:
             tags:
             - latest
-            - 0.16.1
-        url: index.docker.io/cloudfoundry/korifi-job-task-runner@sha256:2ec5028a306e8a3eeaf412f016ba19efce53936c4998c22cec39059cc4a285a9
-      - origins:
-        - local:
-            path: /tmp/build/a625eeb5/korifi
-        - git:
-            dirty: true
-            remoteURL: https://github.com/cloudfoundry/korifi.git
-            sha: c16b9dcb043598b89f2ec81b3a1c31a4673ad98f
-        - tagged:
-            tags:
-            - latest
-            - 0.16.1
-        url: index.docker.io/cloudfoundry/korifi-kpack-image-builder@sha256:95d114b48fa709667ee648162745fc3c8a8f3b008c371c70e4e6aa73b55ac863
-      - origins:
-        - local:
-            path: /tmp/build/a625eeb5/korifi
-        - git:
-            dirty: true
-            remoteURL: https://github.com/cloudfoundry/korifi.git
-            sha: c16b9dcb043598b89f2ec81b3a1c31a4673ad98f
-        - tagged:
-            tags:
-            - latest
-            - 0.16.1
-        url: index.docker.io/cloudfoundry/korifi-migration@sha256:cd3f5aef1a833e73c7d4d87ee8ce4d2c4e82fefd561d9550ae50764e8183c0d6
-      - origins:
-        - local:
-            path: /tmp/build/a625eeb5/korifi
-        - git:
-            dirty: true
-            remoteURL: https://github.com/cloudfoundry/korifi.git
-            sha: c16b9dcb043598b89f2ec81b3a1c31a4673ad98f
-        - tagged:
-            tags:
-            - latest
-            - 0.16.1
-        url: index.docker.io/cloudfoundry/korifi-statefulset-runner@sha256:bd984dcc18aa74840b6d87c81a9add5009c3d60f7b9caf6537a4881d2795356c
+            - 0.17.0
+        url: index.docker.io/cloudfoundry/korifi-migration@sha256:f9d7e108052c8c5fe7133ad8eec6037970d81ce6699baad7e4491dbbd6833be1
 migration:
-  image: index.docker.io/cloudfoundry/korifi-migration@sha256:cd3f5aef1a833e73c7d4d87ee8ce4d2c4e82fefd561d9550ae50764e8183c0d6
+  image: index.docker.io/cloudfoundry/korifi-migration@sha256:f9d7e108052c8c5fe7133ad8eec6037970d81ce6699baad7e4491dbbd6833be1
   include: true
 networking:
   gatewayClass: null
   gatewayInfrastructure: null
+  gatewayNamespace: korifi-gateway
   gatewayPorts:
     http: 80
     https: 443
@@ -214,15 +159,5 @@ stagingRequirements:
   diskMB: 0
   memoryMB: 0
 statefulsetRunner:
-  image: index.docker.io/cloudfoundry/korifi-statefulset-runner@sha256:bd984dcc18aa74840b6d87c81a9add5009c3d60f7b9caf6537a4881d2795356c
   include: true
-  replicas: 1
-  resources:
-    limits:
-      cpu: 1000m
-      memory: 1Gi
-    requests:
-      cpu: 50m
-      memory: 100Mi
-  webhookCertSecret: korifi-statefulset-runner-webhook-cert
 systemImagePullSecrets: []

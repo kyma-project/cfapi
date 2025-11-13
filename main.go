@@ -115,6 +115,7 @@ func main() {
 
 	helmClient := helm.NewClient()
 	korifiNs := installable.NewYaml(mgr.GetClient(), "./module-data/namespaces/korifi.yaml", "Korifi Namespace")
+	korifiGatewayNs := installable.NewYaml(mgr.GetClient(), "./module-data/namespaces/korifi-gateway.yaml", "Korifi Gateway Namespace")
 	cfRootNs := installable.NewYaml(mgr.GetClient(), "./module-data/namespaces/cfroot.yaml", "Root Namespace")
 	certIssuers := installable.NewYaml(mgr.GetClient(), "./module-data/issuers/issuers.yaml", "CertIssuers")
 	gwAPI := installable.NewYaml(mgr.GetClient(), "./module-data/vendor/gateway-api/experimental-install.yaml", "Gateway API")
@@ -126,6 +127,7 @@ func main() {
 
 	installables := []installable.Installable{
 		korifiNs,
+		korifiGatewayNs,
 		cfRootNs,
 		certIssuers,
 		gwAPI,
@@ -146,6 +148,7 @@ func main() {
 		gwAPI,
 		certIssuers,
 		korifiNs,
+		korifiGatewayNs,
 	}
 
 	controllersLog := ctrl.Log.WithName(operatorName)
