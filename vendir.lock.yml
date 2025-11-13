@@ -11,7 +11,7 @@ directories:
     path: kpack
   - helmChart:
       appVersion: ""
-      version: 0.16.1
+      version: 0.17.0
     path: korifi-chart
   path: module-data/vendor
 - contents:
@@ -34,10 +34,10 @@ directories:
       url: https://api.github.com/repos/kyma-project/istio/releases/259235362
     path: istio-kyma
   - git:
-      commitTitle: release v0.38.0
-      sha: 047d8e586af581778db388c9223ebd060496ef33
+      commitTitle: release v0.39.0
+      sha: 28aa7fd2aafa680a1c972fb2f12447d79ef29290
       tags:
-      - v0.38.0
+      - v0.39.0
     path: oidc-webhook-authenticator
   - git:
       commitTitle: release v0.19.0

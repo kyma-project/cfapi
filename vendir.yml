@@ -17,7 +17,7 @@ directories:
   - path: korifi-chart
     helmChart:
       name: korifi
-      version: "v0.16.1"
+      latest: true
       repository:
         url: https://cloudfoundry.github.io/korifi
 - path: tests/dependencies/vendor
