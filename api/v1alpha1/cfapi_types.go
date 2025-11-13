@@ -30,8 +30,10 @@ import (
 )
 
 const (
-	CFAPIKind Kind = "CFAPI"
-	Version   Kind = "v1alpha1"
+	CFAPIKind          Kind   = "CFAPI"
+	Version            Kind   = "v1alpha1"
+	GatewayTypeContour string = "contour"
+	GatewayTypeIstio   string = "istio"
 )
 
 type Kind string
@@ -85,6 +87,8 @@ type InstallationConfig struct {
 	KorifiIngressHost string `json:"korifiIngressHost"`
 	//+kubebuilder:validation:Optional
 	UseSelfSignedCertificates bool `json:"useSelfSignedCertificates"`
+	//+kubebuilder:validation:Optional
+	GatewayType string `json:"gatewayType"`
 }
 
 type CFAPISpec struct {
@@ -112,6 +116,9 @@ type CFAPISpec struct {
 	// Whether to use self-signed certificates for the Korif API and workloads. Defaults to `false`
 	//+kubebuilder:validation:Optional
 	UseSelfSignedCertificates bool `json:"useSelfSignedCertificates"`
+	// The type of the Korifi ingress gateway. Should be one of "contour" or "istio". Defaluts to contour.
+	//+kubebuilder:validation:Optional
+	GatewayType string `json:"gatewayType"`
 }
 
 //+kubebuilder:object:root=true

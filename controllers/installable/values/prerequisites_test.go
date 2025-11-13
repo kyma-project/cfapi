@@ -35,6 +35,7 @@ var _ = Describe("Prerequisites", func() {
 			UseSelfSignedCertificates: true,
 			ContainerRegistrySecret:   kyma.ContainerRegistrySecretName,
 			RootNamespace:             "my-root-ns",
+			GatewayType:               "contour",
 		}
 
 		prerequisites = values.NewPrerequisites(adminClient)
@@ -51,6 +52,7 @@ var _ = Describe("Prerequisites", func() {
 			"cfDomain":                  Equal("korifi.example.com"),
 			"useSelfSignedCertificates": Equal(true),
 			"selfSignedIssuer":          Equal("cfapi-self-signed-issuer"),
+			"gatewayType":               Equal("contour"),
 			"containerRegistrySecret": MatchAllKeys(Keys{
 				"name": Equal(kyma.ContainerRegistrySecretName),
 				"propagation": MatchAllKeys(Keys{

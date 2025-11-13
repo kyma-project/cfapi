@@ -9,3 +9,4 @@ spec:
   containerRepositoryPrefix: "dockerregistry.kyma-system.svc.cluster.local:5000/"
   builderRepository: "dockerregistry.kyma-system.svc.cluster.local:5000/cfapi/kpack-builder"
   disableContainerRegistrySecretPropagation: true
+  gatewayType: $KORIFI_GW_TYPE

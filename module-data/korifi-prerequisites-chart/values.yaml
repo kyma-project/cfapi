@@ -2,6 +2,7 @@ systemNamespace: kyma-system
 selfSignedIssuer: cfapi-self-signed-issuer
 useSelfSignedCertificates: false
 cfDomain:
+gatewayType: contour
 
 containerRegistrySecret:
   name: dockerregistry-config
