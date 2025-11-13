@@ -15,6 +15,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"helm.sh/helm/v3/pkg/action"
+	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/storage/driver"
@@ -26,10 +27,10 @@ import (
 
 var _ = Describe("HelmChartInstallableIntegrationTest", func() {
 	var (
-		chartPath          string
-		result             installable.Result
-		valuesProvider     *fake.HelmValuesProvider
-		installErr         error
+		chartPath      string
+		result         installable.Result
+		valuesProvider *fake.HelmValuesProvider
+
 		referencedSecret   *corev1.Secret
 		helmChartInstaller *installable.HelmChart
 	)
@@ -51,59 +52,17 @@ var _ = Describe("HelmChartInstallableIntegrationTest", func() {
 		Expect(k8sClient.Create(ctx, referencedSecret)).To(Succeed())
 	})
 
-	JustBeforeEach(func() {
-		helmChartInstaller = installable.NewHelmChart(chartPath, testNamespace, "dummy-chart", valuesProvider, helm.NewClient())
-		result, installErr = helmChartInstaller.Install(context.Background(), v1alpha1.InstallationConfig{}, new(fake.EventRecorder))
-	})
+	Describe("Install", func() {
+		var installErr error
 
-	It("applies the chart", func() {
-		Expect(installErr).NotTo(HaveOccurred())
-
-		Eventually(func(g Gomega) {
-			installedReleases := listReleases("dummy-chart")
-			g.Expect(installedReleases).To(HaveLen(1))
-			g.Expect(installedReleases[0].Info.Status).To(Equal(release.StatusDeployed))
-
-			configMap := &corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: testNamespace,
-					Name:      "dummy-configmap",
-				},
-			}
-			g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(configMap), configMap)).To(Succeed())
-			g.Expect(configMap.Data).To(Equal(map[string]string{
-				"helm-value":    "dummy-value",
-				"secret-values": "my-secret-value",
-			}))
-		}).Should(Succeed())
-	})
-
-	When("referenced secret does not exist", func() {
-		BeforeEach(func() {
-			Expect(k8sClient.Delete(ctx, referencedSecret)).To(Succeed())
+		JustBeforeEach(func() {
+			helmChartInstaller = installable.NewHelmChart(chartPath, testNamespace, "dummy-chart", valuesProvider, helm.NewClient())
+			result, installErr = helmChartInstaller.Install(ctx, v1alpha1.InstallationConfig{}, new(fake.EventRecorder))
 		})
 
-		It("it returns inprogress result", func() {
+		It("applies the chart", func() {
 			Expect(installErr).NotTo(HaveOccurred())
-			Expect(result.State).To(Equal(installable.ResultStateInProgress))
-			Expect(result.Message).To(SatisfyAll(ContainSubstring("status unknown"), ContainSubstring("lookup")))
-		})
 
-		It("does not deploy the chart (as helm templating fails)", func() {
-			Consistently(func(g Gomega) {
-				g.Expect(listReleases("dummy-chart")).To(BeEmpty())
-			}).Should(Succeed())
-		})
-	})
-
-	When("custom helm values are specified", func() {
-		BeforeEach(func() {
-			valuesProvider.GetValuesReturns(map[string]any{
-				"configMapValue": "my-very-custom-value",
-			}, nil)
-		})
-
-		It("uses them when applying the chart", func() {
 			Eventually(func(g Gomega) {
 				installedReleases := listReleases("dummy-chart")
 				g.Expect(installedReleases).To(HaveLen(1))
@@ -116,78 +75,43 @@ var _ = Describe("HelmChartInstallableIntegrationTest", func() {
 					},
 				}
 				g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(configMap), configMap)).To(Succeed())
-				g.Expect(configMap.Data).To(HaveKeyWithValue("helm-value", "my-very-custom-value"))
-			}).Should(Succeed())
-		})
-	})
-
-	When("the chart path is incorrect", func() {
-		BeforeEach(func() {
-			chartPath = "does-not-exist"
-		})
-
-		It("returns a failed result", func() {
-			Expect(installErr).NotTo(HaveOccurred())
-			Expect(result.State).To(Equal(installable.ResultStateFailed))
-			Expect(result.Message).To(ContainSubstring("does-not-exist"))
-		})
-	})
-
-	When("getting the custom values fails", func() {
-		BeforeEach(func() {
-			valuesProvider.GetValuesReturns(map[string]any{}, errors.New("values-err"))
-		})
-
-		It("returns in progress result", func() {
-			Expect(installErr).NotTo(HaveOccurred())
-			Expect(result.State).To(Equal(installable.ResultStateInProgress))
-		})
-	})
-
-	When("the chart is already installed", func() {
-		JustBeforeEach(func() {
-			Expect(installErr).NotTo(HaveOccurred())
-
-			Eventually(func(g Gomega) {
-				installedReleases := listReleases("dummy-chart")
-				g.Expect(installedReleases).To(HaveLen(1))
-				g.Expect(installedReleases[0].Info.Status).To(Equal(release.StatusDeployed))
+				g.Expect(configMap.Data).To(Equal(map[string]string{
+					"helm-value":    "dummy-value",
+					"secret-values": "my-secret-value",
+				}))
 			}).Should(Succeed())
 		})
 
-		When("reinstalling the chart", func() {
-			JustBeforeEach(func() {
-				result, installErr = helmChartInstaller.Install(context.Background(), v1alpha1.InstallationConfig{}, new(fake.EventRecorder))
+		When("referenced secret does not exist", func() {
+			BeforeEach(func() {
+				Expect(k8sClient.Delete(ctx, referencedSecret)).To(Succeed())
 			})
 
-			It("is noop", func() {
+			It("it returns in progress result", func() {
 				Expect(installErr).NotTo(HaveOccurred())
-				Expect(result.State).To(Equal(installable.ResultStateSuccess))
+				Expect(result.State).To(Equal(installable.ResultStateInProgress))
+				Expect(result.Message).To(SatisfyAll(ContainSubstring("status unknown"), ContainSubstring("lookup")))
+			})
 
-				installedReleases := listReleases("dummy-chart")
-				Expect(installedReleases).To(HaveLen(1))
-				Expect(installedReleases[0].Info.Status).To(Equal(release.StatusDeployed))
+			It("does not deploy the chart (as helm templating fails)", func() {
+				Consistently(func(g Gomega) {
+					g.Expect(listReleases("dummy-chart")).To(BeEmpty())
+				}).Should(Succeed())
 			})
 		})
 
-		When("reinstalling the chart with new values", func() {
-			JustBeforeEach(func() {
+		When("custom helm values are specified", func() {
+			BeforeEach(func() {
 				valuesProvider.GetValuesReturns(map[string]any{
 					"configMapValue": "my-very-custom-value",
 				}, nil)
-				time.Sleep(time.Second)
-				result, installErr = helmChartInstaller.Install(context.Background(), v1alpha1.InstallationConfig{}, new(fake.EventRecorder))
 			})
 
-			It("updates the helm resources with the new values", func() {
-				Expect(installErr).NotTo(HaveOccurred())
-				Expect(result.State).To(Equal(installable.ResultStateSuccess))
-
+			It("uses them when applying the chart", func() {
 				Eventually(func(g Gomega) {
 					installedReleases := listReleases("dummy-chart")
-					g.Expect(installedReleases).To(HaveLen(2))
-					g.Expect(installedReleases[0].Info.Status).To(Equal(release.StatusSuperseded))
-					g.Expect(installedReleases[1].Info.Status).To(Equal(release.StatusDeployed))
+					g.Expect(installedReleases).To(HaveLen(1))
+					g.Expect(installedReleases[0].Info.Status).To(Equal(release.StatusDeployed))
 
 					configMap := &corev1.ConfigMap{
 						ObjectMeta: metav1.ObjectMeta{
@@ -201,38 +125,145 @@ var _ = Describe("HelmChartInstallableIntegrationTest", func() {
 			})
 		})
 
-		When("upgrading to a newer chart version", func() {
-			JustBeforeEach(func() {
-				helmChartInstaller = installable.NewHelmChart("../../assets/dummy-chart-v2", testNamespace, "dummy-chart", valuesProvider, helm.NewClient())
-				result, installErr = helmChartInstaller.Install(context.Background(), v1alpha1.InstallationConfig{}, new(fake.EventRecorder))
+		When("the chart path is incorrect", func() {
+			BeforeEach(func() {
+				chartPath = "does-not-exist"
 			})
 
-			It("upgrades to the new helm version", func() {
+			It("returns a failed result", func() {
 				Expect(installErr).NotTo(HaveOccurred())
-				Expect(result).To(Equal(installable.Result{}))
+				Expect(result.State).To(Equal(installable.ResultStateFailed))
+				Expect(result.Message).To(ContainSubstring("does-not-exist"))
+			})
+		})
+
+		When("getting the custom values fails", func() {
+			BeforeEach(func() {
+				valuesProvider.GetValuesReturns(map[string]any{}, errors.New("values-err"))
+			})
+
+			It("returns in progress result", func() {
+				Expect(installErr).NotTo(HaveOccurred())
+				Expect(result.State).To(Equal(installable.ResultStateInProgress))
+			})
+		})
+
+		When("the chart is already installed", func() {
+			JustBeforeEach(func() {
+				Expect(installErr).NotTo(HaveOccurred())
 
 				Eventually(func(g Gomega) {
 					installedReleases := listReleases("dummy-chart")
-					g.Expect(installedReleases).To(HaveLen(2))
-					g.Expect(installedReleases[0].Info.Status).To(Equal(release.StatusSuperseded))
-					g.Expect(installedReleases[1].Info.Status).To(Equal(release.StatusDeployed))
+					g.Expect(installedReleases).To(HaveLen(1))
+					g.Expect(installedReleases[0].Info.Status).To(Equal(release.StatusDeployed))
+				}).Should(Succeed())
+			})
 
-					oldConfigMap := &corev1.ConfigMap{
-						ObjectMeta: metav1.ObjectMeta{
-							Namespace: testNamespace,
-							Name:      "dummy-configmap",
-						},
-					}
-					g.Expect(apierrors.IsNotFound(k8sClient.Get(ctx, client.ObjectKeyFromObject(oldConfigMap), oldConfigMap))).To(BeTrue())
+			When("reinstalling the chart", func() {
+				JustBeforeEach(func() {
+					result, installErr = helmChartInstaller.Install(context.Background(), v1alpha1.InstallationConfig{}, new(fake.EventRecorder))
+				})
 
-					newConfigMap := &corev1.ConfigMap{
-						ObjectMeta: metav1.ObjectMeta{
-							Namespace: testNamespace,
-							Name:      "dummy-configmap-v2",
-						},
-					}
-					g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(newConfigMap), newConfigMap)).To(Succeed())
-					g.Expect(newConfigMap.Data).To(HaveKeyWithValue("v2-key", "v2-value"))
+				It("is noop", func() {
+					Expect(installErr).NotTo(HaveOccurred())
+					Expect(result.State).To(Equal(installable.ResultStateSuccess))
+
+					installedReleases := listReleases("dummy-chart")
+					Expect(installedReleases).To(HaveLen(1))
+					Expect(installedReleases[0].Info.Status).To(Equal(release.StatusDeployed))
+				})
+			})
+
+			When("reinstalling the chart with new values", func() {
+				JustBeforeEach(func() {
+					valuesProvider.GetValuesReturns(map[string]any{
+						"configMapValue": "my-very-custom-value",
+					}, nil)
+					time.Sleep(time.Second)
+					result, installErr = helmChartInstaller.Install(context.Background(), v1alpha1.InstallationConfig{}, new(fake.EventRecorder))
+				})
+
+				It("updates the helm resources with the new values", func() {
+					Expect(installErr).NotTo(HaveOccurred())
+					Expect(result.State).To(Equal(installable.ResultStateSuccess))
+
+					Eventually(func(g Gomega) {
+						installedReleases := listReleases("dummy-chart")
+						g.Expect(installedReleases).To(HaveLen(2))
+						g.Expect(installedReleases[0].Info.Status).To(Equal(release.StatusSuperseded))
+						g.Expect(installedReleases[1].Info.Status).To(Equal(release.StatusDeployed))
+
+						configMap := &corev1.ConfigMap{
+							ObjectMeta: metav1.ObjectMeta{
+								Namespace: testNamespace,
+								Name:      "dummy-configmap",
+							},
+						}
+						g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(configMap), configMap)).To(Succeed())
+						g.Expect(configMap.Data).To(HaveKeyWithValue("helm-value", "my-very-custom-value"))
+					}).Should(Succeed())
+				})
+			})
+
+			When("upgrading to a newer chart version", func() {
+				JustBeforeEach(func() {
+					helmChartInstaller = installable.NewHelmChart("../../assets/dummy-chart-v2", testNamespace, "dummy-chart", valuesProvider, helm.NewClient())
+					result, installErr = helmChartInstaller.Install(context.Background(), v1alpha1.InstallationConfig{}, new(fake.EventRecorder))
+				})
+
+				It("upgrades to the new helm version", func() {
+					Expect(installErr).NotTo(HaveOccurred())
+					Expect(result).To(Equal(installable.Result{}))
+
+					Eventually(func(g Gomega) {
+						installedReleases := listReleases("dummy-chart")
+						g.Expect(installedReleases).To(HaveLen(2))
+						g.Expect(installedReleases[0].Info.Status).To(Equal(release.StatusSuperseded))
+						g.Expect(installedReleases[1].Info.Status).To(Equal(release.StatusDeployed))
+
+						oldConfigMap := &corev1.ConfigMap{
+							ObjectMeta: metav1.ObjectMeta{
+								Namespace: testNamespace,
+								Name:      "dummy-configmap",
+							},
+						}
+						g.Expect(apierrors.IsNotFound(k8sClient.Get(ctx, client.ObjectKeyFromObject(oldConfigMap), oldConfigMap))).To(BeTrue())
+
+						newConfigMap := &corev1.ConfigMap{
+							ObjectMeta: metav1.ObjectMeta{
+								Namespace: testNamespace,
+								Name:      "dummy-configmap-v2",
+							},
+						}
+						g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(newConfigMap), newConfigMap)).To(Succeed())
+						g.Expect(newConfigMap.Data).To(HaveKeyWithValue("v2-key", "v2-value"))
+					}).Should(Succeed())
+				})
+			})
+		})
+	})
+
+	Describe("Uninstall", func() {
+		var uninstallErr error
+
+		JustBeforeEach(func() {
+			helmChartInstaller = installable.NewHelmChart(chartPath, testNamespace, "dummy-chart", valuesProvider, helm.NewClient())
+			result, uninstallErr = helmChartInstaller.Uninstall(ctx, v1alpha1.InstallationConfig{}, new(fake.EventRecorder))
+		})
+
+		It("succeeds", func() {
+			Expect(uninstallErr).NotTo(HaveOccurred())
+		})
+
+		When("the chart is installed", func() {
+			BeforeEach(func() {
+				installChart(chartPath, testNamespace, "dummy-chart")
+			})
+
+			It("uninstalls the release", func() {
+				Expect(uninstallErr).NotTo(HaveOccurred())
+				Eventually(func(g Gomega) {
+					g.Expect(listReleases("dummy-chart")).To(BeEmpty())
 				}).Should(Succeed())
 			})
 		})
@@ -253,6 +284,21 @@ func listReleases(releaseName string) []*release.Release {
 	}
 
 	return versions
+}
+
+func installChart(chartPath, releaseNamespace, releaseName string) {
+	chart, err := loader.Load(chartPath)
+	Expect(err).NotTo(HaveOccurred())
+
+	actionConfig, err := newHelmActionConfig(testNamespace)
+	Expect(err).NotTo(HaveOccurred())
+
+	installAction := action.NewInstall(actionConfig)
+	installAction.Namespace = releaseNamespace
+	installAction.ReleaseName = releaseName
+
+	_, err = installAction.Run(chart, nil)
+	Expect(err).NotTo(HaveOccurred())
 }
 
 func newHelmActionConfig(releaseNamespace string) (*action.Configuration, error) {

@@ -37,27 +37,19 @@ func NewYaml(k8sClient client.Client, yamlGlob string, displayName string) *Yaml
 }
 
 func (y *Yaml) Install(ctx context.Context, config v1alpha1.InstallationConfig, eventRecorder EventRecorder) (Result, error) {
-	matchedFiles, err := filepath.Glob(y.yamlGlob)
+	objects, err := globToUnstructuredObjects(y.yamlGlob)
 	if err != nil {
-		return Result{}, err
-	}
-
-	if len(matchedFiles) == 0 {
 		return Result{
 			State:   ResultStateFailed,
-			Message: fmt.Sprintf("no matches found for pattern %s", y.yamlGlob),
+			Message: err.Error(),
 		}, nil
 	}
 
-	for _, file := range matchedFiles {
-		result, err := y.installFile(ctx, file)
+	for _, obj := range objects {
+		err = y.createOrUpdate(ctx, obj)
 		if err != nil {
-			return Result{}, err
-		}
-
-		if result.State != ResultStateSuccess {
 			eventRecorder.Event(EventWarning, "InstallableFailed", fmt.Sprintf("Installable %s failed", y.displayName))
-			return result, nil
+			return Result{}, fmt.Errorf("failed to create/update %s/%s: %w", obj.GetKind(), obj.GetName(), err)
 		}
 	}
 
@@ -68,32 +60,37 @@ func (y *Yaml) Install(ctx context.Context, config v1alpha1.InstallationConfig, 
 	}, nil
 }
 
-func (y *Yaml) installFile(ctx context.Context, yamlFilePath string) (Result, error) {
-	yamlBytes, err := os.ReadFile(yamlFilePath)
+func (y *Yaml) Uninstall(ctx context.Context, config v1alpha1.InstallationConfig, eventRecorder EventRecorder) (Result, error) {
+	objects, err := globToUnstructuredObjects(y.yamlGlob)
 	if err != nil {
 		return Result{
 			State:   ResultStateFailed,
-			Message: fmt.Sprintf("failed to read file %s: %s", yamlFilePath, err.Error()),
+			Message: err.Error(),
 		}, nil
 	}
 
-	objects, err := parseToUnstructuredObjects(string(yamlBytes))
-	if err != nil {
-		return Result{
-			State:   ResultStateFailed,
-			Message: fmt.Sprintf("failed to parse file to objects: %s", err),
-		}, nil
-	}
-
+	allDeleted := true
 	for _, obj := range objects {
-		err := y.createOrUpdate(ctx, obj)
+		isGone, err := y.delete(ctx, obj)
 		if err != nil {
-			return Result{}, fmt.Errorf("failed to create/update %s/%s: %w", obj.GetKind(), obj.GetName(), err)
+			eventRecorder.Event(EventWarning, "InstallableFailed", fmt.Sprintf("Uninstalling %s failed", y.displayName))
+			return Result{}, fmt.Errorf("failed to delete %s/%s: %w", obj.GetKind(), obj.GetName(), err)
 		}
+
+		allDeleted = allDeleted && isGone
+	}
+
+	if allDeleted {
+		eventRecorder.Event(EventNormal, "InstallableUninstalled", fmt.Sprintf("Installable %s uninstalled", y.displayName))
+		return Result{
+			State:   ResultStateSuccess,
+			Message: fmt.Sprintf("%s uninstalled successfully", y.displayName),
+		}, nil
 	}
 
 	return Result{
-		State: ResultStateSuccess,
+		State:   ResultStateInProgress,
+		Message: fmt.Sprintf("%s is being uninstalled", y.displayName),
 	}, nil
 }
 
@@ -123,6 +120,46 @@ func (y *Yaml) createOrUpdate(ctx context.Context, unstructuredObj *unstructured
 	}
 
 	return nil
+}
+
+func (y *Yaml) delete(ctx context.Context, unstructuredObj *unstructured.Unstructured) (bool, error) {
+	err := y.k8sClient.Delete(ctx, unstructuredObj)
+	if k8serrors.IsNotFound(err) {
+		return true, nil
+	}
+
+	return false, err
+}
+
+func globToUnstructuredObjects(yamlGlob string) ([]*unstructured.Unstructured, error) {
+	matchedFiles, err := filepath.Glob(yamlGlob)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(matchedFiles) == 0 {
+		return nil, fmt.Errorf("no matches found for pattern %s", yamlGlob)
+	}
+
+	objects := []*unstructured.Unstructured{}
+	for _, file := range matchedFiles {
+		fileObject, err := fileToUnstructuredObjects(file)
+		if err != nil {
+			return nil, err
+		}
+		objects = append(objects, fileObject...)
+	}
+
+	return objects, nil
+}
+
+func fileToUnstructuredObjects(yamlFilePath string) ([]*unstructured.Unstructured, error) {
+	yamlBytes, err := os.ReadFile(yamlFilePath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read file %s: %w", yamlFilePath, err)
+	}
+
+	return parseToUnstructuredObjects(string(yamlBytes))
 }
 
 func parseToUnstructuredObjects(yamlContent string) ([]*unstructured.Unstructured, error) {

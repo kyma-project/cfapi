@@ -114,15 +114,38 @@ func main() {
 	}
 
 	helmClient := helm.NewClient()
+	korifiNs := installable.NewYaml(mgr.GetClient(), "./module-data/namespaces/korifi.yaml", "Korifi Namespace")
+	cfRootNs := installable.NewYaml(mgr.GetClient(), "./module-data/namespaces/cfroot.yaml", "Root Namespace")
+	certIssuers := installable.NewYaml(mgr.GetClient(), "./module-data/issuers/issuers.yaml", "CertIssuers")
+	gwAPI := installable.NewYaml(mgr.GetClient(), "./module-data/vendor/gateway-api/experimental-install.yaml", "Gateway API")
+	kpack := installable.NewYaml(mgr.GetClient(), "./module-data/vendor/kpack/release-*.yaml", "kpack")
+	korifiPrerequisites := installable.NewHelmChart("./module-data/korifi-prerequisites-chart", "korifi", "korifi-prerequisites", values.NewPrerequisites(mgr.GetClient()), helmClient)
+	korifi := installable.NewHelmChart("./module-data/vendor/korifi-chart", "korifi", "korifi", values.NewKorifi(mgr.GetClient(), "korifi"), helmClient)
+	cfAPIConfig := installable.NewHelmChart("./module-data/cfapi-config-chart", "korifi", "cfapi-config", values.NewCFAPIConfig(), helmClient)
+	btpServiceBroker := installable.NewHelmChart("./module-data/btp-service-broker/helm", "cfapi-system", "btp-service-broker", values.NoValues{}, helmClient)
+
 	installables := []installable.Installable{
-		installable.NewYaml(mgr.GetClient(), "./module-data/namespaces/namespaces.yaml", "Namespaces"),
-		installable.NewYaml(mgr.GetClient(), "./module-data/issuers/issuers.yaml", "CertIssuers"),
-		installable.NewYaml(mgr.GetClient(), "./module-data/vendor/gateway-api/experimental-install.yaml", "Gateway API"),
-		installable.NewYaml(mgr.GetClient(), "./module-data/vendor/kpack/release-*.yaml", "kpack"),
-		installable.NewHelmChart("./module-data/korifi-prerequisites-chart", "korifi", "korifi-prerequisites", values.NewPrerequisites(mgr.GetClient()), helmClient),
-		installable.NewHelmChart("./module-data/vendor/korifi-chart", "korifi", "korifi", values.NewKorifi(mgr.GetClient(), "korifi"), helmClient),
-		installable.NewHelmChart("./module-data/cfapi-config-chart", "korifi", "cfapi-config", values.NewCFAPIConfig(), helmClient),
-		installable.NewHelmChart("./module-data/btp-service-broker/helm", "cfapi-system", "btp-service-broker", values.NoValues{}, helmClient),
+		korifiNs,
+		cfRootNs,
+		certIssuers,
+		gwAPI,
+		kpack,
+		korifiPrerequisites,
+		korifi,
+		cfAPIConfig,
+		btpServiceBroker,
+	}
+
+	uninstallables := []installable.Uninstallable{
+		cfRootNs,
+		btpServiceBroker,
+		cfAPIConfig,
+		korifi,
+		korifiPrerequisites,
+		kpack,
+		gwAPI,
+		certIssuers,
+		korifiNs,
 	}
 
 	controllersLog := ctrl.Log.WithName(operatorName)
@@ -134,7 +157,8 @@ func main() {
 		mgr.GetEventRecorderFor(operatorName),
 		controllersLog,
 		10*time.Second,
-		installables...,
+		installables,
+		uninstallables,
 	).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CFAPI")
 		os.Exit(1)
