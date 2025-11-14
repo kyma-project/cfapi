@@ -25,6 +25,31 @@ type Installable struct {
 		result1 installable.Result
 		result2 error
 	}
+	NameStub        func() string
+	nameMutex       sync.RWMutex
+	nameArgsForCall []struct {
+	}
+	nameReturns struct {
+		result1 string
+	}
+	nameReturnsOnCall map[int]struct {
+		result1 string
+	}
+	UninstallStub        func(context.Context, v1alpha1.InstallationConfig, installable.EventRecorder) (installable.Result, error)
+	uninstallMutex       sync.RWMutex
+	uninstallArgsForCall []struct {
+		arg1 context.Context
+		arg2 v1alpha1.InstallationConfig
+		arg3 installable.EventRecorder
+	}
+	uninstallReturns struct {
+		result1 installable.Result
+		result2 error
+	}
+	uninstallReturnsOnCall map[int]struct {
+		result1 installable.Result
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -90,6 +115,125 @@ func (fake *Installable) InstallReturnsOnCall(i int, result1 installable.Result,
 		})
 	}
 	fake.installReturnsOnCall[i] = struct {
+		result1 installable.Result
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *Installable) Name() string {
+	fake.nameMutex.Lock()
+	ret, specificReturn := fake.nameReturnsOnCall[len(fake.nameArgsForCall)]
+	fake.nameArgsForCall = append(fake.nameArgsForCall, struct {
+	}{})
+	stub := fake.NameStub
+	fakeReturns := fake.nameReturns
+	fake.recordInvocation("Name", []interface{}{})
+	fake.nameMutex.Unlock()
+	if stub != nil {
+		return stub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *Installable) NameCallCount() int {
+	fake.nameMutex.RLock()
+	defer fake.nameMutex.RUnlock()
+	return len(fake.nameArgsForCall)
+}
+
+func (fake *Installable) NameCalls(stub func() string) {
+	fake.nameMutex.Lock()
+	defer fake.nameMutex.Unlock()
+	fake.NameStub = stub
+}
+
+func (fake *Installable) NameReturns(result1 string) {
+	fake.nameMutex.Lock()
+	defer fake.nameMutex.Unlock()
+	fake.NameStub = nil
+	fake.nameReturns = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *Installable) NameReturnsOnCall(i int, result1 string) {
+	fake.nameMutex.Lock()
+	defer fake.nameMutex.Unlock()
+	fake.NameStub = nil
+	if fake.nameReturnsOnCall == nil {
+		fake.nameReturnsOnCall = make(map[int]struct {
+			result1 string
+		})
+	}
+	fake.nameReturnsOnCall[i] = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *Installable) Uninstall(arg1 context.Context, arg2 v1alpha1.InstallationConfig, arg3 installable.EventRecorder) (installable.Result, error) {
+	fake.uninstallMutex.Lock()
+	ret, specificReturn := fake.uninstallReturnsOnCall[len(fake.uninstallArgsForCall)]
+	fake.uninstallArgsForCall = append(fake.uninstallArgsForCall, struct {
+		arg1 context.Context
+		arg2 v1alpha1.InstallationConfig
+		arg3 installable.EventRecorder
+	}{arg1, arg2, arg3})
+	stub := fake.UninstallStub
+	fakeReturns := fake.uninstallReturns
+	fake.recordInvocation("Uninstall", []interface{}{arg1, arg2, arg3})
+	fake.uninstallMutex.Unlock()
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *Installable) UninstallCallCount() int {
+	fake.uninstallMutex.RLock()
+	defer fake.uninstallMutex.RUnlock()
+	return len(fake.uninstallArgsForCall)
+}
+
+func (fake *Installable) UninstallCalls(stub func(context.Context, v1alpha1.InstallationConfig, installable.EventRecorder) (installable.Result, error)) {
+	fake.uninstallMutex.Lock()
+	defer fake.uninstallMutex.Unlock()
+	fake.UninstallStub = stub
+}
+
+func (fake *Installable) UninstallArgsForCall(i int) (context.Context, v1alpha1.InstallationConfig, installable.EventRecorder) {
+	fake.uninstallMutex.RLock()
+	defer fake.uninstallMutex.RUnlock()
+	argsForCall := fake.uninstallArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+}
+
+func (fake *Installable) UninstallReturns(result1 installable.Result, result2 error) {
+	fake.uninstallMutex.Lock()
+	defer fake.uninstallMutex.Unlock()
+	fake.UninstallStub = nil
+	fake.uninstallReturns = struct {
+		result1 installable.Result
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *Installable) UninstallReturnsOnCall(i int, result1 installable.Result, result2 error) {
+	fake.uninstallMutex.Lock()
+	defer fake.uninstallMutex.Unlock()
+	fake.UninstallStub = nil
+	if fake.uninstallReturnsOnCall == nil {
+		fake.uninstallReturnsOnCall = make(map[int]struct {
+			result1 installable.Result
+			result2 error
+		})
+	}
+	fake.uninstallReturnsOnCall[i] = struct {
 		result1 installable.Result
 		result2 error
 	}{result1, result2}

@@ -66,20 +66,20 @@ var _ = Describe("CFDomainReconciler Integration Tests", func() {
 		Eventually(func(g Gomega) {
 			g.Expect(adminClient.Get(ctx, client.ObjectKeyFromObject(cfAPI), cfAPI)).To(Succeed())
 
-			g.Expect(firstInstallable.InstallCallCount()).To(BeNumerically(">", 0))
-			_, actualFirstInstallableConfig, _ := firstInstallable.InstallArgsForCall(firstInstallable.InstallCallCount() - 1)
+			g.Expect(firstToInstall.InstallCallCount()).To(BeNumerically(">", 0))
+			_, actualFirstInstallableConfig, _ := firstToInstall.InstallArgsForCall(firstToInstall.InstallCallCount() - 1)
 			g.Expect(actualFirstInstallableConfig).To(Equal(cfAPI.Status.InstallationConfig))
 
-			g.Expect(secondInstallable.InstallCallCount()).To(BeNumerically(">", 0))
-			_, actualSecondInstallableConfig, _ := secondInstallable.InstallArgsForCall(secondInstallable.InstallCallCount() - 1)
+			g.Expect(secondToInstall.InstallCallCount()).To(BeNumerically(">", 0))
+			_, actualSecondInstallableConfig, _ := secondToInstall.InstallArgsForCall(secondToInstall.InstallCallCount() - 1)
 			g.Expect(actualSecondInstallableConfig).To(Equal(cfAPI.Status.InstallationConfig))
 		}).Should(Succeed())
 	})
 
 	It("does not call the uninstallables", func() {
 		Consistently(func(g Gomega) {
-			g.Expect(firstUninstallable.UninstallCallCount()).To(BeZero())
-			g.Expect(secondUninstallable.UninstallCallCount()).To(BeZero())
+			g.Expect(firstToUninstall.UninstallCallCount()).To(BeZero())
+			g.Expect(secondToUninstall.UninstallCallCount()).To(BeZero())
 		}).Should(Succeed())
 	})
 
@@ -95,6 +95,7 @@ var _ = Describe("CFDomainReconciler Integration Tests", func() {
 				CFDomain:                  "kyma-host.com",
 				UAAURL:                    "https://uaa.cf.eu12.hana.ondemand.com",
 				CFAdmins:                  []string{"default.admin@sap.com"},
+				GatewayType:               "contour",
 				DisableContainerRegistrySecretPropagation: false,
 			}))
 		}).Should(Succeed())
@@ -174,20 +175,20 @@ var _ = Describe("CFDomainReconciler Integration Tests", func() {
 		})
 	})
 
-	When("korifi ingress service exists", func() {
+	When("the ingress service exists", func() {
 		var ingressService *corev1.Service
 
 		BeforeEach(func() {
-			Expect(adminClient.Create(ctx, &corev1.Namespace{
+			Expect(client.IgnoreAlreadyExists(adminClient.Create(ctx, &corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "korifi-gateway",
 				},
-			})).To(Succeed())
+			}))).To(Succeed())
 
 			ingressService = &corev1.Service{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "korifi-gateway",
-					Name:      "korifi-istio",
+					Name:      "contour-envoy",
 				},
 				Spec: corev1.ServiceSpec{
 					Type: corev1.ServiceTypeLoadBalancer,
@@ -278,17 +279,10 @@ var _ = Describe("CFDomainReconciler Integration Tests", func() {
 		})
 	})
 
-	When("alpha gateway istio feature is not enabled", func() {
+	When("the gateway type is invalid", func() {
 		BeforeEach(func() {
-			istio := &v1alpha2.Istio{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "kyma-system",
-					Name:      "default",
-				},
-			}
-			Expect(adminClient.Get(ctx, client.ObjectKeyFromObject(istio), istio)).To(Succeed())
-			Expect(k8s.Patch(ctx, adminClient, istio, func() {
-				istio.Spec.Experimental.EnableAlphaGatewayAPI = false
+			Expect(k8s.Patch(ctx, adminClient, cfAPI, func() {
+				cfAPI.Spec.GatewayType = "my-gateway-type"
 			})).To(Succeed())
 		})
 
@@ -298,18 +292,118 @@ var _ = Describe("CFDomainReconciler Integration Tests", func() {
 				g.Expect(cfAPI.Status.State).To(Equal(v1alpha1.StateWarning))
 			}).Should(Succeed())
 		})
+	})
 
-		It("sets the configuration status condition to false", func() {
-			Eventually(func(g Gomega) {
-				g.Expect(adminClient.Get(ctx, client.ObjectKeyFromObject(cfAPI), cfAPI)).To(Succeed())
-				g.Expect(meta.IsStatusConditionFalse(cfAPI.Status.Conditions, v1alpha1.ConditionTypeConfiguration)).To(BeTrue())
-			}).Should(Succeed())
+	When("the gateway type is 'istio'", func() {
+		BeforeEach(func() {
+			Expect(k8s.Patch(ctx, adminClient, cfAPI, func() {
+				cfAPI.Spec.GatewayType = "istio"
+			})).To(Succeed())
+		})
+
+		When("alpha gateway istio feature is not enabled", func() {
+			BeforeEach(func() {
+				istio := &v1alpha2.Istio{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "kyma-system",
+						Name:      "default",
+					},
+				}
+				Expect(adminClient.Get(ctx, client.ObjectKeyFromObject(istio), istio)).To(Succeed())
+				Expect(k8s.Patch(ctx, adminClient, istio, func() {
+					istio.Spec.Experimental.EnableAlphaGatewayAPI = false
+				})).To(Succeed())
+			})
+
+			It("sets warning state", func() {
+				Eventually(func(g Gomega) {
+					g.Expect(adminClient.Get(ctx, client.ObjectKeyFromObject(cfAPI), cfAPI)).To(Succeed())
+					g.Expect(cfAPI.Status.State).To(Equal(v1alpha1.StateWarning))
+				}).Should(Succeed())
+			})
+
+			It("sets the configuration status condition to false", func() {
+				Eventually(func(g Gomega) {
+					g.Expect(adminClient.Get(ctx, client.ObjectKeyFromObject(cfAPI), cfAPI)).To(Succeed())
+					g.Expect(meta.IsStatusConditionFalse(cfAPI.Status.Conditions, v1alpha1.ConditionTypeConfiguration)).To(BeTrue())
+				}).Should(Succeed())
+			})
+		})
+
+		When("the ingress service exists", func() {
+			var ingressService *corev1.Service
+
+			BeforeEach(func() {
+				Expect(client.IgnoreAlreadyExists(adminClient.Create(ctx, &corev1.Namespace{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "korifi-gateway",
+					},
+				}))).To(Succeed())
+
+				ingressService = &corev1.Service{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "korifi-gateway",
+						Name:      "korifi-istio",
+					},
+					Spec: corev1.ServiceSpec{
+						Type: corev1.ServiceTypeLoadBalancer,
+						Ports: []corev1.ServicePort{{
+							Name:       "http",
+							Protocol:   "TCP",
+							Port:       8080,
+							TargetPort: intstr.FromInt(8080),
+						}},
+					},
+				}
+				Expect(adminClient.Create(ctx, ingressService)).To(Succeed())
+			})
+
+			It("does not set the korifi ingress host", func() {
+				EventuallyShouldHold(func(g Gomega) {
+					g.Expect(adminClient.Get(ctx, client.ObjectKeyFromObject(cfAPI), cfAPI)).To(Succeed())
+					g.Expect(cfAPI.Status.InstallationConfig.KorifiIngressHost).To(BeEmpty())
+				})
+			})
+
+			When("the ingress service hostname is set", func() {
+				BeforeEach(func() {
+					Expect(k8s.Patch(ctx, adminClient, ingressService, func() {
+						ingressService.Status.LoadBalancer.Ingress = []corev1.LoadBalancerIngress{{
+							Hostname: "korifi.host.com",
+						}}
+					})).To(Succeed())
+				})
+
+				It("sets the korifi ingress host", func() {
+					Eventually(func(g Gomega) {
+						g.Expect(adminClient.Get(ctx, client.ObjectKeyFromObject(cfAPI), cfAPI)).To(Succeed())
+						g.Expect(cfAPI.Status.InstallationConfig.KorifiIngressHost).To(Equal("korifi.host.com"))
+					}).Should(Succeed())
+				})
+			})
+
+			When("the ingress service IP is set", func() {
+				BeforeEach(func() {
+					Expect(k8s.Patch(ctx, adminClient, ingressService, func() {
+						ingressService.Status.LoadBalancer.Ingress = []corev1.LoadBalancerIngress{{
+							IP: "10.11.12.13",
+						}}
+					})).To(Succeed())
+				})
+
+				It("sets the korifi ingress host", func() {
+					Eventually(func(g Gomega) {
+						g.Expect(adminClient.Get(ctx, client.ObjectKeyFromObject(cfAPI), cfAPI)).To(Succeed())
+						g.Expect(cfAPI.Status.InstallationConfig.KorifiIngressHost).To(Equal("10.11.12.13"))
+					}).Should(Succeed())
+				})
+			})
 		})
 	})
 
 	When("one of the installables returns an error", func() {
 		BeforeEach(func() {
-			secondInstallable.InstallReturns(installable.Result{}, errors.New("second-failed"))
+			secondToInstall.InstallReturns(installable.Result{}, errors.New("second-failed"))
 		})
 
 		It("leaves the CFAPI resource in processing state", func() {
@@ -322,7 +416,7 @@ var _ = Describe("CFDomainReconciler Integration Tests", func() {
 
 	When("one of the installables returns a failure result", func() {
 		BeforeEach(func() {
-			secondInstallable.InstallReturns(installable.Result{
+			secondToInstall.InstallReturns(installable.Result{
 				State:   installable.ResultStateFailed,
 				Message: "i have failed",
 			}, nil)
@@ -344,7 +438,7 @@ var _ = Describe("CFDomainReconciler Integration Tests", func() {
 
 	When("one of the installables returns processing result", func() {
 		BeforeEach(func() {
-			secondInstallable.InstallReturns(installable.Result{
+			secondToInstall.InstallReturns(installable.Result{
 				State: installable.ResultStateInProgress,
 			}, nil)
 		})
@@ -468,19 +562,19 @@ var _ = Describe("CFDomainReconciler Integration Tests", func() {
 				err := adminClient.Get(ctx, client.ObjectKeyFromObject(cfAPI), cfAPI)
 				g.Expect(k8serrors.IsNotFound(err)).To(BeTrue())
 
-				g.Expect(firstUninstallable.UninstallCallCount()).To(BeNumerically(">", 0))
-				_, actualFirstUninstallableConfig, _ := firstUninstallable.UninstallArgsForCall(firstUninstallable.UninstallCallCount() - 1)
+				g.Expect(firstToUninstall.UninstallCallCount()).To(BeNumerically(">", 0))
+				_, actualFirstUninstallableConfig, _ := firstToUninstall.UninstallArgsForCall(firstToUninstall.UninstallCallCount() - 1)
 				g.Expect(actualFirstUninstallableConfig).To(Equal(uninstConfig))
 
-				g.Expect(secondUninstallable.UninstallCallCount()).To(BeNumerically(">", 0))
-				_, actualSecondUninstallableConfig, _ := secondUninstallable.UninstallArgsForCall(secondUninstallable.UninstallCallCount() - 1)
+				g.Expect(secondToUninstall.UninstallCallCount()).To(BeNumerically(">", 0))
+				_, actualSecondUninstallableConfig, _ := secondToUninstall.UninstallArgsForCall(secondToUninstall.UninstallCallCount() - 1)
 				g.Expect(actualSecondUninstallableConfig).To(Equal(uninstConfig))
 			}).Should(Succeed())
 		})
 
 		When("an uninstallable returns an error", func() {
 			BeforeEach(func() {
-				firstUninstallable.UninstallReturns(installable.Result{}, errors.New("uninstall-failed"))
+				firstToUninstall.UninstallReturns(installable.Result{}, errors.New("uninstall-failed"))
 			})
 
 			It("does not let the resource go", func() {
@@ -491,14 +585,14 @@ var _ = Describe("CFDomainReconciler Integration Tests", func() {
 
 			It("does not invoke the next uninstallable", func() {
 				Consistently(func(g Gomega) {
-					g.Expect(secondUninstallable.UninstallCallCount()).To(BeZero())
+					g.Expect(secondToUninstall.UninstallCallCount()).To(BeZero())
 				}).Should(Succeed())
 			})
 		})
 
 		When("an uninstallable returns in progress", func() { //nolint:dupl
 			BeforeEach(func() {
-				firstUninstallable.UninstallReturns(installable.Result{
+				firstToUninstall.UninstallReturns(installable.Result{
 					State:   installable.ResultStateInProgress,
 					Message: "i-am-uninstalling",
 				}, nil)
@@ -519,14 +613,14 @@ var _ = Describe("CFDomainReconciler Integration Tests", func() {
 
 			It("does not invoke the next uninstallable", func() {
 				Consistently(func(g Gomega) {
-					g.Expect(secondUninstallable.UninstallCallCount()).To(BeZero())
+					g.Expect(secondToUninstall.UninstallCallCount()).To(BeZero())
 				}).Should(Succeed())
 			})
 		})
 
 		When("an uninstallable returns failed", func() { //nolint:dupl
 			BeforeEach(func() {
-				firstUninstallable.UninstallReturns(installable.Result{
+				firstToUninstall.UninstallReturns(installable.Result{
 					State:   installable.ResultStateFailed,
 					Message: "i-failed",
 				}, nil)
@@ -547,7 +641,7 @@ var _ = Describe("CFDomainReconciler Integration Tests", func() {
 
 			It("does not invoke the next uninstallable", func() {
 				Consistently(func(g Gomega) {
-					g.Expect(secondUninstallable.UninstallCallCount()).To(BeZero())
+					g.Expect(secondToUninstall.UninstallCallCount()).To(BeZero())
 				}).Should(Succeed())
 			})
 		})

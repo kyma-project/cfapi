@@ -72,6 +72,10 @@ spec:
                 description: Whether to disable container registry secret propagation
                   to workload namepsaces.
                 type: boolean
+              gatewayType:
+                description: The type of the Korifi ingress gateway. Should be one
+                  of "contour" or "istio". Defaluts to contour.
+                type: string
               rootNamespace:
                 description: The Korifi root namespace. Defaults to `cf`
                 type: string
@@ -160,6 +164,8 @@ spec:
                     type: string
                   disableContainerRegistrySecretPropagation:
                     type: boolean
+                  gatewayType:
+                    type: string
                   korifiIngressHost:
                     type: string
                   rootNamespace:

@@ -62,8 +62,8 @@ type Reconciler struct {
 	docker          *secrets.Docker
 	eventRecorder   record.EventRecorder
 	requeueInterval time.Duration
-	installables    []installable.Installable
-	uninstallables  []installable.Uninstallable
+	installOrder    []installable.Installable
+	uninstallOrder  []installable.Installable
 }
 
 func NewReconciler(
@@ -74,8 +74,8 @@ func NewReconciler(
 	eventRecorder record.EventRecorder,
 	log logr.Logger,
 	requeueInterval time.Duration,
-	installables []installable.Installable,
-	uninstallables []installable.Uninstallable,
+	installOrder []installable.Installable,
+	uninstallOrder []installable.Installable,
 ) *k8s.PatchingReconciler[v1alpha1.CFAPI] {
 	apiReconciler := &Reconciler{
 		k8sClient:       k8sClient,
@@ -84,8 +84,8 @@ func NewReconciler(
 		docker:          docker,
 		eventRecorder:   eventRecorder,
 		requeueInterval: requeueInterval,
-		installables:    installables,
-		uninstallables:  uninstallables,
+		installOrder:    installOrder,
+		uninstallOrder:  uninstallOrder,
 	}
 	return k8s.NewPatchingReconciler(ctrl.Log, k8sClient, apiReconciler)
 }
@@ -187,13 +187,19 @@ func (r *Reconciler) applyInstallResultToStatus(installResult installable.Result
 }
 
 func (r *Reconciler) compileInstallationConfig(ctx context.Context, cfAPI *v1alpha1.CFAPI) (v1alpha1.InstallationConfig, error) {
-	aphaGWAPIEnabled, err := r.kymaClient.Istio.IsAplhaGatewayAPIEnabled(ctx)
-	if err != nil {
+	gateway := newGateway(
+		r.k8sClient,
+		r.kymaClient,
+		cfAPI.Spec.GatewayType,
+	)
+
+	if err := gateway.Validate(ctx); err != nil {
 		return v1alpha1.InstallationConfig{}, err
 	}
 
-	if !aphaGWAPIEnabled {
-		return v1alpha1.InstallationConfig{}, errors.New("alpha gateway API feature is not enabled in istio. To fix this, enable the `experimental` channel on the istio module and set `spec.experimental.pilot.enableAlphaGatewayAPI` to `true` on the `kyma-system/default` Istio resource")
+	korifiIngressHost, err := gateway.Address(ctx)
+	if err != nil {
+		return v1alpha1.InstallationConfig{}, err
 	}
 
 	rootNs := cfAPI.Spec.RootNamespace
@@ -231,11 +237,6 @@ func (r *Reconciler) compileInstallationConfig(ctx context.Context, cfAPI *v1alp
 		return v1alpha1.InstallationConfig{}, err
 	}
 
-	korifiIngressHost, err := r.computeKorifiIngressHost(ctx)
-	if err != nil {
-		return v1alpha1.InstallationConfig{}, err
-	}
-
 	return v1alpha1.InstallationConfig{
 		RootNamespace:             rootNs,
 		ContainerRegistrySecret:   registrySecretName,
@@ -247,6 +248,7 @@ func (r *Reconciler) compileInstallationConfig(ctx context.Context, cfAPI *v1alp
 		CFAdmins:                  cfAdmins,
 		KorifiIngressHost:         korifiIngressHost,
 		UseSelfSignedCertificates: cfAPI.Spec.UseSelfSignedCertificates,
+		GatewayType:               gateway.Type,
 		DisableContainerRegistrySecretPropagation: cfAPI.Spec.DisableContainerRegistrySecretPropagation,
 	}, nil
 }
@@ -274,39 +276,10 @@ func (r *Reconciler) computeCFAdmins(ctx context.Context, cfAPI *v1alpha1.CFAPI)
 	})), nil
 }
 
-func (r *Reconciler) computeKorifiIngressHost(ctx context.Context) (string, error) {
-	korifiIngressService := &corev1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "korifi-gateway",
-			Name:      "korifi-istio",
-		},
-	}
-
-	err := r.k8sClient.Get(ctx, client.ObjectKeyFromObject(korifiIngressService), korifiIngressService)
-	if err != nil {
-		if client.IgnoreNotFound(err) != nil {
-			return "", err
-		}
-
-		return "", nil
-	}
-
-	if len(korifiIngressService.Status.LoadBalancer.Ingress) == 0 {
-		return "", nil
-	}
-
-	hostname := korifiIngressService.Status.LoadBalancer.Ingress[0].Hostname
-	if hostname == "" {
-		hostname = korifiIngressService.Status.LoadBalancer.Ingress[0].IP
-	}
-
-	return hostname, nil
-}
-
 func (r *Reconciler) install(ctx context.Context, config v1alpha1.InstallationConfig, eventRecorder installable.EventRecorder) (installable.Result, error) {
 	results := []installable.Result{}
 
-	for _, inst := range r.installables {
+	for _, inst := range r.installOrder {
 		result, err := inst.Install(ctx, config, eventRecorder)
 		if err != nil {
 			return installable.Result{}, err
@@ -398,7 +371,7 @@ func (r *Reconciler) finalize(ctx context.Context, cfAPI *v1alpha1.CFAPI) (ctrl.
 }
 
 func (r *Reconciler) uninstall(ctx context.Context, config v1alpha1.InstallationConfig, eventRecorder installable.EventRecorder) (installable.Result, error) {
-	for _, uninst := range r.uninstallables {
+	for _, uninst := range r.uninstallOrder {
 		result, err := uninst.Uninstall(ctx, config, eventRecorder)
 		if err != nil {
 			return installable.Result{}, err
@@ -411,4 +384,77 @@ func (r *Reconciler) uninstall(ctx context.Context, config v1alpha1.Installation
 	return installable.Result{
 		State: installable.ResultStateSuccess,
 	}, nil
+}
+
+type gateway struct {
+	k8sClient  client.Client
+	kymaClient *kyma.Client
+	Type       string
+	Service    *corev1.Service
+}
+
+func newGateway(k8sClient client.Client, kymaClient *kyma.Client, gatewayType string) gateway {
+	gw := gateway{
+		k8sClient:  k8sClient,
+		kymaClient: kymaClient,
+		Type:       v1alpha1.GatewayTypeContour,
+	}
+	if gatewayType != "" {
+		gw.Type = gatewayType
+	}
+
+	return gw
+}
+
+func (g *gateway) Validate(ctx context.Context) error {
+	if g.Type != v1alpha1.GatewayTypeContour && g.Type != v1alpha1.GatewayTypeIstio {
+		return fmt.Errorf("unsupported gateway type %q. Supported gateway types are %q and %q",
+			g.Type, v1alpha1.GatewayTypeContour, v1alpha1.GatewayTypeIstio)
+	}
+
+	if g.Type == v1alpha1.GatewayTypeIstio {
+		aphaGWAPIEnabled, err := g.kymaClient.Istio.IsAplhaGatewayAPIEnabled(ctx)
+		if err != nil {
+			return err
+		}
+
+		if !aphaGWAPIEnabled {
+			return errors.New("alpha gateway API feature is not enabled in istio. To fix this, enable the `experimental` channel on the istio module and set `spec.experimental.pilot.enableAlphaGatewayAPI` to `true` on the `kyma-system/default` Istio resource")
+		}
+	}
+
+	return nil
+}
+
+func (g *gateway) Address(ctx context.Context) (string, error) {
+	korifiIngressService := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "korifi-gateway",
+			Name:      "contour-envoy",
+		},
+	}
+
+	if g.Type == v1alpha1.GatewayTypeIstio {
+		korifiIngressService.Name = "korifi-istio"
+	}
+
+	err := g.k8sClient.Get(ctx, client.ObjectKeyFromObject(korifiIngressService), korifiIngressService)
+	if err != nil {
+		if client.IgnoreNotFound(err) != nil {
+			return "", err
+		}
+
+		return "", nil
+	}
+
+	if len(korifiIngressService.Status.LoadBalancer.Ingress) == 0 {
+		return "", nil
+	}
+
+	hostname := korifiIngressService.Status.LoadBalancer.Ingress[0].Hostname
+	if hostname == "" {
+		hostname = korifiIngressService.Status.LoadBalancer.Ingress[0].IP
+	}
+
+	return hostname, nil
 }

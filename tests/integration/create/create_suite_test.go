@@ -118,7 +118,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 		gwService := &corev1.Service{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "korifi-gateway",
-				Name:      "korifi-istio",
+				Name:      "contour-envoy",
 			},
 		}
 		g.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(gwService), gwService)).To(Succeed())
@@ -127,7 +127,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 
 		ports := []corev1.ServicePort{}
 		for _, port := range modifiedGwService.Spec.Ports {
-			if port.Name == "https-api" {
+			if port.Name == "https" {
 				port.NodePort = 32443
 				port.Port = 443
 				port.Protocol = corev1.ProtocolTCP

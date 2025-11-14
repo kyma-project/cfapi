@@ -181,6 +181,7 @@ func (c *Client) install(ctx context.Context, installedChart *chart.Chart, relea
 
 	installAction := action.NewInstall(actionConfig)
 	installAction.Namespace = releaseNamespace
+	installAction.CreateNamespace = true
 	installAction.ReleaseName = releaseName
 
 	rel, err := installAction.Run(installedChart, values)

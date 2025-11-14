@@ -36,6 +36,10 @@ func NewYaml(k8sClient client.Client, yamlGlob string, displayName string) *Yaml
 	}
 }
 
+func (y *Yaml) Name() string {
+	return fmt.Sprintf("Yaml Installable: %s", y.displayName)
+}
+
 func (y *Yaml) Install(ctx context.Context, config v1alpha1.InstallationConfig, eventRecorder EventRecorder) (Result, error) {
 	objects, err := globToUnstructuredObjects(y.yamlGlob)
 	if err != nil {
