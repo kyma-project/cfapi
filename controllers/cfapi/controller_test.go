@@ -210,10 +210,17 @@ var _ = Describe("CFDomainReconciler Integration Tests", func() {
 	})
 
 	When("the gateway type is invalid", func() {
-		It("errors", func() {
+		BeforeEach(func() {
 			Expect(k8s.Patch(ctx, adminClient, cfAPI, func() {
-				cfAPI.Spec.GatewayType = "my-gateway-type"
-			})).To(MatchError(ContainSubstring("Unsupported value")))
+				cfAPI.Spec.GatewayType = "invalid-gateway-type"
+			})).To(Succeed())
+		})
+
+		It("sets warning state", func() {
+			Eventually(func(g Gomega) {
+				g.Expect(adminClient.Get(ctx, client.ObjectKeyFromObject(cfAPI), cfAPI)).To(Succeed())
+				g.Expect(cfAPI.Status.State).To(Equal(v1alpha1.StateWarning))
+			}).Should(Succeed())
 		})
 	})
 
