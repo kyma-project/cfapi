@@ -30,6 +30,10 @@ func (g *Gateway) KorifiGatewayType(cfAPI *v1alpha1.CFAPI) string {
 }
 
 func (g *Gateway) Validate(ctx context.Context, cfAPI *v1alpha1.CFAPI) error {
+	if g.KorifiGatewayType(cfAPI) != v1alpha1.GatewayTypeContour && g.KorifiGatewayType(cfAPI) != v1alpha1.GatewayTypeIstio {
+		return fmt.Errorf("invalid gateway type: %s. Valid values are: %s, %s", cfAPI.Spec.GatewayType, v1alpha1.GatewayTypeContour, v1alpha1.GatewayTypeIstio)
+	}
+
 	if cfAPI.Spec.GatewayType == v1alpha1.GatewayTypeIstio {
 		aphaGWAPIEnabled, err := g.isAplhaGatewayAPIEnabled(ctx)
 		if err != nil {

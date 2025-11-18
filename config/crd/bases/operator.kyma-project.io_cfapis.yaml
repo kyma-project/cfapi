@@ -75,10 +75,6 @@ spec:
               gatewayType:
                 description: The type of the Korifi ingress gateway. Should be one
                   of "contour" or "istio". Defaluts to contour.
-                enum:
-                - contour
-                - istio
-                - ""
                 type: string
               rootNamespace:
                 description: The Korifi root namespace. Defaults to `cf`
@@ -91,8 +87,6 @@ spec:
                 description: Whether to use self-signed certificates for the Korif
                   API and workloads. Defaults to `false`
                 type: boolean
-            required:
-            - gatewayType
             type: object
           status:
             properties:

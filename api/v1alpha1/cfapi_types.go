@@ -117,7 +117,7 @@ type CFAPISpec struct {
 	//+kubebuilder:validation:Optional
 	UseSelfSignedCertificates bool `json:"useSelfSignedCertificates"`
 	// The type of the Korifi ingress gateway. Should be one of "contour" or "istio". Defaluts to contour.
-	// +kubebuilder:validation:Enum=contour;istio;""
+	//+kubebuilder:validation:Optional
 	GatewayType string `json:"gatewayType"`
 }
 

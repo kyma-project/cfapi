@@ -100,6 +100,26 @@ var _ = Describe("Gateway", func() {
 				})
 			})
 		})
+
+		When("the gateway type is set to Contour", func() {
+			BeforeEach(func() {
+				cfAPI.Spec.GatewayType = v1alpha1.GatewayTypeContour
+			})
+
+			It("succeeds", func() {
+				Expect(validateErr).NotTo(HaveOccurred())
+			})
+		})
+
+		When("gateway type is invalid", func() {
+			BeforeEach(func() {
+				cfAPI.Spec.GatewayType = "invalid-gateway-type"
+			})
+
+			It("returns validation error", func() {
+				Expect(validateErr).To(MatchError(ContainSubstring("invalid gateway type")))
+			})
+		})
 	})
 
 	Describe("KymaDomain", func() {
