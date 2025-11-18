@@ -15,6 +15,7 @@ import (
 	// v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 
 	istiov1alpha2 "github.com/kyma-project/istio/operator/api/v1alpha2"
+	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
@@ -56,6 +57,7 @@ var _ = BeforeEach(func() {
 
 	_, err := testEnv.Start()
 	Expect(err).NotTo(HaveOccurred())
+	Expect(networkingv1beta1.AddToScheme(testEnv.Scheme)).To(Succeed())
 	Expect(istiov1alpha2.AddToScheme(testEnv.Scheme)).To(Succeed())
 
 	adminClient, stopClientCache = helpers.NewCachedClient(testEnv.Config)

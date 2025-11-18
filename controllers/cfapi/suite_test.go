@@ -43,11 +43,11 @@ var (
 	ctx             context.Context
 	cfAPINamespace  string
 
-	firstInstallable  *fake.Installable
-	secondInstallable *fake.Installable
+	firstToInstall  *fake.Installable
+	secondToInstall *fake.Installable
 
-	firstUninstallable  *fake.Uninstallable
-	secondUninstallable *fake.Uninstallable
+	firstToUninstall  *fake.Installable
+	secondToUninstall *fake.Installable
 )
 
 func TestNetworkingControllers(t *testing.T) {
@@ -173,12 +173,12 @@ var _ = BeforeEach(func() {
 	}
 	Expect(adminClient.Create(ctx, istio)).To(Succeed())
 
-	firstInstallable = new(fake.Installable)
-	secondInstallable = new(fake.Installable)
-	firstUninstallable = new(fake.Uninstallable)
-	secondUninstallable = new(fake.Uninstallable)
+	firstToInstall = new(fake.Installable)
+	secondToInstall = new(fake.Installable)
+	firstToUninstall = new(fake.Installable)
+	secondToUninstall = new(fake.Installable)
 
-	kymaClient := kyma.NewClient(adminClient, istioClient)
+	kymaClient := kyma.NewClient(adminClient)
 	err = cfapi.NewReconciler(
 		k8sManager.GetClient(),
 		k8sManager.GetScheme(),
@@ -187,8 +187,8 @@ var _ = BeforeEach(func() {
 		k8sManager.GetEventRecorderFor("cfapi"),
 		ctrl.Log.WithName("controllers").WithName("cfapi"),
 		100*time.Millisecond,
-		[]installable.Installable{firstInstallable, secondInstallable},
-		[]installable.Uninstallable{firstUninstallable, secondUninstallable},
+		[]installable.Installable{firstToInstall, secondToInstall},
+		[]installable.Installable{firstToUninstall, secondToUninstall},
 	).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 

@@ -26,6 +26,12 @@ mkdir -p "$SSL_DIR"
 KYMA_TLS_PORT=8443
 KYMA_GW_TLS_PORT=31443
 KORIFI_GW_TLS_PORT=32443
+KORIFI_GW_TYPE="${KORIFI_GW_TYPE:-"contour"}"
+
+KORIFI_GW_SERVICE="contour-envoy"
+if [[ "$KORIFI_GW_TYPE" == "istio" ]]; then
+  KORIFI_GW_SERVICE="korifi-istio"
+fi
 
 source "$SCRIPT_DIR/tools/common.sh"
 export UAA_URL
@@ -341,6 +347,8 @@ export_environment() {
   export REGISTRY_USER="$registry_user"
   export REGISTRY_PASSWORD="$registry_password"
   export KORIFI_GW_TLS_PORT="$KORIFI_GW_TLS_PORT"
+  export KORIFI_GW_TYPE="$KORIFI_GW_TYPE"
+  export KORIFI_GW_SERVICE="$KORIFI_GW_SERVICE"
   export VERSION="$VERSION"
 EOF
 }

@@ -48,6 +48,7 @@ func (p *Prerequisites) GetValues(ctx context.Context, config v1alpha1.Installat
 		"useSelfSignedCertificates": config.UseSelfSignedCertificates,
 		"selfSignedIssuer":          selfSignedIssuerName,
 		"cfDomain":                  config.CFDomain,
+		"gatewayType":               config.GatewayType,
 		"containerRegistrySecret": map[string]any{
 			"name":        config.ContainerRegistrySecret,
 			"propagation": propagationConfig,

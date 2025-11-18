@@ -40,6 +40,10 @@ func NewHelmChart(chartPath string, namespace, name string, valuesProvider HelmV
 	}
 }
 
+func (h *HelmChart) Name() string {
+	return fmt.Sprintf("Helm Installable: %s", h.name)
+}
+
 func (h *HelmChart) Install(ctx context.Context, config v1alpha1.InstallationConfig, eventRecorder EventRecorder) (Result, error) {
 	log := logr.FromContextOrDiscard(ctx).WithName("helm").WithValues("chart", h.name)
 	values, err := h.valuesProvider.GetValues(ctx, config)

@@ -17,6 +17,7 @@ rules:
   - replicasets
   - statefulsets
   - statefulsets/finalizers
+  - daemonsets
   verbs:
   - create
   - update
@@ -254,5 +255,18 @@ rules:
   - operator.kyma-project.io
   resources:
   - istios
+  verbs:
+  - "*"
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - networkpolicies
+  - ingressclasses
+  verbs:
+  - "*"
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - gatewayclasses
   verbs:
   - "*"

@@ -27,6 +27,7 @@ var _ = Describe("Korifi", func() {
 			BuilderRepository:         "my-registry.com/cfapi/kpack-builder",
 			UAAURL:                    "https://uaa.example.com",
 			CFDomain:                  "korifi.example.com",
+			GatewayType:               "contour",
 		}
 
 		korifi = values.NewKorifi(adminClient, testNamepace)
@@ -68,7 +69,8 @@ var _ = Describe("Korifi", func() {
 				"builderRepository": Equal("my-registry.com/cfapi/kpack-builder"),
 			}),
 			"networking": MatchAllKeys(Keys{
-				"gatewayClass": Equal("istio"),
+				"gatewayNamespace": Equal("cfapi-system"),
+				"gatewayClass":     Equal("contour"),
 			}),
 			"experimental": MatchAllKeys(Keys{
 				"managedServices": MatchAllKeys(Keys{
@@ -95,6 +97,21 @@ var _ = Describe("Korifi", func() {
 
 		It("returns an error", func() {
 			Expect(err).To(MatchError(ContainSubstring("not found")))
+		})
+	})
+
+	When("the gatewy type is istio", func() {
+		BeforeEach(func() {
+			instCfg.GatewayType = "istio"
+		})
+
+		It("sets networking.gatewayClass accordingly", func() {
+			Expect(err).NotTo(HaveOccurred())
+			Expect(helmValues).To(MatchKeys(IgnoreExtras, Keys{
+				"networking": MatchKeys(IgnoreExtras, Keys{
+					"gatewayClass": Equal("istio"),
+				}),
+			}))
 		})
 	})
 })

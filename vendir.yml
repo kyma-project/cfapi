@@ -20,6 +20,12 @@ directories:
       latest: true
       repository:
         url: https://cloudfoundry.github.io/korifi
+  - path: contour-chart
+    helmChart:
+      name: contour
+      latest: true
+      repository:
+        url: https://projectcontour.github.io/helm-charts
 - path: tests/dependencies/vendor
   contents:
   - path: metrics-server-local

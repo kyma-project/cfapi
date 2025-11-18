@@ -23,7 +23,6 @@ package cfapi
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"maps"
 	"reflect"
@@ -62,8 +61,8 @@ type Reconciler struct {
 	docker          *secrets.Docker
 	eventRecorder   record.EventRecorder
 	requeueInterval time.Duration
-	installables    []installable.Installable
-	uninstallables  []installable.Uninstallable
+	installOrder    []installable.Installable
+	uninstallOrder  []installable.Installable
 }
 
 func NewReconciler(
@@ -74,8 +73,8 @@ func NewReconciler(
 	eventRecorder record.EventRecorder,
 	log logr.Logger,
 	requeueInterval time.Duration,
-	installables []installable.Installable,
-	uninstallables []installable.Uninstallable,
+	installOrder []installable.Installable,
+	uninstallOrder []installable.Installable,
 ) *k8s.PatchingReconciler[v1alpha1.CFAPI] {
 	apiReconciler := &Reconciler{
 		k8sClient:       k8sClient,
@@ -84,8 +83,8 @@ func NewReconciler(
 		docker:          docker,
 		eventRecorder:   eventRecorder,
 		requeueInterval: requeueInterval,
-		installables:    installables,
-		uninstallables:  uninstallables,
+		installOrder:    installOrder,
+		uninstallOrder:  uninstallOrder,
 	}
 	return k8s.NewPatchingReconciler(ctrl.Log, k8sClient, apiReconciler)
 }
@@ -187,18 +186,18 @@ func (r *Reconciler) applyInstallResultToStatus(installResult installable.Result
 }
 
 func (r *Reconciler) compileInstallationConfig(ctx context.Context, cfAPI *v1alpha1.CFAPI) (v1alpha1.InstallationConfig, error) {
-	aphaGWAPIEnabled, err := r.kymaClient.Istio.IsAplhaGatewayAPIEnabled(ctx)
-	if err != nil {
-		return v1alpha1.InstallationConfig{}, err
-	}
-
-	if !aphaGWAPIEnabled {
-		return v1alpha1.InstallationConfig{}, errors.New("alpha gateway API feature is not enabled in istio. To fix this, enable the `experimental` channel on the istio module and set `spec.experimental.pilot.enableAlphaGatewayAPI` to `true` on the `kyma-system/default` Istio resource")
-	}
-
 	rootNs := cfAPI.Spec.RootNamespace
 	if rootNs == "" {
 		rootNs = "cf"
+	}
+
+	if err := r.kymaClient.Gateway.Validate(ctx, cfAPI); err != nil {
+		return v1alpha1.InstallationConfig{}, err
+	}
+
+	kymaDomain, err := r.kymaClient.Gateway.KymaDomain(ctx)
+	if err != nil {
+		return v1alpha1.InstallationConfig{}, err
 	}
 
 	registrySecretName, registryURL, err := r.ensureContainerRegistry(ctx, cfAPI)
@@ -216,11 +215,6 @@ func (r *Reconciler) compileInstallationConfig(ctx context.Context, cfAPI *v1alp
 		builderRepository = cfAPI.Spec.BuilderRepository
 	}
 
-	kymaDomain, err := r.kymaClient.Domain.Get(ctx)
-	if err != nil {
-		return v1alpha1.InstallationConfig{}, err
-	}
-
 	uaaURL, err := r.computeUaaURL(ctx, cfAPI)
 	if err != nil {
 		return v1alpha1.InstallationConfig{}, err
@@ -231,23 +225,19 @@ func (r *Reconciler) compileInstallationConfig(ctx context.Context, cfAPI *v1alp
 		return v1alpha1.InstallationConfig{}, err
 	}
 
-	korifiIngressHost, err := r.computeKorifiIngressHost(ctx)
-	if err != nil {
-		return v1alpha1.InstallationConfig{}, err
-	}
-
 	return v1alpha1.InstallationConfig{
-		RootNamespace:             rootNs,
-		ContainerRegistrySecret:   registrySecretName,
-		ContainerRepositoryPrefix: containerRepositoryPrefix,
-		ContainerRegistryURL:      registryURL,
-		BuilderRepository:         builderRepository,
-		CFDomain:                  kymaDomain,
-		UAAURL:                    uaaURL,
-		CFAdmins:                  cfAdmins,
-		KorifiIngressHost:         korifiIngressHost,
-		UseSelfSignedCertificates: cfAPI.Spec.UseSelfSignedCertificates,
+		RootNamespace:                             rootNs,
+		CFDomain:                                  kymaDomain,
+		KorifiIngressService:                      r.kymaClient.Gateway.KorifiIngressService(cfAPI),
+		GatewayType:                               r.kymaClient.Gateway.KorifiGatewayType(cfAPI),
+		UseSelfSignedCertificates:                 cfAPI.Spec.UseSelfSignedCertificates,
+		ContainerRegistrySecret:                   registrySecretName,
+		ContainerRepositoryPrefix:                 containerRepositoryPrefix,
+		ContainerRegistryURL:                      registryURL,
+		BuilderRepository:                         builderRepository,
 		DisableContainerRegistrySecretPropagation: cfAPI.Spec.DisableContainerRegistrySecretPropagation,
+		UAAURL:   uaaURL,
+		CFAdmins: cfAdmins,
 	}, nil
 }
 
@@ -274,39 +264,10 @@ func (r *Reconciler) computeCFAdmins(ctx context.Context, cfAPI *v1alpha1.CFAPI)
 	})), nil
 }
 
-func (r *Reconciler) computeKorifiIngressHost(ctx context.Context) (string, error) {
-	korifiIngressService := &corev1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "korifi-gateway",
-			Name:      "korifi-istio",
-		},
-	}
-
-	err := r.k8sClient.Get(ctx, client.ObjectKeyFromObject(korifiIngressService), korifiIngressService)
-	if err != nil {
-		if client.IgnoreNotFound(err) != nil {
-			return "", err
-		}
-
-		return "", nil
-	}
-
-	if len(korifiIngressService.Status.LoadBalancer.Ingress) == 0 {
-		return "", nil
-	}
-
-	hostname := korifiIngressService.Status.LoadBalancer.Ingress[0].Hostname
-	if hostname == "" {
-		hostname = korifiIngressService.Status.LoadBalancer.Ingress[0].IP
-	}
-
-	return hostname, nil
-}
-
 func (r *Reconciler) install(ctx context.Context, config v1alpha1.InstallationConfig, eventRecorder installable.EventRecorder) (installable.Result, error) {
 	results := []installable.Result{}
 
-	for _, inst := range r.installables {
+	for _, inst := range r.installOrder {
 		result, err := inst.Install(ctx, config, eventRecorder)
 		if err != nil {
 			return installable.Result{}, err
@@ -398,7 +359,7 @@ func (r *Reconciler) finalize(ctx context.Context, cfAPI *v1alpha1.CFAPI) (ctrl.
 }
 
 func (r *Reconciler) uninstall(ctx context.Context, config v1alpha1.InstallationConfig, eventRecorder installable.EventRecorder) (installable.Result, error) {
-	for _, uninst := range r.uninstallables {
+	for _, uninst := range r.uninstallOrder {
 		result, err := uninst.Uninstall(ctx, config, eventRecorder)
 		if err != nil {
 			return installable.Result{}, err
