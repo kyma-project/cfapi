@@ -22,6 +22,7 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"flag"
 	"os"
 	"time"
@@ -48,7 +49,7 @@ import (
 	"github.com/kyma-project/cfapi/controllers/installable/values"
 	"github.com/kyma-project/cfapi/controllers/kyma"
 	kymaistiov1alpha2 "github.com/kyma-project/istio/operator/api/v1alpha2"
-	istioclient "istio.io/client-go/pkg/clientset/versioned"
+	istiov1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	//+kubebuilder:scaffold:imports
 )
@@ -62,14 +63,14 @@ var (
 	setupLog = ctrl.Log.WithName("setup")
 )
 
+var ContourEnabled installable.Predicate = func(ctx context.Context, config v1alpha1.InstallationConfig) bool {
+	return config.GatewayType == v1alpha1.GatewayTypeContour
+}
+
 type FlagVar struct {
 	metricsAddr          string
 	enableLeaderElection bool
 	probeAddr            string
-	// TODO: Remove this one, it sets the "final" state on the controller, which sounds wrong on many levels
-	finalState string
-	// TODO: Remove this one, it setting a state on a controller sounds wrong on many levels
-	finalDeletionState string
 }
 
 func init() { //nolint:gochecknoinits
@@ -78,6 +79,7 @@ func init() { //nolint:gochecknoinits
 	utilruntime.Must(kymaistiov1alpha2.AddToScheme(scheme))
 	utilruntime.Must(apiextv1.AddToScheme(scheme))
 	utilruntime.Must(certv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(istiov1beta1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 
@@ -114,23 +116,26 @@ func main() {
 	}
 
 	helmClient := helm.NewClient()
-	korifiNs := installable.NewYaml(mgr.GetClient(), "./module-data/namespaces/korifi.yaml", "Korifi Namespace")
-	korifiGatewayNs := installable.NewYaml(mgr.GetClient(), "./module-data/namespaces/korifi-gateway.yaml", "Korifi Gateway Namespace")
+	systemNs := installable.NewYaml(mgr.GetClient(), "./module-data/namespaces/system.yaml", "System Namespaces")
 	cfRootNs := installable.NewYaml(mgr.GetClient(), "./module-data/namespaces/cfroot.yaml", "Root Namespace")
 	certIssuers := installable.NewYaml(mgr.GetClient(), "./module-data/issuers/issuers.yaml", "CertIssuers")
 	gwAPI := installable.NewYaml(mgr.GetClient(), "./module-data/vendor/gateway-api/experimental-install.yaml", "Gateway API")
+	contour := installable.NewConditional(
+		ContourEnabled,
+		installable.NewHelmChart("./module-data/vendor/contour-chart", "cfapi-system", "contour", values.ContourValues, helmClient),
+	)
 	kpack := installable.NewYaml(mgr.GetClient(), "./module-data/vendor/kpack/release-*.yaml", "kpack")
 	korifiPrerequisites := installable.NewHelmChart("./module-data/korifi-prerequisites-chart", "korifi", "korifi-prerequisites", values.NewPrerequisites(mgr.GetClient()), helmClient)
 	korifi := installable.NewHelmChart("./module-data/vendor/korifi-chart", "korifi", "korifi", values.NewKorifi(mgr.GetClient(), "korifi"), helmClient)
-	cfAPIConfig := installable.NewHelmChart("./module-data/cfapi-config-chart", "korifi", "cfapi-config", values.NewCFAPIConfig(), helmClient)
-	btpServiceBroker := installable.NewHelmChart("./module-data/btp-service-broker/helm", "cfapi-system", "btp-service-broker", values.NoValues{}, helmClient)
+	cfAPIConfig := installable.NewHelmChart("./module-data/cfapi-config-chart", "korifi", "cfapi-config", values.NewCFAPIConfig(mgr.GetClient()), helmClient)
+	btpServiceBroker := installable.NewHelmChart("./module-data/btp-service-broker/helm", "cfapi-system", "btp-service-broker", values.Override{}, helmClient)
 
-	installables := []installable.Installable{
-		korifiNs,
-		korifiGatewayNs,
+	installOrder := []installable.Installable{
+		systemNs,
 		cfRootNs,
 		certIssuers,
 		gwAPI,
+		contour,
 		kpack,
 		korifiPrerequisites,
 		korifi,
@@ -138,30 +143,30 @@ func main() {
 		btpServiceBroker,
 	}
 
-	uninstallables := []installable.Uninstallable{
+	uninstallOrder := []installable.Installable{
 		cfRootNs,
 		btpServiceBroker,
 		cfAPIConfig,
 		korifi,
 		korifiPrerequisites,
 		kpack,
+		contour,
 		gwAPI,
 		certIssuers,
-		korifiNs,
-		korifiGatewayNs,
+		systemNs,
 	}
 
 	controllersLog := ctrl.Log.WithName(operatorName)
 	if err := cfapi.NewReconciler(
 		mgr.GetClient(),
 		mgr.GetScheme(),
-		kyma.NewClient(mgr.GetClient(), istioclient.NewForConfigOrDie(ctrl.GetConfigOrDie())),
+		kyma.NewClient(mgr.GetClient()),
 		secrets.NewDocker(mgr.GetClient()),
 		mgr.GetEventRecorderFor(operatorName),
 		controllersLog,
 		10*time.Second,
-		installables,
-		uninstallables,
+		installOrder,
+		uninstallOrder,
 	).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CFAPI")
 		os.Exit(1)
@@ -192,9 +197,5 @@ func defineFlagVar() *FlagVar {
 	flag.BoolVar(&flagVar.enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
-	flag.StringVar(&flagVar.finalState, "final-state", string(v1alpha1.StateReady),
-		"Customize final state, to mimic state behaviour like Ready, Warning")
-	flag.StringVar(&flagVar.finalDeletionState, "final-deletion-state", string(v1alpha1.StateDeleting),
-		"Customize final state when module marked for deletion, to mimic state behaviour like Ready, Warning")
 	return flagVar
 }

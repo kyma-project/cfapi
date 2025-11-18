@@ -10,12 +10,8 @@ import (
 //counterfeiter:generate -o fake -fake-name Installable . Installable
 type Installable interface {
 	Install(ctx context.Context, config v1alpha1.InstallationConfig, eventRecorder EventRecorder) (Result, error)
-}
-
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
-//counterfeiter:generate -o fake -fake-name Uninstallable . Uninstallable
-type Uninstallable interface {
 	Uninstall(ctx context.Context, config v1alpha1.InstallationConfig, eventRecorder EventRecorder) (Result, error)
+	Name() string
 }
 
 type Result struct {

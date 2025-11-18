@@ -44,7 +44,8 @@ func (k *Korifi) GetValues(ctx context.Context, config v1alpha1.InstallationConf
 			"builderRepository": config.BuilderRepository,
 		},
 		"networking": map[string]any{
-			"gatewayClass": "istio",
+			"gatewayNamespace": "cfapi-system",
+			"gatewayClass":     config.GatewayType,
 		},
 		"experimental": map[string]any{
 			"managedServices": map[string]any{
@@ -77,10 +78,4 @@ func (k *Korifi) ensureCertificateSecrets(ctx context.Context) error {
 	}
 
 	return nil
-}
-
-type NoValues struct{}
-
-func (v NoValues) GetValues(ctx context.Context, config v1alpha1.InstallationConfig) (map[string]any, error) {
-	return map[string]any{}, nil
 }

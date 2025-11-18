@@ -13,6 +13,10 @@ directories:
       appVersion: ""
       version: 0.17.0
     path: korifi-chart
+  - helmChart:
+      appVersion: 1.32.0
+      version: 0.1.0
+    path: contour-chart
   path: module-data/vendor
 - contents:
   - githubRelease:
