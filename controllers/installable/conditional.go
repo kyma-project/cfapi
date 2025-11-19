@@ -26,23 +26,13 @@ func (c *Conditional) Name() string {
 }
 
 func (c *Conditional) Install(ctx context.Context, config v1alpha1.InstallationConfig, eventRecorder EventRecorder) (Result, error) {
-	if !c.predicate(ctx, config) {
-		return Result{
-			State:   ResultStateSuccess,
-			Message: "Skipped installation",
-		}, nil
+	if c.predicate(ctx, config) {
+		return c.delegate.Install(ctx, config, eventRecorder)
 	}
 
-	return c.delegate.Install(ctx, config, eventRecorder)
+	return c.delegate.Uninstall(ctx, config, eventRecorder)
 }
 
 func (c *Conditional) Uninstall(ctx context.Context, config v1alpha1.InstallationConfig, eventRecorder EventRecorder) (Result, error) {
-	if !c.predicate(ctx, config) {
-		return Result{
-			State:   ResultStateSuccess,
-			Message: "Skipped uninstallation",
-		}, nil
-	}
-
 	return c.delegate.Uninstall(ctx, config, eventRecorder)
 }
