@@ -30,17 +30,19 @@ var _ = Describe("Conditional Installable", func() {
 		predicate = func(ctx context.Context, config v1alpha1.InstallationConfig) bool {
 			return true
 		}
+
+		delegate.InstallReturns(installable.Result{
+			State:   installable.ResultStateSuccess,
+			Message: "install-success",
+		}, nil)
+
+		delegate.UninstallReturns(installable.Result{
+			State:   installable.ResultStateSuccess,
+			Message: "uninstall-success",
+		}, nil)
 	})
 
-	//nolint:dupl
 	Describe("Install", func() {
-		BeforeEach(func() {
-			delegate.InstallReturns(installable.Result{
-				State:   installable.ResultStateSuccess,
-				Message: "success",
-			}, nil)
-		})
-
 		JustBeforeEach(func() {
 			result, installErr = installable.NewConditional(predicate, delegate).Install(ctx, config, eventRecorder)
 		})
@@ -52,7 +54,7 @@ var _ = Describe("Conditional Installable", func() {
 			Expect(actualConfig).To(Equal(config))
 			Expect(result).To(Equal(installable.Result{
 				State:   installable.ResultStateSuccess,
-				Message: "success",
+				Message: "install-success",
 			}))
 		})
 
@@ -63,30 +65,22 @@ var _ = Describe("Conditional Installable", func() {
 				}
 			})
 
-			It("does not delegates to the installable", func() {
+			It("delegates to the installable", func() {
 				Expect(installErr).NotTo(HaveOccurred())
-				Expect(delegate.InstallCallCount()).To(BeZero())
-
-				Expect(installErr).NotTo(HaveOccurred())
+				Expect(delegate.UninstallCallCount()).To(Equal(1))
+				_, actualConfig, _ := delegate.UninstallArgsForCall(0)
+				Expect(actualConfig).To(Equal(config))
 				Expect(result).To(Equal(installable.Result{
 					State:   installable.ResultStateSuccess,
-					Message: "Skipped installation",
+					Message: "uninstall-success",
 				}))
 			})
 		})
 	})
 
-	//nolint:dupl
 	Describe("Uninstall", func() {
-		BeforeEach(func() {
-			delegate.UninstallReturns(installable.Result{
-				State:   installable.ResultStateSuccess,
-				Message: "success",
-			}, nil)
-		})
-
 		JustBeforeEach(func() {
-			result, installErr = installable.NewConditional(predicate, delegate).Uninstall(ctx, config, eventRecorder)
+			result, installErr = installable.NewConditional(nil, delegate).Uninstall(ctx, config, eventRecorder)
 		})
 
 		It("delegates to the installable", func() {
@@ -96,26 +90,8 @@ var _ = Describe("Conditional Installable", func() {
 			Expect(actualConfig).To(Equal(config))
 			Expect(result).To(Equal(installable.Result{
 				State:   installable.ResultStateSuccess,
-				Message: "success",
+				Message: "uninstall-success",
 			}))
-		})
-
-		When("the conidtion is not met", func() {
-			BeforeEach(func() {
-				predicate = func(ctx context.Context, config v1alpha1.InstallationConfig) bool {
-					return false
-				}
-			})
-
-			It("does not delegates to the installable", func() {
-				Expect(installErr).NotTo(HaveOccurred())
-				Expect(delegate.UninstallCallCount()).To(BeZero())
-				Expect(installErr).NotTo(HaveOccurred())
-				Expect(result).To(Equal(installable.Result{
-					State:   installable.ResultStateSuccess,
-					Message: "Skipped uninstallation",
-				}))
-			})
 		})
 	})
 })

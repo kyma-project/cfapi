@@ -128,7 +128,3 @@ vendir-update-dependencies: bin/vendir
 
 bin/setup-envtest:
 	go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
-
-clean-bin:
-	# globstar (e.g. in rm -f **/bin/*) isn't available in the version of bash packaged with MacOS
-	find . -wholename '*/bin/*' -delete
