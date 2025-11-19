@@ -2,10 +2,6 @@ module github.com/kyma-project/cfapi/components/btp-service-broker
 
 go 1.25.1
 
-replace github.com/google/gnostic-models => github.com/google/gnostic-models v0.6.9
-
-replace k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20250318190949-c8a335a9a2ff
-
 require (
 	code.cloudfoundry.org/brokerapi/v13 v13.0.12
 	github.com/BooleanCat/go-functional/v2 v2.5.1
@@ -17,9 +13,9 @@ require (
 	github.com/onsi/ginkgo/v2 v2.27.2
 	github.com/onsi/gomega v1.38.2
 	gopkg.in/yaml.v3 v3.0.1
-	k8s.io/api v0.35.0-alpha.3
-	k8s.io/apimachinery v0.35.0-alpha.3
-	k8s.io/client-go v0.35.0-alpha.3
+	k8s.io/api v0.34.2
+	k8s.io/apimachinery v0.34.2
+	k8s.io/client-go v0.34.2
 	sigs.k8s.io/controller-runtime v0.22.4
 	sigs.k8s.io/controller-tools v0.19.0
 )
@@ -98,7 +94,6 @@ require (
 	k8s.io/utils v0.0.0-20251002143259-bc988d571ff4 // indirect
 	sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect
-	sigs.k8s.io/structured-merge-diff/v4 v4.7.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v6 v6.3.0 // indirect
 	sigs.k8s.io/yaml v1.6.0 // indirect
 )
