@@ -3,6 +3,7 @@ package values_test
 import (
 	v1alpha1 "github.com/kyma-project/cfapi/api/v1alpha1"
 	"github.com/kyma-project/cfapi/controllers/installable/values"
+	"github.com/kyma-project/cfapi/tests/helpers"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
@@ -37,12 +38,12 @@ var _ = Describe("Korifi", func() {
 			"korifi-api-internal-cert",
 			"korifi-controllers-webhook-cert",
 		} {
-			Expect(adminClient.Create(ctx, &corev1.Secret{
+			helpers.EnsureCreate(adminClient, &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: testNamepace,
 					Name:      certSecret,
 				},
-			})).To(Succeed())
+			})
 		}
 	})
 
@@ -92,7 +93,7 @@ var _ = Describe("Korifi", func() {
 					Name:      "korifi-controllers-webhook-cert",
 				},
 			}
-			Expect(adminClient.Delete(ctx, certSecret)).To(Succeed())
+			helpers.EnsureDelete(adminClient, certSecret)
 		})
 
 		It("returns an error", func() {

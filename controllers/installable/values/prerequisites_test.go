@@ -5,6 +5,7 @@ import (
 	v1alpha1 "github.com/kyma-project/cfapi/api/v1alpha1"
 	"github.com/kyma-project/cfapi/controllers/installable/values"
 	"github.com/kyma-project/cfapi/controllers/kyma"
+	"github.com/kyma-project/cfapi/tests/helpers"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
@@ -20,7 +21,7 @@ var _ = Describe("Prerequisites", func() {
 	)
 
 	BeforeEach(func() {
-		Expect(adminClient.Create(ctx, &certv1alpha1.Issuer{
+		helpers.EnsureCreate(adminClient, &certv1alpha1.Issuer{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "kyma-system",
 				Name:      "cfapi-self-signed-issuer",
@@ -28,7 +29,7 @@ var _ = Describe("Prerequisites", func() {
 			Spec: certv1alpha1.IssuerSpec{
 				SelfSigned: &certv1alpha1.SelfSignedSpec{},
 			},
-		})).To(Succeed())
+		})
 
 		instCfg = v1alpha1.InstallationConfig{
 			CFDomain:                  "korifi.example.com",
@@ -108,7 +109,7 @@ var _ = Describe("Prerequisites", func() {
 					Name:      "cfapi-self-signed-issuer",
 				},
 			}
-			Expect(adminClient.Delete(ctx, selfSignedIssuer)).To(Succeed())
+			helpers.EnsureDelete(adminClient, selfSignedIssuer)
 		})
 
 		It("returns an error", func() {

@@ -5,6 +5,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/kyma-project/cfapi/controllers/kyma"
+	"github.com/kyma-project/cfapi/tests/helpers"
 	"github.com/kyma-project/cfapi/tools/k8s"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -42,7 +43,7 @@ var _ = Describe("UAA", func() {
 					"tokenurl": "https://worker1-q3zjpctt.authentication.eu12.hana.ondemand.com",
 				},
 			}
-			Expect(adminClient.Create(ctx, btpOperatorSecret)).To(Succeed())
+			helpers.EnsureCreate(adminClient, btpOperatorSecret)
 		})
 
 		It("gets the uaa url", func() {
