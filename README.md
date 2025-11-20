@@ -37,7 +37,7 @@ In the Kyma dashboard:
 ### CFAPI module
 In the Kyma dashboard:
 * Enable the `cfapi` module.
-* Once ready the CF url is set on its status.
+* Once ready the CF url is set on its status. Keep in mind that it may take up to a couple of minutes for DNS entries to refresh.
 
 ### CF login
 ```bash
@@ -82,7 +82,6 @@ In the Kyma dashboard:
 * set the module release channel to `exprimental`
 * set `spec.experimental.pilot.enableAlphaGatewayAPI` to `true` on the default Istio resource
 * set `spec.gatewayType` to `istio` on the default CFAPI resource
-
 
 ### Using a custom docker registry
 

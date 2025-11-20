@@ -2,6 +2,7 @@ package installable_test
 
 import (
 	"context"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -13,6 +14,7 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 
+	korifiv1alpha1 "code.cloudfoundry.org/korifi/controllers/api/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
@@ -47,11 +49,16 @@ var _ = BeforeEach(func() {
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
 
 	testEnv = &envtest.Environment{
+		CRDDirectoryPaths: []string{
+			filepath.Join("..", "..", "module-data", "vendor", "korifi-chart", "controllers", "crds"),
+		},
 		ErrorIfCRDPathMissing: true,
 	}
 
 	_, err := testEnv.Start()
 	Expect(err).NotTo(HaveOccurred())
+
+	Expect(korifiv1alpha1.AddToScheme(testEnv.Scheme)).To(Succeed())
 
 	adminClient, stopClientCache = helpers.NewCachedClient(testEnv.Config)
 

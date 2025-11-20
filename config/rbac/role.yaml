@@ -133,12 +133,7 @@ rules:
   resources:
   - dnsentries
   verbs:
-  - get
-  - list
-  - create
-  - update
-  - patch
-  - watch
+  - "*"
 - apiGroups:
   - operator.kyma-project.io
   resources:

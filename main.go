@@ -27,6 +27,7 @@ import (
 	"os"
 	"time"
 
+	korifiv1alpha1 "code.cloudfoundry.org/korifi/controllers/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -80,6 +81,7 @@ func init() { //nolint:gochecknoinits
 	utilruntime.Must(apiextv1.AddToScheme(scheme))
 	utilruntime.Must(certv1alpha1.AddToScheme(scheme))
 	utilruntime.Must(istiov1beta1.AddToScheme(scheme))
+	utilruntime.Must(korifiv1alpha1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 
@@ -144,6 +146,7 @@ func main() {
 	}
 
 	uninstallOrder := []installable.Installable{
+		installable.NewOrgs(mgr.GetClient()),
 		cfRootNs,
 		btpServiceBroker,
 		cfAPIConfig,
