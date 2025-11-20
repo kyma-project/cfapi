@@ -6,7 +6,6 @@ import (
 
 	"github.com/kyma-project/cfapi/controllers/kyma"
 	"github.com/kyma-project/cfapi/tests/helpers"
-	"github.com/kyma-project/cfapi/tools/k8s"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -53,9 +52,9 @@ var _ = Describe("UAA", func() {
 
 		When("the btp operator secret does not have a tokenurl key", func() {
 			BeforeEach(func() {
-				Expect(k8s.Patch(ctx, adminClient, btpOperatorSecret, func() {
-					btpOperatorSecret.Data = map[string][]byte{}
-				})).To(Succeed())
+				helpers.EnsurePatch(adminClient, btpOperatorSecret, func(s *corev1.Secret) {
+					s.Data = map[string][]byte{}
+				})
 			})
 
 			It("returns an error", func() {
