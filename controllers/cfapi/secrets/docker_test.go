@@ -5,7 +5,6 @@ import (
 
 	"github.com/kyma-project/cfapi/controllers/cfapi/secrets"
 	"github.com/kyma-project/cfapi/tests/helpers"
-	"github.com/kyma-project/cfapi/tools/k8s"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -84,9 +83,10 @@ var _ = Describe("Docker", func() {
 				},
 			}
 			Expect(adminClient.Get(ctx, client.ObjectKeyFromObject(secret), secret)).To(Succeed())
-			Expect(k8s.Patch(ctx, adminClient, secret, func() {
-				secret.Data[corev1.DockerConfigJsonKey] = []byte("invalid-json")
-			})).To(Succeed())
+
+			helpers.EnsurePatch(adminClient, secret, func(s *corev1.Secret) {
+				s.Data[corev1.DockerConfigJsonKey] = []byte("invalid-json")
+			})
 		})
 
 		It("returns an error", func() {

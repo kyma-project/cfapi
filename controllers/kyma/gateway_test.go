@@ -87,13 +87,13 @@ var _ = Describe("Gateway", func() {
 
 			When("the alpha gateway API feature is enabled in Istio", func() {
 				BeforeEach(func() {
-					Expect(k8s.Patch(ctx, adminClient, istio, func() {
-						istio.Spec.Experimental = &istiov1alpha2.Experimental{
+					helpers.EnsurePatch(adminClient, istio, func(i *istiov1alpha2.Istio) {
+						i.Spec.Experimental = &istiov1alpha2.Experimental{
 							PilotFeatures: istiov1alpha2.PilotFeatures{
 								EnableAlphaGatewayAPI: true,
 							},
 						}
-					})).To(Succeed())
+					})
 				})
 
 				It("succeeds", func() {
