@@ -11,6 +11,7 @@ import (
 	"github.com/kyma-project/cfapi/api/v1alpha1"
 	"github.com/kyma-project/cfapi/controllers/helm"
 	"github.com/kyma-project/cfapi/controllers/installable"
+	"github.com/kyma-project/cfapi/tests/helpers"
 	"github.com/kyma-project/cfapi/tests/integration/helm/fake"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -49,7 +50,7 @@ var _ = Describe("HelmChartInstallableIntegrationTest", func() {
 				"my-secret-key": []byte("my-secret-value"),
 			},
 		}
-		Expect(k8sClient.Create(ctx, referencedSecret)).To(Succeed())
+		helpers.EnsureCreate(k8sClient, referencedSecret)
 	})
 
 	Describe("Install", func() {
@@ -84,7 +85,7 @@ var _ = Describe("HelmChartInstallableIntegrationTest", func() {
 
 		When("referenced secret does not exist", func() {
 			BeforeEach(func() {
-				Expect(k8sClient.Delete(ctx, referencedSecret)).To(Succeed())
+				helpers.EnsureDelete(k8sClient, referencedSecret)
 			})
 
 			It("it returns in progress result", func() {

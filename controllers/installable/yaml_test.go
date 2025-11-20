@@ -12,6 +12,7 @@ import (
 
 	"github.com/kyma-project/cfapi/api/v1alpha1"
 	"github.com/kyma-project/cfapi/controllers/installable"
+	"github.com/kyma-project/cfapi/tests/helpers"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -74,7 +75,7 @@ metadata:
 
 			When("an object already exists", func() {
 				BeforeEach(func() {
-					Expect(adminClient.Create(ctx, &corev1.ConfigMap{
+					helpers.EnsureCreate(adminClient, &corev1.ConfigMap{
 						ObjectMeta: metav1.ObjectMeta{
 							Namespace: testNamespace,
 							Name:      "map1",
@@ -82,7 +83,7 @@ metadata:
 								"foo": "bar",
 							},
 						},
-					})).To(Succeed())
+					})
 				})
 
 				It("updates it", func() {
@@ -259,18 +260,18 @@ metadata:
 
 			When("the objects to be deleted exist", func() {
 				BeforeEach(func() {
-					Expect(adminClient.Create(ctx, &corev1.ConfigMap{
+					helpers.EnsureCreate(adminClient, &corev1.ConfigMap{
 						ObjectMeta: metav1.ObjectMeta{
 							Namespace: testNamespace,
 							Name:      "map1",
 						},
-					})).To(Succeed())
-					Expect(adminClient.Create(ctx, &corev1.ConfigMap{
+					})
+					helpers.EnsureCreate(adminClient, &corev1.ConfigMap{
 						ObjectMeta: metav1.ObjectMeta{
 							Namespace: testNamespace,
 							Name:      "map2",
 						},
-					})).To(Succeed())
+					})
 				})
 
 				It("deletes them and returns in progress result", func() {

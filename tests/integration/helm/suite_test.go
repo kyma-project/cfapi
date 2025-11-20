@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/kyma-project/cfapi/tests/helpers"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -42,9 +43,9 @@ var _ = BeforeEach(func() {
 			Name: testNamespace,
 		},
 	}
-	Expect(k8sClient.Create(ctx, ns)).To(Succeed())
+	helpers.EnsureCreate(k8sClient, ns)
 	DeferCleanup(func() {
-		Expect(k8sClient.Delete(ctx, ns)).To(Succeed())
+		helpers.EnsureDelete(k8sClient, ns)
 	})
 })
 

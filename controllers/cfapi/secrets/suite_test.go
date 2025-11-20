@@ -53,11 +53,12 @@ var _ = BeforeEach(func() {
 	adminClient, stopClientCache = helpers.NewCachedClient(testEnv.Config)
 
 	testNamespace = uuid.NewString()
-	Expect(adminClient.Create(ctx, &corev1.Namespace{
+
+	helpers.EnsureCreate(adminClient, &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: testNamespace,
 		},
-	})).To(Succeed())
+	})
 })
 
 var _ = AfterEach(func() {

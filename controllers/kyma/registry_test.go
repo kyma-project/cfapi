@@ -4,6 +4,7 @@ import (
 	"path/filepath"
 
 	"github.com/kyma-project/cfapi/controllers/kyma"
+	"github.com/kyma-project/cfapi/tests/helpers"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -47,12 +48,12 @@ var _ = Describe("Kyma", func() {
 
 			When("the dockerregistry-config secret exists", func() {
 				BeforeEach(func() {
-					Expect(adminClient.Create(ctx, &corev1.Secret{
+					helpers.EnsureCreate(adminClient, &corev1.Secret{
 						ObjectMeta: metav1.ObjectMeta{
 							Namespace: testNamespace,
 							Name:      kyma.ContainerRegistrySecretName,
 						},
-					})).To(Succeed())
+					})
 				})
 
 				It("returns the secret", func() {
@@ -82,13 +83,13 @@ var _ = Describe("Kyma", func() {
 		})
 
 		JustBeforeEach(func() {
-			Expect(adminClient.Create(ctx, &corev1.Secret{
+			helpers.EnsureCreate(adminClient, &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: testNamespace,
 					Name:      kyma.ContainerRegistrySecretName,
 				},
 				StringData: secretData,
-			})).To(Succeed())
+			})
 
 			registryURL, err = kymaRegistry.GetRegistryURL(ctx, testNamespace)
 		})

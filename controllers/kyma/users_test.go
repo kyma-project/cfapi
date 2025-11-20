@@ -6,6 +6,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/kyma-project/cfapi/controllers/kyma"
+	"github.com/kyma-project/cfapi/tests/helpers"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -32,7 +33,7 @@ var _ = Describe("Users", func() {
 
 	When("there are admin users", func() {
 		BeforeEach(func() {
-			Expect(adminClient.Create(ctx, &rbacv1.ClusterRoleBinding{
+			helpers.EnsureCreate(adminClient, &rbacv1.ClusterRoleBinding{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: uuid.NewString(),
 				},
@@ -57,7 +58,7 @@ var _ = Describe("Users", func() {
 					Kind: "ClusterRole",
 					Name: "cluster-admin",
 				},
-			})).To(Succeed())
+			})
 		})
 
 		It("returns user subjects only", func() {

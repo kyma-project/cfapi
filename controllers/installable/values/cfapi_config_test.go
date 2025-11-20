@@ -3,6 +3,7 @@ package values_test
 import (
 	v1alpha1 "github.com/kyma-project/cfapi/api/v1alpha1"
 	"github.com/kyma-project/cfapi/controllers/installable/values"
+	"github.com/kyma-project/cfapi/tests/helpers"
 	"github.com/kyma-project/cfapi/tools/k8s"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -41,7 +42,7 @@ var _ = Describe("CFAPI Config", func() {
 				}},
 			},
 		}
-		Expect(adminClient.Create(ctx, ingressService)).To(Succeed())
+		helpers.EnsureCreate(adminClient, ingressService)
 
 		Expect(k8s.Patch(ctx, adminClient, ingressService, func() {
 			ingressService.Status.LoadBalancer.Ingress = []corev1.LoadBalancerIngress{

@@ -3,6 +3,7 @@ package kyma_test
 import (
 	"github.com/kyma-project/cfapi/api/v1alpha1"
 	"github.com/kyma-project/cfapi/controllers/kyma"
+	"github.com/kyma-project/cfapi/tests/helpers"
 	"github.com/kyma-project/cfapi/tools/k8s"
 	istiov1alpha2 "github.com/kyma-project/istio/operator/api/v1alpha2"
 	. "github.com/onsi/ginkgo/v2"
@@ -77,7 +78,7 @@ var _ = Describe("Gateway", func() {
 						Name:      "default",
 					},
 				}
-				Expect(adminClient.Create(ctx, istio)).To(Succeed())
+				helpers.EnsureCreate(adminClient, istio)
 			})
 
 			It("returns an error about alpha gateway API not being enabled", func() {
@@ -145,7 +146,7 @@ var _ = Describe("Gateway", func() {
 						Name:      "kyma-gateway",
 					},
 				}
-				Expect(adminClient.Create(ctx, kymaGateway)).To(Succeed())
+				helpers.EnsureCreate(adminClient, kymaGateway)
 			})
 
 			It("errors", func() {

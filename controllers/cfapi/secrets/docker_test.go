@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 
 	"github.com/kyma-project/cfapi/controllers/cfapi/secrets"
+	"github.com/kyma-project/cfapi/tests/helpers"
 	"github.com/kyma-project/cfapi/tools/k8s"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -35,7 +36,7 @@ var _ = Describe("Docker", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		secretName = "docker-secret"
-		Expect(adminClient.Create(ctx, &corev1.Secret{
+		helpers.EnsureCreate(adminClient, &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: testNamespace,
 				Name:      secretName,
@@ -43,7 +44,7 @@ var _ = Describe("Docker", func() {
 			Data: map[string][]byte{
 				corev1.DockerConfigJsonKey: secretDataBytes,
 			},
-		})).To(Succeed())
+		})
 
 		docker = secrets.NewDocker(adminClient)
 	})
