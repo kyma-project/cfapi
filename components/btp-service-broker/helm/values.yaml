@@ -1,6 +1,6 @@
 broker:
   image: ghcr.io/kyma-project/cfapi/btp-service-broker
-  imagePullSecret: dockerregistry-config
+  imagePullSecret: dockerregistry-config-external
   port: 8080
   resourceNamespace: cfapi-system
   credentials:
