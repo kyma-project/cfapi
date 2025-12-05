@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"slices"
 	"strings"
 
@@ -328,13 +329,14 @@ func (b *BTPBroker) Bind(ctx context.Context, instanceID, bindingID string, deta
 			return domain.Binding{}, fmt.Errorf("failed to get binding credentials: %w", err)
 		}
 
+		slog.Info("Returning binding credentials", "credentials", credentials)
 		return domain.Binding{Credentials: credentials, IsAsync: false, OperationData: "bind-" + bindingID}, nil
 	}
 
 	return domain.Binding{IsAsync: true, OperationData: "bind-" + bindingID}, nil
 }
 
-func (b *BTPBroker) getCredentials(ctx context.Context, instanceID string) (map[string][]byte, error) {
+func (b *BTPBroker) getCredentials(ctx context.Context, instanceID string) (any, error) {
 	bindingSecret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: b.resourceNamespace,
@@ -347,7 +349,42 @@ func (b *BTPBroker) getCredentials(ctx context.Context, instanceID string) (map[
 		return nil, fmt.Errorf("failed to get binding Secret: %w", err)
 	}
 
-	return bindingSecret.Data, nil
+	return decodeBindingSecretData(bindingSecret.Data)
+}
+
+func decodeBindingSecretData(secretData map[string][]byte) (any, error) {
+	metadataBytes, ok := secretData[".metadata"]
+	if !ok {
+		return nil, errors.New("secret data does not contain .metadata key")
+	}
+
+	metadata := map[string][]map[string]string{}
+	err := json.Unmarshal(metadataBytes, &metadata)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal %v into metadata: %w", metadataBytes, err)
+	}
+
+	objectKeys := []string{}
+	credProperties, ok := metadata["credentialProperties"]
+	if !ok {
+		return nil, fmt.Errorf("metadata %v is missing credentialProperties", metadata)
+	}
+
+	for _, credPropertyEntry := range credProperties {
+		k, ok := credPropertyEntry["name"]
+		if !ok {
+			return nil, fmt.Errorf("credentials property entry %v does not contain a 'name' key", credPropertyEntry)
+		}
+		objectKeys = append(objectKeys, k)
+
+	}
+
+	decodedObject := map[string]string{}
+	for _, k := range objectKeys {
+		decodedObject[k] = string(secretData[k])
+	}
+
+	return decodedObject, nil
 }
 
 func (b *BTPBroker) Unbind(ctx context.Context, instanceID, bindingID string, details domain.UnbindDetails, _ bool) (domain.UnbindSpec, error) {
