@@ -3,9 +3,9 @@ module github.com/kyma-project/cfapi/components/btp-service-broker
 go 1.25.5
 
 require (
-	code.cloudfoundry.org/brokerapi/v13 v13.0.15
+	code.cloudfoundry.org/brokerapi/v13 v13.0.16
 	github.com/BooleanCat/go-functional/v2 v2.5.1
-	github.com/SAP/sap-btp-service-operator v0.9.8
+	github.com/SAP/sap-btp-service-operator v0.10.0
 	github.com/go-logr/logr v1.4.3
 	github.com/go-logr/stdr v1.2.2
 	github.com/google/uuid v1.6.0

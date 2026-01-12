@@ -1,13 +1,13 @@
 cel.dev/expr v0.24.0 h1:56OvJKSH3hDGL0ml5uSxZmz3/3Pq4tJ+fb1unVLAFcY=
 cel.dev/expr v0.24.0/go.mod h1:hLPLo1W4QUmuYdA72RBX06QTs6MXw941piREPl3Yfiw=
-code.cloudfoundry.org/brokerapi/v13 v13.0.15 h1:esa7Lqc4NGwhikp79mDkiwuW4x0mUqHwcvR941554Mo=
-code.cloudfoundry.org/brokerapi/v13 v13.0.15/go.mod h1:1YVZiOwRtpkf0JR0TagEQN4mHUCoCWhWzU6PX+PM0dA=
+code.cloudfoundry.org/brokerapi/v13 v13.0.16 h1:BDyng6BLzz7Sp18togCAmfQgbRmne776n4HlYn7ouPY=
+code.cloudfoundry.org/brokerapi/v13 v13.0.16/go.mod h1:hbMeOU+D5FPKFigs91ozMPhUlKeFHd9ocvOXw6ul388=
 github.com/BooleanCat/go-functional/v2 v2.5.1 h1:9dMUAHt5TJktTCOwV3EUIgNuGX5MMHGW4g0we+mlzZU=
 github.com/BooleanCat/go-functional/v2 v2.5.1/go.mod h1:IpUUAXAc9CiWDb+YDXkJyyUhtOVqDtyICDRg/de1IaQ=
 github.com/Masterminds/semver/v3 v3.4.0 h1:Zog+i5UMtVoCU8oKka5P7i9q9HgrJeGzI9SA1Xbatp0=
 github.com/Masterminds/semver/v3 v3.4.0/go.mod h1:4V+yj/TJE1HU9XfppCwVMZq3I84lprf4nC11bSS5beM=
-github.com/SAP/sap-btp-service-operator v0.9.8 h1:Y/ilb388Q0wu3alLEJ1rspzLhJXmYEZN8u2yRUhTL5c=
-github.com/SAP/sap-btp-service-operator v0.9.8/go.mod h1:mYAp+dUGtjN1+H2kh6UJyfNmCZ5sm6fK7i1c9FZORn8=
+github.com/SAP/sap-btp-service-operator v0.10.0 h1:tHwLYV5llPJfbMsPej0fiC2uwKv1j5ufzObwF0JTFt0=
+github.com/SAP/sap-btp-service-operator v0.10.0/go.mod h1:mYAp+dUGtjN1+H2kh6UJyfNmCZ5sm6fK7i1c9FZORn8=
 github.com/antlr4-go/antlr/v4 v4.13.0 h1:lxCg3LAv+EUK6t1i0y1V6/SLeUi0eKEKdhQAlS8TVTI=
 github.com/antlr4-go/antlr/v4 v4.13.0/go.mod h1:pfChB/xh/Unjila75QW7+VU4TSnWnnk9UTnmpPaOR2g=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
