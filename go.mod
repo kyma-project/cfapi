@@ -16,7 +16,7 @@ require (
 	github.com/onsi/gomega v1.39.0
 	github.com/pivotal/kpack v0.17.1
 	gopkg.in/yaml.v3 v3.0.1
-	helm.sh/helm/v3 v3.19.4
+	helm.sh/helm/v3 v3.19.5
 	istio.io/api v1.28.2
 	istio.io/client-go v1.28.2
 	k8s.io/api v0.35.0
