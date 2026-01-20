@@ -30,21 +30,29 @@ import (
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
 //counterfeiter:generate -o fake -fake-name SMClient github.com/SAP/sap-btp-service-operator/client/sm.Client
 
+//counterfeiter:generate -o fake -fake-name CredentialsDecoder . CredentialsDecoder
+type CredentialsDecoder interface {
+	DecodeBindingSecretData(secretData map[string][]byte) (any, error)
+}
+
 type BTPBroker struct {
-	k8sClient         client.Client
-	smClient          sm.Client
-	resourceNamespace string
+	k8sClient          client.Client
+	smClient           sm.Client
+	resourceNamespace  string
+	credentialsDecoder CredentialsDecoder
 }
 
 func NewBroker(
 	k8sClient client.Client,
 	smClient sm.Client,
 	resourceNamespace string,
+	credentialsDecoder CredentialsDecoder,
 ) *BTPBroker {
 	return &BTPBroker{
-		k8sClient:         k8sClient,
-		resourceNamespace: resourceNamespace,
-		smClient:          smClient,
+		k8sClient:          k8sClient,
+		resourceNamespace:  resourceNamespace,
+		smClient:           smClient,
+		credentialsDecoder: credentialsDecoder,
 	}
 }
 
@@ -334,7 +342,7 @@ func (b *BTPBroker) Bind(ctx context.Context, instanceID, bindingID string, deta
 	return domain.Binding{IsAsync: true, OperationData: "bind-" + bindingID}, nil
 }
 
-func (b *BTPBroker) getCredentials(ctx context.Context, instanceID string) (map[string][]byte, error) {
+func (b *BTPBroker) getCredentials(ctx context.Context, instanceID string) (any, error) {
 	bindingSecret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: b.resourceNamespace,
@@ -347,7 +355,7 @@ func (b *BTPBroker) getCredentials(ctx context.Context, instanceID string) (map[
 		return nil, fmt.Errorf("failed to get binding Secret: %w", err)
 	}
 
-	return bindingSecret.Data, nil
+	return b.credentialsDecoder.DecodeBindingSecretData(bindingSecret.Data)
 }
 
 func (b *BTPBroker) Unbind(ctx context.Context, instanceID, bindingID string, details domain.UnbindDetails, _ bool) (domain.UnbindSpec, error) {

@@ -27,8 +27,9 @@ var (
 
 var _ = Describe("BTPBroker", func() {
 	var (
-		smClient *fake.SMClient
-		broker   *btp.BTPBroker
+		smClient           *fake.SMClient
+		credentialsDecoder *fake.CredentialsDecoder
+		broker             *btp.BTPBroker
 	)
 
 	BeforeEach(func() {
@@ -75,7 +76,9 @@ var _ = Describe("BTPBroker", func() {
 			ServicePlans: []types.ServicePlan{servicePlan},
 		}, nil)
 
-		broker = btp.NewBroker(k8sClient, smClient, resourceNamespace)
+		credentialsDecoder = new(fake.CredentialsDecoder)
+
+		broker = btp.NewBroker(k8sClient, smClient, resourceNamespace, credentialsDecoder)
 	})
 
 	Describe("Services", func() {
@@ -702,8 +705,15 @@ var _ = Describe("BTPBroker", func() {
 						Namespace: resourceNamespace,
 						Name:      btpBinding.Name,
 					},
+					StringData: map[string]string{
+						"creds-key": "creds-value",
+					},
 				}
 				Expect(k8sClient.Create(ctx, secret)).To(Succeed())
+
+				credentialsDecoder.DecodeBindingSecretDataReturns(map[string]string{
+					"decoded-cred-key": "decoded-cred-value",
+				}, nil)
 
 				Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(btpBinding), btpBinding)).To(Succeed())
 				Expect(k8s.Patch(ctx, k8sClient, btpBinding, func() {
@@ -723,13 +733,30 @@ var _ = Describe("BTPBroker", func() {
 				})).To(Succeed())
 			})
 
-			It("returns secret credentials", func() {
+			It("decodes binding credentials", func() {
+				Expect(err).NotTo(HaveOccurred())
+				Expect(credentialsDecoder.DecodeBindingSecretDataCallCount()).To(Equal(1))
+			})
+
+			It("returns decoded secret credentials", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(binding).To(Equal(domain.Binding{
-					IsAsync:       false,
-					Credentials:   secret.Data,
+					IsAsync: false,
+					Credentials: map[string]string{
+						"decoded-cred-key": "decoded-cred-value",
+					},
 					OperationData: "bind-" + bindingID,
 				}))
+			})
+
+			When("decoding binding credentials fails", func() {
+				BeforeEach(func() {
+					credentialsDecoder.DecodeBindingSecretDataReturns(nil, errors.New("decoding failed"))
+				})
+
+				It("returns an error", func() {
+					Expect(err).To(MatchError(ContainSubstring("decoding failed")))
+				})
 			})
 		})
 	})

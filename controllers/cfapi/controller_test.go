@@ -415,6 +415,7 @@ var _ = Describe("CFDomainReconciler Integration Tests", func() {
 			Eventually(func(g Gomega) {
 				g.Expect(adminClient.Get(ctx, client.ObjectKeyFromObject(cfAPI), cfAPI)).To(Succeed())
 				g.Expect(cfAPI.Finalizers).To(ContainElement(cfapi.Finalizer))
+				g.Expect(cfAPI.Status.InstallationConfig).NotTo(BeZero())
 			}).Should(Succeed())
 
 			uninstConfig = cfAPI.Status.InstallationConfig

@@ -11,6 +11,7 @@ import (
 	btpv1 "github.com/SAP/sap-btp-service-operator/api/v1"
 	"github.com/SAP/sap-btp-service-operator/client/sm"
 	"github.com/kyma-project/cfapi/components/btp-service-broker/btp"
+	"github.com/kyma-project/cfapi/components/btp-service-broker/btp/bindings"
 	"gopkg.in/yaml.v3"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -75,7 +76,7 @@ func main() {
 	server := &http.Server{
 		Addr: fmt.Sprintf(":%d", serverConfig.Port),
 		Handler: brokerapi.New(
-			btp.NewBroker(k8sClient, smClient, serverConfig.ResourceNamespace),
+			btp.NewBroker(k8sClient, smClient, serverConfig.ResourceNamespace, bindings.NewCredentialsDecoder()),
 			slog.Default(),
 			brokerapi.BrokerCredentials{
 				Username: os.Getenv("BROKER_USERNAME"),
