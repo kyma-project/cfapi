@@ -2,6 +2,8 @@ module github.com/kyma-project/cfapi/components/btp-service-broker
 
 go 1.25.5
 
+replace sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.22.4
+
 require (
 	code.cloudfoundry.org/brokerapi/v13 v13.0.16
 	github.com/BooleanCat/go-functional/v2 v2.5.1
