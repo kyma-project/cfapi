@@ -5,7 +5,7 @@ go 1.25.5
 replace sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.22.4
 
 require (
-	code.cloudfoundry.org/brokerapi/v13 v13.0.16
+	code.cloudfoundry.org/brokerapi/v13 v13.0.17
 	github.com/BooleanCat/go-functional/v2 v2.5.1
 	github.com/SAP/sap-btp-service-operator v0.10.0
 	github.com/go-logr/logr v1.4.3
