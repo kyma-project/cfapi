@@ -11,7 +11,7 @@ require (
 	code.cloudfoundry.org/korifi v0.17.0
 	github.com/BooleanCat/go-functional/v2 v2.5.1
 	github.com/gardener/cert-management v0.20.0
-	github.com/gardener/external-dns-management v0.35.0
+	github.com/gardener/external-dns-management v0.35.1
 	github.com/go-logr/logr v1.4.3
 	github.com/google/uuid v1.6.0
 	github.com/kyma-project/istio/operator v0.0.0-00010101000000-000000000000
@@ -22,11 +22,11 @@ require (
 	helm.sh/helm/v3 v3.20.0
 	istio.io/api v1.28.3
 	istio.io/client-go v1.28.3
-	k8s.io/api v0.35.0
-	k8s.io/apiextensions-apiserver v0.35.0
-	k8s.io/apimachinery v0.35.0
-	k8s.io/client-go v0.35.0
-	k8s.io/kubectl v0.35.0
+	k8s.io/api v0.35.1
+	k8s.io/apiextensions-apiserver v0.35.1
+	k8s.io/apimachinery v0.35.1
+	k8s.io/client-go v0.35.1
+	k8s.io/kubectl v0.35.1
 	sigs.k8s.io/controller-runtime v0.23.0
 	sigs.k8s.io/gateway-api v1.4.1
 	sigs.k8s.io/yaml v1.6.0
@@ -159,10 +159,10 @@ require (
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	istio.io/istio v0.0.0-20250829173807-2c19e5462807 // indirect
-	k8s.io/apiserver v0.35.0 // indirect
-	k8s.io/cli-runtime v0.35.0 // indirect
-	k8s.io/code-generator v0.35.0 // indirect
-	k8s.io/component-base v0.35.0 // indirect
+	k8s.io/apiserver v0.35.1 // indirect
+	k8s.io/cli-runtime v0.35.1 // indirect
+	k8s.io/code-generator v0.35.1 // indirect
+	k8s.io/component-base v0.35.1 // indirect
 	k8s.io/gengo/v2 v2.0.0-20250922181213-ec3ebc5fd46b // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20250910181357-589584f1c912 // indirect
