@@ -7,6 +7,8 @@ ROOT_DIR="$SCRIPT_DIR/.."
 VENDOR_DIR="${ROOT_DIR}/module-data/vendor"
 TESTS_VENDOR_DIR="${ROOT_DIR}/tests/dependencies/vendor"
 
+CLUSTER="$1"
+
 export CI_MODE="${CI_MODE:-false}"
 SKIP_DEPLOY="${SKIP_DEPLOY:-false}"
 # If BUILD_LOCAL_KORIFI is set to true, the script will build Korifi from local
@@ -48,18 +50,15 @@ download_uaa_ca_pem() {
 }
 
 ensure_kind_cluster() {
-  local cluster="$1"
-  if ! kind get clusters | grep -q "${cluster}"; then
+  if ! kind get clusters | grep -q "$CLUSTER"; then
     download_uaa_ca_pem
-    cat <<EOF | kind create cluster --name "${cluster}" --image kindest/node:v1.32.5 --wait 5m --config=-
+    cat <<EOF | kind create cluster --name "$CLUSTER" --image kindest/node:v1.32.5 --wait 5m --config=-
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 containerdConfigPatches:
 - |-
   [plugins."io.containerd.grpc.v1.cri".registry]
-    [plugins."io.containerd.grpc.v1.cri".registry.mirrors]
-      [plugins."io.containerd.grpc.v1.cri".registry.mirrors."dockerregistry.kyma-system.svc.cluster.local:5000"]
-        endpoint = ["http://127.0.0.1:32137"]
+    config_path = "/etc/containerd/certs.d"
 nodes:
 - role: control-plane
   extraMounts:
@@ -99,9 +98,8 @@ nodes:
     hostPort: $KYMA_TLS_PORT
     protocol: TCP
 EOF
-
   fi
-  kind export kubeconfig --name "${cluster}"
+  kind export kubeconfig --name "$CLUSTER"
 }
 
 install_metrics_server() {
@@ -159,7 +157,22 @@ install_docker_registry() {
     sleep 1
   done
 
-  docker login "$REGISTRY_URL" --username "$REGISTRY_USER" --password $REGISTRY_PASSWORD
+  configure_kyma_registry_in_k8s_node
+  docker login "$REGISTRY_URL" --username "$REGISTRY_USER" --password "$REGISTRY_PASSWORD"
+}
+
+configure_kyma_registry_in_k8s_node() {
+  # We use the kyma docker registry to push images the kublet will load, such
+  # as the cfapi operator image. That is why we need to alias the kyma docker
+  # registry external URL to an URL that the node container can use, i.e.
+  # localhost:32137 (the kyma docker registry service port is always 32137)
+  REGISTRY_DIR="/etc/containerd/certs.d/dockerregistry.kyma-system.svc.cluster.local:5000"
+  for node in $(kind get nodes --name "$CLUSTER"); do
+    docker exec "${node}" mkdir -p "${REGISTRY_DIR}"
+    cat <<EOF | docker exec -i "${node}" cp /dev/stdin "${REGISTRY_DIR}/hosts.toml"
+[host."http://127.0.0.1:32137"]
+EOF
+  done
 }
 
 install_gardener_cert_manager() {
@@ -355,7 +368,7 @@ EOF
 
 main() {
   if [ $SKIP_DEPLOY == "false" ]; then
-    ensure_kind_cluster "$1"
+    ensure_kind_cluster
 
     create_namespaces
     install_gardener_cert_manager
