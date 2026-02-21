@@ -103,7 +103,7 @@ jobs:
         k9s: latest
 
     - name: Create Kind Cluster
-      uses: helm/kind-action@v1.13.0
+      uses: helm/kind-action@v1.14.0
       with:
         config: ./development/assets/kind-config.yaml
         cloud_provider: true
