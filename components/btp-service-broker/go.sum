@@ -1,7 +1,7 @@
 cel.dev/expr v0.24.0 h1:56OvJKSH3hDGL0ml5uSxZmz3/3Pq4tJ+fb1unVLAFcY=
 cel.dev/expr v0.24.0/go.mod h1:hLPLo1W4QUmuYdA72RBX06QTs6MXw941piREPl3Yfiw=
-code.cloudfoundry.org/brokerapi/v13 v13.0.19 h1:VkMfoaxSnAYU5SUccb57h9ElePdVD75t9EQeBC8ZYBM=
-code.cloudfoundry.org/brokerapi/v13 v13.0.19/go.mod h1:U6NIHE3wPyXWbFkweEFqCWYBss2shzIIceBFtJ7vRQw=
+code.cloudfoundry.org/brokerapi/v13 v13.0.20 h1:iFHQpk/PO5alSuMXu9mgxXdWr/U9Gtjb+wJbfprFuVQ=
+code.cloudfoundry.org/brokerapi/v13 v13.0.20/go.mod h1:U6NIHE3wPyXWbFkweEFqCWYBss2shzIIceBFtJ7vRQw=
 github.com/BooleanCat/go-functional/v2 v2.5.1 h1:9dMUAHt5TJktTCOwV3EUIgNuGX5MMHGW4g0we+mlzZU=
 github.com/BooleanCat/go-functional/v2 v2.5.1/go.mod h1:IpUUAXAc9CiWDb+YDXkJyyUhtOVqDtyICDRg/de1IaQ=
 github.com/Masterminds/semver/v3 v3.4.0 h1:Zog+i5UMtVoCU8oKka5P7i9q9HgrJeGzI9SA1Xbatp0=
