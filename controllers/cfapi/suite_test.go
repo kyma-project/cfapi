@@ -184,7 +184,7 @@ var _ = BeforeEach(func() {
 		k8sManager.GetScheme(),
 		kymaClient,
 		secrets.NewDocker(adminClient),
-		k8sManager.GetEventRecorderFor("cfapi"),
+		k8sManager.GetEventRecorder("cfapi"),
 		ctrl.Log.WithName("controllers").WithName("cfapi"),
 		100*time.Millisecond,
 		[]installable.Installable{firstToInstall, secondToInstall},

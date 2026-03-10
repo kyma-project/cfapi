@@ -2,7 +2,7 @@ package installable
 
 import (
 	"github.com/kyma-project/cfapi/api/v1alpha1"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 )
 
 type EventType string
@@ -18,14 +18,14 @@ type EventRecorder interface {
 }
 
 type CFAPIEventRecorder struct {
-	recorder record.EventRecorder
+	recorder events.EventRecorder
 	cfAPI    *v1alpha1.CFAPI
 }
 
-func NewCFAPIEventRecorder(recorder record.EventRecorder, cfAPI *v1alpha1.CFAPI) *CFAPIEventRecorder {
+func NewCFAPIEventRecorder(recorder events.EventRecorder, cfAPI *v1alpha1.CFAPI) *CFAPIEventRecorder {
 	return &CFAPIEventRecorder{recorder: recorder, cfAPI: cfAPI}
 }
 
 func (r *CFAPIEventRecorder) Event(eventtype EventType, reason, message string) {
-	r.recorder.Event(r.cfAPI, string(eventtype), reason, message)
+	r.recorder.Eventf(r.cfAPI, nil, string(eventtype), reason, "Reconcile", message)
 }
