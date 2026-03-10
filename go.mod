@@ -2,11 +2,6 @@ module github.com/kyma-project/cfapi
 
 go 1.25.7
 
-replace (
-	golang.org/x/tools => golang.org/x/tools v0.37.0
-	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.22.4
-)
-
 require (
 	code.cloudfoundry.org/korifi v0.18.0
 	github.com/BooleanCat/go-functional/v2 v2.5.1

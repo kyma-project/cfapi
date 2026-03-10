@@ -165,7 +165,7 @@ func main() {
 		mgr.GetScheme(),
 		kyma.NewClient(mgr.GetClient()),
 		secrets.NewDocker(mgr.GetClient()),
-		mgr.GetEventRecorderFor(operatorName),
+		mgr.GetEventRecorder(operatorName),
 		controllersLog,
 		10*time.Second,
 		installOrder,
