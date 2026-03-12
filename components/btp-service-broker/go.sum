@@ -6,8 +6,8 @@ github.com/BooleanCat/go-functional/v2 v2.5.1 h1:9dMUAHt5TJktTCOwV3EUIgNuGX5MMHG
 github.com/BooleanCat/go-functional/v2 v2.5.1/go.mod h1:IpUUAXAc9CiWDb+YDXkJyyUhtOVqDtyICDRg/de1IaQ=
 github.com/Masterminds/semver/v3 v3.4.0 h1:Zog+i5UMtVoCU8oKka5P7i9q9HgrJeGzI9SA1Xbatp0=
 github.com/Masterminds/semver/v3 v3.4.0/go.mod h1:4V+yj/TJE1HU9XfppCwVMZq3I84lprf4nC11bSS5beM=
-github.com/SAP/sap-btp-service-operator v0.10.2 h1:TsXxrPAyh9HKpczAZfzJ3Q7+iN9GyCnglgFJ1eHQdIU=
-github.com/SAP/sap-btp-service-operator v0.10.2/go.mod h1:cD3StN7LqGJZaRes+rXe3TzTiEGhl8JPHk6iCS9Soh4=
+github.com/SAP/sap-btp-service-operator v0.10.3 h1:uxcwqs7DfzQ/z43pebmHiV1B6AmHqZtYKiVD9Mp3l5E=
+github.com/SAP/sap-btp-service-operator v0.10.3/go.mod h1:cD3StN7LqGJZaRes+rXe3TzTiEGhl8JPHk6iCS9Soh4=
 github.com/antlr4-go/antlr/v4 v4.13.0 h1:lxCg3LAv+EUK6t1i0y1V6/SLeUi0eKEKdhQAlS8TVTI=
 github.com/antlr4-go/antlr/v4 v4.13.0/go.mod h1:pfChB/xh/Unjila75QW7+VU4TSnWnnk9UTnmpPaOR2g=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
