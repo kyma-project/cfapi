@@ -7,7 +7,7 @@ replace sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.22.4
 require (
 	code.cloudfoundry.org/brokerapi/v13 v13.0.20
 	github.com/BooleanCat/go-functional/v2 v2.5.1
-	github.com/SAP/sap-btp-service-operator v0.10.2
+	github.com/SAP/sap-btp-service-operator v0.10.3
 	github.com/go-logr/logr v1.4.3
 	github.com/go-logr/stdr v1.2.2
 	github.com/google/uuid v1.6.0
