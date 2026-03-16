@@ -2,52 +2,52 @@ apiVersion: vendir.k14s.io/v1alpha1
 directories:
 - contents:
   - githubRelease:
-      tag: v1.4.0
-      url: https://api.github.com/repos/kubernetes-sigs/gateway-api/releases/252387623
+      tag: v1.5.1
+      url: https://api.github.com/repos/kubernetes-sigs/gateway-api/releases/296866668
     path: gateway-api
   - githubRelease:
-      tag: v0.17.0
-      url: https://api.github.com/repos/buildpacks-community/kpack/releases/213128352
+      tag: v0.17.1
+      url: https://api.github.com/repos/buildpacks-community/kpack/releases/268763858
     path: kpack
   - helmChart:
       appVersion: ""
-      version: 0.17.0
+      version: 0.18.0
     path: korifi-chart
   - helmChart:
-      appVersion: 1.32.0
-      version: 0.1.0
+      appVersion: 1.33.2
+      version: 0.3.0
     path: contour-chart
   path: module-data/vendor
 - contents:
   - githubRelease:
-      tag: v0.8.0
-      url: https://api.github.com/repos/kubernetes-sigs/metrics-server/releases/229645413
+      tag: v0.8.1
+      url: https://api.github.com/repos/kubernetes-sigs/metrics-server/releases/281050386
     path: metrics-server-local
   - githubRelease:
-      tag: 0.10.0
-      url: https://api.github.com/repos/kyma-project/docker-registry/releases/247312117
+      tag: 0.11.0
+      url: https://api.github.com/repos/kyma-project/docker-registry/releases/279029250
     path: kyma-docker-registry
   - git:
-      commitTitle: running update_deps.sh for RC.1 (#58129)
-      sha: b8d1df54465060428c2a2a38286e360beb85fb31
+      commitTitle: add release note for xds debug namespace auth fix...
+      sha: 6991a379e1fcfbe21e64da2eda5d56624a5547b4
       tags:
-      - 1.28.0
+      - 1.29.1
     path: istio
   - githubRelease:
-      tag: 1.23.0
-      url: https://api.github.com/repos/kyma-project/istio/releases/259235362
+      tag: 1.26.0
+      url: https://api.github.com/repos/kyma-project/istio/releases/296676270
     path: istio-kyma
   - git:
-      commitTitle: release v0.39.0
-      sha: 28aa7fd2aafa680a1c972fb2f12447d79ef29290
+      commitTitle: release v0.42.0
+      sha: 7467a96307e5df1a8955deb559b0203871f6a03d
       tags:
-      - v0.39.0
+      - v0.42.0
     path: oidc-webhook-authenticator
   - git:
-      commitTitle: release v0.19.0
-      sha: 51257c201dac9f091fcff4eb2f6addcb6d000a74
+      commitTitle: release v0.20.0
+      sha: 9ddcea887e4ff7964875c8000d671ea7729a7106
       tags:
-      - v0.19.0
+      - v0.20.0
     path: gardener-cert-manager
   path: tests/dependencies/vendor
 kind: LockConfig
