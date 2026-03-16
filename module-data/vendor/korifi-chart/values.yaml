@@ -15,7 +15,7 @@ api:
   authProxy:
     caCert: ""
     host: ""
-  image: index.docker.io/cloudfoundry/korifi-api@sha256:c49bce183af1cbe8103157b36162cc37a32bf8e21e5d3170b70c53cf60478948
+  image: index.docker.io/cloudfoundry/korifi-api@sha256:728dc384bcef1e44432c022162f69fecb8e4009e4bc3edc62c61c68940a5c18c
   include: true
   infoConfig:
     custom: {}
@@ -43,9 +43,10 @@ api:
 containerRegistryCACertSecret: ""
 containerRegistrySecrets:
 - image-registry-credentials
+containerRepositoryPrefix: ""
 controllers:
   extraVCAPApplicationValues: {}
-  image: index.docker.io/cloudfoundry/korifi-controllers@sha256:3a83d457eb02725010211925e12a9db94f14f70c77aac90da1e7de804633f45d
+  image: index.docker.io/cloudfoundry/korifi-controllers@sha256:bdece02ac9064886cb17464d8ef03bb2fa51d3acf843230f401c30dea2ab7ad6
   maxRetainedBuildsPerApp: 5
   maxRetainedPackagesPerApp: 5
   namespaceLabels: {}
@@ -110,38 +111,38 @@ metadata:
         - git:
             dirty: true
             remoteURL: https://github.com/cloudfoundry/korifi.git
-            sha: 8db8d6a88ad7149ea65e84173a983b7947866179
+            sha: b575306468529dfe1979b81b168007253788a736
         - tagged:
             tags:
             - latest
-            - 0.17.0
-        url: index.docker.io/cloudfoundry/korifi-api@sha256:c49bce183af1cbe8103157b36162cc37a32bf8e21e5d3170b70c53cf60478948
+            - 0.18.0
+        url: index.docker.io/cloudfoundry/korifi-api@sha256:728dc384bcef1e44432c022162f69fecb8e4009e4bc3edc62c61c68940a5c18c
       - origins:
         - local:
             path: /tmp/build/a625eeb5/korifi
         - git:
             dirty: true
             remoteURL: https://github.com/cloudfoundry/korifi.git
-            sha: 8db8d6a88ad7149ea65e84173a983b7947866179
+            sha: b575306468529dfe1979b81b168007253788a736
         - tagged:
             tags:
             - latest
-            - 0.17.0
-        url: index.docker.io/cloudfoundry/korifi-controllers@sha256:3a83d457eb02725010211925e12a9db94f14f70c77aac90da1e7de804633f45d
+            - 0.18.0
+        url: index.docker.io/cloudfoundry/korifi-controllers@sha256:bdece02ac9064886cb17464d8ef03bb2fa51d3acf843230f401c30dea2ab7ad6
       - origins:
         - local:
             path: /tmp/build/a625eeb5/korifi
         - git:
             dirty: true
             remoteURL: https://github.com/cloudfoundry/korifi.git
-            sha: 8db8d6a88ad7149ea65e84173a983b7947866179
+            sha: b575306468529dfe1979b81b168007253788a736
         - tagged:
             tags:
             - latest
-            - 0.17.0
-        url: index.docker.io/cloudfoundry/korifi-migration@sha256:f9d7e108052c8c5fe7133ad8eec6037970d81ce6699baad7e4491dbbd6833be1
+            - 0.18.0
+        url: index.docker.io/cloudfoundry/korifi-migration@sha256:a4065de043ab0313924b75af8f3ab2d97d9e41a245704cd5ba071fa1c7756294
 migration:
-  image: index.docker.io/cloudfoundry/korifi-migration@sha256:f9d7e108052c8c5fe7133ad8eec6037970d81ce6699baad7e4491dbbd6833be1
+  image: index.docker.io/cloudfoundry/korifi-migration@sha256:a4065de043ab0313924b75af8f3ab2d97d9e41a245704cd5ba071fa1c7756294
   include: true
 networking:
   gatewayClass: null
