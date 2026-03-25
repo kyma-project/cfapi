@@ -5,7 +5,7 @@ go 1.25.7
 require (
 	code.cloudfoundry.org/korifi v0.18.0
 	github.com/BooleanCat/go-functional/v2 v2.5.1
-	github.com/gardener/cert-management v0.20.0
+	github.com/gardener/cert-management v0.21.0
 	github.com/gardener/external-dns-management v0.37.1
 	github.com/go-logr/logr v1.4.3
 	github.com/google/uuid v1.6.0
@@ -158,8 +158,8 @@ require (
 	k8s.io/code-generator v0.35.3 // indirect
 	k8s.io/component-base v0.35.3 // indirect
 	k8s.io/gengo/v2 v2.0.0-20250922181213-ec3ebc5fd46b // indirect
-	k8s.io/klog/v2 v2.130.1 // indirect
-	k8s.io/kube-openapi v0.0.0-20251125145642-4e65d59e963e // indirect
+	k8s.io/klog/v2 v2.140.0 // indirect
+	k8s.io/kube-openapi v0.0.0-20260127142750-a19766b6e2d4 // indirect
 	k8s.io/utils v0.0.0-20260210185600-b8788abfbbc2 // indirect
 	knative.dev/pkg v0.0.0-20251007184713-a624c759bede // indirect
 	oras.land/oras-go/v2 v2.6.0 // indirect
