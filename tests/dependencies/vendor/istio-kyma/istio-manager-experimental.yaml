@@ -8,7 +8,7 @@ metadata:
     app.kubernetes.io/instance: istio-operator-default
     app.kubernetes.io/name: istio-operator
     app.kubernetes.io/part-of: istio
-    app.kubernetes.io/version: 1.23.0-experimental
+    app.kubernetes.io/version: 1.26.0-experimental
     kyma-project.io/module: istio
   name: istios.operator.kyma-project.io
 spec:
@@ -30,7 +30,8 @@ spec:
     name: v1alpha2
     schema:
       openAPIV3Schema:
-        description: Istio contains Istio CR specification and current status.
+        description: Contains the Istio custom resource's specification and its current
+          status.
         properties:
           apiVersion:
             description: |-
@@ -50,24 +51,24 @@ spec:
           metadata:
             type: object
           spec:
-            description: Spec defines the desired state of the Istio installation.
+            description: Defines the desired state of the Istio installation.
             properties:
               compatibilityMode:
-                description: Enables compatibility mode for Istio installation.
+                description: Enables the compatibility mode for the Istio installation.
                 type: boolean
               components:
-                description: Defines configuration of Istio components.
+                description: Configures Istio components.
                 properties:
                   cni:
-                    description: Cni defines component configuration for Istio CNI
-                      DaemonSet
+                    description: Configures the Istio CNI DaemonSet component.
                     properties:
                       k8s:
-                        description: CniK8sConfig is a subset of https://istio.io/latest/docs/reference/config/istio.operator.v1alpha1/#KubernetesResourcesSpec
+                        description: Configures the Istio CNI DaemonSet component.
+                          It is a subset of [KubernetesResourcesSpec](https://istio.io/latest/docs/reference/config/istio.operator.v1alpha1/#KubernetesResourcesSpec).
                         properties:
                           affinity:
-                            description: 'Affinity defines the Pod scheduling affinity
-                              constraints: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#affinity-and-anti-affinity'
+                            description: Defines the Pod scheduling affinity constraints.
+                              See [Affinity and anti-affinity](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#affinity-and-anti-affinity).
                             properties:
                               nodeAffinity:
                                 description: Describes node affinity scheduling rules
@@ -644,8 +645,8 @@ spec:
                                       most preferred is the one with the greatest sum of weights, i.e.
                                       for each node that meets all of the scheduling requirements (resource
                                       request, requiredDuringScheduling anti-affinity expressions, etc.),
-                                      compute a sum by iterating through the elements of this field and adding
-                                      "weight" to the sum if the node has pods which matches the corresponding podAffinityTerm; the
+                                      compute a sum by iterating through the elements of this field and subtracting
+                                      "weight" from the sum if the node has pods which matches the corresponding podAffinityTerm; the
                                       node(s) with the highest sum are the most preferred.
                                     items:
                                       description: The weights of all of the matched
@@ -995,24 +996,36 @@ spec:
                                 type: object
                             type: object
                           resources:
-                            description: 'Resources define Kubernetes resources configuration:
-                              https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+                            description: Defines Kubernetes resources' configuration.
+                              See [Resource Management for Pods and Containers](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/).
                             properties:
                               limits:
+                                description: The maximum amount of resources a container
+                                  is allowed to use.
                                 properties:
                                   cpu:
+                                    description: Specifies CPU resource allocation
+                                      (requests or limits)
                                     pattern: ^([0-9]+m?|[0-9]\.[0-9]{1,3})$
                                     type: string
                                   memory:
+                                    description: Specifies memory resource allocation
+                                      (requests or limits).
                                     pattern: ^[0-9]+(((\.[0-9]+)?(E|P|T|G|M|k|Ei|Pi|Ti|Gi|Mi|Ki|m)?)|(e[0-9]+))$
                                     type: string
                                 type: object
                               requests:
+                                description: The minimum amount of resources (such
+                                  as CPU and memory) a container needs to run.
                                 properties:
                                   cpu:
+                                    description: Specifies CPU resource allocation
+                                      (requests or limits)
                                     pattern: ^([0-9]+m?|[0-9]\.[0-9]{1,3})$
                                     type: string
                                   memory:
+                                    description: Specifies memory resource allocation
+                                      (requests or limits).
                                     pattern: ^[0-9]+(((\.[0-9]+)?(E|P|T|G|M|k|Ei|Pi|Ti|Gi|Mi|Ki|m)?)|(e[0-9]+))$
                                     type: string
                                 type: object
@@ -1022,65 +1035,83 @@ spec:
                     - k8s
                     type: object
                   egressGateway:
-                    description: EgressGateway defines configuration for Istio egressGateway.
+                    description: Configures the Istio Egress Gateway component.
                     properties:
                       enabled:
-                        description: Enables or disables the Istio egress gateway.
+                        description: Enables or disables Istio Egress Gateway.
                         type: boolean
                       k8s:
-                        description: Defines the Kubernetes resources configuration
-                          for Istio egress gateway.
+                        description: Defines the Kubernetes resources' configuration
+                          for Istio Egress Gateway. It's a subset of [KubernetesResourcesSpec](https://istio.io/latest/docs/reference/config/istio.operator.v1alpha1/#KubernetesResourcesSpec).
                         properties:
                           hpaSpec:
-                            description: 'HPASpec defines configuration for HorizontalPodAutoscaler:
-                              https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/'
+                            description: Configures the [HorizontalPodAutoscaler](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/).
                             properties:
                               maxReplicas:
+                                description: Defines the minimum number of replicas
+                                  for the HorizontalPodAutoscaler.
                                 format: int32
                                 maximum: 2147483647
                                 minimum: 0
                                 type: integer
                               minReplicas:
+                                description: Defines the maximum number of replicas
+                                  for the HorizontalPodAutoscaler.
                                 format: int32
                                 maximum: 2147483647
                                 minimum: 0
                                 type: integer
                             type: object
                           resources:
-                            description: 'Resources define Kubernetes resources configuration:
-                              https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+                            description: Defines Kubernetes resources' configuration.
+                              See [Resource Management for Pods and Containers](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/).
                             properties:
                               limits:
+                                description: The maximum amount of resources a container
+                                  is allowed to use.
                                 properties:
                                   cpu:
+                                    description: Specifies CPU resource allocation
+                                      (requests or limits)
                                     pattern: ^([0-9]+m?|[0-9]\.[0-9]{1,3})$
                                     type: string
                                   memory:
+                                    description: Specifies memory resource allocation
+                                      (requests or limits).
                                     pattern: ^[0-9]+(((\.[0-9]+)?(E|P|T|G|M|k|Ei|Pi|Ti|Gi|Mi|Ki|m)?)|(e[0-9]+))$
                                     type: string
                                 type: object
                               requests:
+                                description: The minimum amount of resources (such
+                                  as CPU and memory) a container needs to run.
                                 properties:
                                   cpu:
+                                    description: Specifies CPU resource allocation
+                                      (requests or limits)
                                     pattern: ^([0-9]+m?|[0-9]\.[0-9]{1,3})$
                                     type: string
                                   memory:
+                                    description: Specifies memory resource allocation
+                                      (requests or limits).
                                     pattern: ^[0-9]+(((\.[0-9]+)?(E|P|T|G|M|k|Ei|Pi|Ti|Gi|Mi|Ki|m)?)|(e[0-9]+))$
                                     type: string
                                 type: object
                             type: object
                           strategy:
-                            description: 'Strategy defines configuration for rolling
-                              updates: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#rolling-update-deployment'
+                            description: Defines the rolling updates strategy. See
+                              [Rolling Update Deployment](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#rolling-update-deployment).
                             properties:
                               rollingUpdate:
-                                description: 'RollingUpdate defines configuration
-                                  for rolling updates: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#rolling-update-deployment'
+                                description: Defines the configuration for rolling
+                                  updates. See [Rolling Update Deployment](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#rolling-update-deployment).
                                 properties:
                                   maxSurge:
                                     anyOf:
                                     - type: integer
                                     - type: string
+                                    description: Specifies the maximum number of Pods
+                                      that can be created over the desired number
+                                      of Pods. See [Max Surge](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#max-surge).
                                     pattern: ^[0-9]+%?$
                                     x-kubernetes-int-or-string: true
                                     x-kubernetes-validations:
@@ -1092,6 +1123,9 @@ spec:
                                     anyOf:
                                     - type: integer
                                     - type: string
+                                    description: Specifies the maximum number of Pods
+                                      that can be unavailable during the update process.
+                                      See [Max Unavailable](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#max-unavailable)
                                     pattern: ^((100|[0-9]{1,2})%|[0-9]+)$
                                     x-kubernetes-int-or-string: true
                                     x-kubernetes-validations:
@@ -1106,62 +1140,80 @@ spec:
                         type: object
                     type: object
                   ingressGateway:
-                    description: IngressGateway defines component configurations for
-                      Istio Ingress Gateway
+                    description: Configures the Istio Ingress Gateway component.
                     properties:
                       k8s:
-                        description: KubernetesResourcesConfig is a subset of https://istio.io/latest/docs/reference/config/istio.operator.v1alpha1/#KubernetesResourcesSpec
+                        description: Defines the Kubernetes resources' configuration
+                          for Istio components. It's a subset of [KubernetesResourcesSpec](https://istio.io/latest/docs/reference/config/istio.operator.v1alpha1/#KubernetesResourcesSpec).
                         properties:
                           hpaSpec:
-                            description: 'HPASpec defines configuration for HorizontalPodAutoscaler:
-                              https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/'
+                            description: Configures the [HorizontalPodAutoscaler](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/).
                             properties:
                               maxReplicas:
+                                description: Defines the minimum number of replicas
+                                  for the HorizontalPodAutoscaler.
                                 format: int32
                                 maximum: 2147483647
                                 minimum: 0
                                 type: integer
                               minReplicas:
+                                description: Defines the maximum number of replicas
+                                  for the HorizontalPodAutoscaler.
                                 format: int32
                                 maximum: 2147483647
                                 minimum: 0
                                 type: integer
                             type: object
                           resources:
-                            description: 'Resources define Kubernetes resources configuration:
-                              https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+                            description: Defines Kubernetes resources' configuration.
+                              See [Resource Management for Pods and Containers](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/).
                             properties:
                               limits:
+                                description: The maximum amount of resources a container
+                                  is allowed to use.
                                 properties:
                                   cpu:
+                                    description: Specifies CPU resource allocation
+                                      (requests or limits)
                                     pattern: ^([0-9]+m?|[0-9]\.[0-9]{1,3})$
                                     type: string
                                   memory:
+                                    description: Specifies memory resource allocation
+                                      (requests or limits).
                                     pattern: ^[0-9]+(((\.[0-9]+)?(E|P|T|G|M|k|Ei|Pi|Ti|Gi|Mi|Ki|m)?)|(e[0-9]+))$
                                     type: string
                                 type: object
                               requests:
+                                description: The minimum amount of resources (such
+                                  as CPU and memory) a container needs to run.
                                 properties:
                                   cpu:
+                                    description: Specifies CPU resource allocation
+                                      (requests or limits)
                                     pattern: ^([0-9]+m?|[0-9]\.[0-9]{1,3})$
                                     type: string
                                   memory:
+                                    description: Specifies memory resource allocation
+                                      (requests or limits).
                                     pattern: ^[0-9]+(((\.[0-9]+)?(E|P|T|G|M|k|Ei|Pi|Ti|Gi|Mi|Ki|m)?)|(e[0-9]+))$
                                     type: string
                                 type: object
                             type: object
                           strategy:
-                            description: 'Strategy defines configuration for rolling
-                              updates: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#rolling-update-deployment'
+                            description: Defines the rolling updates strategy. See
+                              [Rolling Update Deployment](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#rolling-update-deployment).
                             properties:
                               rollingUpdate:
-                                description: 'RollingUpdate defines configuration
-                                  for rolling updates: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#rolling-update-deployment'
+                                description: Defines the configuration for rolling
+                                  updates. See [Rolling Update Deployment](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#rolling-update-deployment).
                                 properties:
                                   maxSurge:
                                     anyOf:
                                     - type: integer
                                     - type: string
+                                    description: Specifies the maximum number of Pods
+                                      that can be created over the desired number
+                                      of Pods. See [Max Surge](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#max-surge).
                                     pattern: ^[0-9]+%?$
                                     x-kubernetes-int-or-string: true
                                     x-kubernetes-validations:
@@ -1173,6 +1225,9 @@ spec:
                                     anyOf:
                                     - type: integer
                                     - type: string
+                                    description: Specifies the maximum number of Pods
+                                      that can be unavailable during the update process.
+                                      See [Max Unavailable](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#max-unavailable)
                                     pattern: ^((100|[0-9]{1,2})%|[0-9]+)$
                                     x-kubernetes-int-or-string: true
                                     x-kubernetes-validations:
@@ -1189,61 +1244,80 @@ spec:
                     - k8s
                     type: object
                   pilot:
-                    description: Pilot defines component configuration for Istiod
+                    description: Configures the Istiod component.
                     properties:
                       k8s:
-                        description: KubernetesResourcesConfig is a subset of https://istio.io/latest/docs/reference/config/istio.operator.v1alpha1/#KubernetesResourcesSpec
+                        description: Defines the Kubernetes resources' configuration
+                          for Istio components. It's a subset of [KubernetesResourcesSpec](https://istio.io/latest/docs/reference/config/istio.operator.v1alpha1/#KubernetesResourcesSpec).
                         properties:
                           hpaSpec:
-                            description: 'HPASpec defines configuration for HorizontalPodAutoscaler:
-                              https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/'
+                            description: Configures the [HorizontalPodAutoscaler](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/).
                             properties:
                               maxReplicas:
+                                description: Defines the minimum number of replicas
+                                  for the HorizontalPodAutoscaler.
                                 format: int32
                                 maximum: 2147483647
                                 minimum: 0
                                 type: integer
                               minReplicas:
+                                description: Defines the maximum number of replicas
+                                  for the HorizontalPodAutoscaler.
                                 format: int32
                                 maximum: 2147483647
                                 minimum: 0
                                 type: integer
                             type: object
                           resources:
-                            description: 'Resources define Kubernetes resources configuration:
-                              https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+                            description: Defines Kubernetes resources' configuration.
+                              See [Resource Management for Pods and Containers](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/).
                             properties:
                               limits:
+                                description: The maximum amount of resources a container
+                                  is allowed to use.
                                 properties:
                                   cpu:
+                                    description: Specifies CPU resource allocation
+                                      (requests or limits)
                                     pattern: ^([0-9]+m?|[0-9]\.[0-9]{1,3})$
                                     type: string
                                   memory:
+                                    description: Specifies memory resource allocation
+                                      (requests or limits).
                                     pattern: ^[0-9]+(((\.[0-9]+)?(E|P|T|G|M|k|Ei|Pi|Ti|Gi|Mi|Ki|m)?)|(e[0-9]+))$
                                     type: string
                                 type: object
                               requests:
+                                description: The minimum amount of resources (such
+                                  as CPU and memory) a container needs to run.
                                 properties:
                                   cpu:
+                                    description: Specifies CPU resource allocation
+                                      (requests or limits)
                                     pattern: ^([0-9]+m?|[0-9]\.[0-9]{1,3})$
                                     type: string
                                   memory:
+                                    description: Specifies memory resource allocation
+                                      (requests or limits).
                                     pattern: ^[0-9]+(((\.[0-9]+)?(E|P|T|G|M|k|Ei|Pi|Ti|Gi|Mi|Ki|m)?)|(e[0-9]+))$
                                     type: string
                                 type: object
                             type: object
                           strategy:
-                            description: 'Strategy defines configuration for rolling
-                              updates: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#rolling-update-deployment'
+                            description: Defines the rolling updates strategy. See
+                              [Rolling Update Deployment](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#rolling-update-deployment).
                             properties:
                               rollingUpdate:
-                                description: 'RollingUpdate defines configuration
-                                  for rolling updates: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#rolling-update-deployment'
+                                description: Defines the configuration for rolling
+                                  updates. See [Rolling Update Deployment](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#rolling-update-deployment).
                                 properties:
                                   maxSurge:
                                     anyOf:
                                     - type: integer
                                     - type: string
+                                    description: Specifies the maximum number of Pods
+                                      that can be created over the desired number
+                                      of Pods. See [Max Surge](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#max-surge).
                                     pattern: ^[0-9]+%?$
                                     x-kubernetes-int-or-string: true
                                     x-kubernetes-validations:
@@ -1255,6 +1329,9 @@ spec:
                                     anyOf:
                                     - type: integer
                                     - type: string
+                                    description: Specifies the maximum number of Pods
+                                      that can be unavailable during the update process.
+                                      See [Max Unavailable](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#max-unavailable)
                                     pattern: ^((100|[0-9]{1,2})%|[0-9]+)$
                                     x-kubernetes-int-or-string: true
                                     x-kubernetes-validations:
@@ -1271,31 +1348,42 @@ spec:
                     - k8s
                     type: object
                   proxy:
-                    description: Proxy defines component configuration for Istio proxy
-                      sidecar
+                    description: Configures the Istio sidecar proxy component.
                     properties:
                       k8s:
-                        description: ProxyK8sConfig is a subset of https://istio.io/latest/docs/reference/config/istio.operator.v1alpha1/#KubernetesResourcesSpec
+                        description: Contains a subset of [KubernetesResourcesSpec](https://istio.io/latest/docs/reference/config/istio.operator.v1alpha1/#KubernetesResourcesSpec).
                         properties:
                           resources:
-                            description: 'Resources define Kubernetes resources configuration:
-                              https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+                            description: Defines Kubernetes resources' configuration.
+                              See [Resource Management for Pods and Containers](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/).
                             properties:
                               limits:
+                                description: The maximum amount of resources a container
+                                  is allowed to use.
                                 properties:
                                   cpu:
+                                    description: Specifies CPU resource allocation
+                                      (requests or limits)
                                     pattern: ^([0-9]+m?|[0-9]\.[0-9]{1,3})$
                                     type: string
                                   memory:
+                                    description: Specifies memory resource allocation
+                                      (requests or limits).
                                     pattern: ^[0-9]+(((\.[0-9]+)?(E|P|T|G|M|k|Ei|Pi|Ti|Gi|Mi|Ki|m)?)|(e[0-9]+))$
                                     type: string
                                 type: object
                               requests:
+                                description: The minimum amount of resources (such
+                                  as CPU and memory) a container needs to run.
                                 properties:
                                   cpu:
+                                    description: Specifies CPU resource allocation
+                                      (requests or limits)
                                     pattern: ^([0-9]+m?|[0-9]\.[0-9]{1,3})$
                                     type: string
                                   memory:
+                                    description: Specifies memory resource allocation
+                                      (requests or limits).
                                     pattern: ^[0-9]+(((\.[0-9]+)?(E|P|T|G|M|k|Ei|Pi|Ti|Gi|Mi|Ki|m)?)|(e[0-9]+))$
                                     type: string
                                 type: object
@@ -1306,112 +1394,131 @@ spec:
                     type: object
                 type: object
               config:
-                description: Defines configuration of the Istio installation.
+                description: Configures the Istio installation.
                 properties:
                   authorizers:
                     description: Defines a list of external authorization providers.
                     items:
+                      description: |-
+                        Defines an external authorization provider's configuration.
+                        The defined authorizer can be referenced by name in an AuthorizationPolicy
+                        with action CUSTOM to enforce requests to be authorized by the external authorization service.
                       properties:
                         headers:
-                          description: Specifies headers to be included, added or
-                            forwarded during authorization.
+                          description: Specifies the headers included, added, or forwarded
+                            during authorization.
                           properties:
                             inCheck:
-                              description: Defines headers to be included or added
+                              description: Defines the headers to be included or added
                                 in check authorization request.
                               properties:
                                 add:
                                   additionalProperties:
                                     type: string
                                   description: |-
-                                    Set of additional fixed headers that should be included in the authorization request sent to the authorization service.
-                                    The Key is the header name and value is the header value.
-                                    Note that client request of the same key or headers specified in `Include` will be overridden.
+                                    Specifies a set of additional fixed headers included in the authorization request sent to the authorization service.
+                                    The key is the header name and value is the header value.
+                                    Client request of the same key or headers specified in `Include` are overridden.
                                   type: object
                                 include:
                                   description: |-
-                                    List of client request headers that should be included in the authorization request sent to the authorization service.
-                                    Note that in addition to the headers specified here, the following headers are included by default:
-                                    1. *Host*, *Method*, *Path* and *Content-Length* are automatically sent.
-                                    2. *Content-Length* will be set to 0, and the request will not have a message body. However, the authorization request can include the buffered client request body (controlled by include_request_body_in_check setting), consequently the value of Content-Length of the authorization request reflects the size of its payload size.
+                                    Lists client request headers included in the authorization request sent to the authorization service.
+                                    In addition to the headers specified here, the following headers are included by default:
+                                    - **Host**, **Method**, **Path**, and **Content-Length** are automatically sent.
+                                    - **Content-Length** is set to `0`, and the request doesn't have a message body. However, the authorization request can include the buffered client request body (controlled by the **include_request_body_in_check** setting), consequently the **Content-Length** value of the authorization request reflects its payload size.
                                   items:
                                     type: string
                                   type: array
                               type: object
                             toDownstream:
-                              description: Defines headers to be forwarded to the
-                                downstream (the client).
+                              description: Defines the headers to be forwarded to
+                                the downstream (the client).
                               properties:
                                 onAllow:
                                   description: |-
-                                    List of headers from the authorization service that should be forwarded to downstream when the authorization check result is allowed (HTTP code 200).
-                                    If not specified, the original response will not be modified and forwarded to downstream as-is.
-                                    Note, any existing headers will be overridden.
+                                    Lists headers from the authorization service forwarded to downstream when the authorization check result is allowed (HTTP code `200`).
+                                    If not specified, the original request is forwarded to the backend unmodified.
+                                    Any existing headers are overridden.
                                   items:
                                     type: string
                                   type: array
                                 onDeny:
                                   description: |-
-                                    List of headers from the authorization service that should be forwarded to downstream when the authorization check result is not allowed (HTTP code other than 200).
-                                    If not specified, all the authorization response headers, except *Authority (Host)* will be in the response to the downstream.
-                                    When a header is included in this list, *Path*, *Status*, *Content-Length*, *WWWAuthenticate* and *Location* are automatically added.
-                                    Note, the body from the authorization service is always included in the response to downstream.
+                                    Lists headers from the authorization service forwarded to downstream when the authorization check result is not allowed (HTTP code is other than `200`).
+                                    If not specified, all the authorization response headers, except **Authority (Host)**, are included in the response to the downstream.
+                                    When a header is included in this list, the following headers are automatically added: **Path**, **Status**, **Content-Length**, **WWWAuthenticate**, and **Location**.
+                                    The body from the authorization service is always included in the response to downstream.
                                   items:
                                     type: string
                                   type: array
                               type: object
                             toUpstream:
-                              description: Defines headers to be forwarded to the
-                                upstream (to the backend service).
+                              description: Defines the headers to be forwarded to
+                                the upstream (to the backend service).
                               properties:
                                 onAllow:
                                   description: |-
-                                    List of headers from the authorization service that should be added or overridden in the original request and forwarded to the upstream when the authorization check result is allowed (HTTP code 200).
-                                    If not specified, the original request will not be modified and forwarded to backend as-is.
-                                    Note, any existing headers will be overridden.
+                                    Lists headers from the authorization service added or overridden in the original request and forwarded to the upstream when the authorization check result is allowed (HTTP code `200`).
+                                    If not specified, the original request is forwarded to the backend unmodified.
+                                    Any existing headers are overridden.
                                   items:
                                     type: string
                                   type: array
                               type: object
                           type: object
                         name:
-                          description: A unique name identifying the extension authorization
+                          description: Specifies a unique name identifying the authorization
                             provider.
                           type: string
                         pathPrefix:
                           description: |-
-                            Specifies the prefix which will be included in the request sent to the authorization service.
-                            The prefix might be constructed with special characters (e.g., "/test?original_path=").
+                            Specifies the prefix included in the request sent to the authorization service.
+                            The prefix might be constructed with special characters (for example, `/test?original_path=`).
                           type: string
                         port:
-                          description: Specifies the port of the service.
+                          description: Specifies the port of the Service.
                           format: int32
                           type: integer
                         service:
                           description: |-
-                            Specifies the service that implements the Envoy ext_authz HTTP authorization service.
-                            The format is "\[\<Namespace>/\]\<Hostname\>".
-                            The specification of "\<Namespace\>"
-                            is required only when it is insufficient to unambiguously resolve a service in the service registry.
-                            The "\<Hostname\>" is a fully qualified host name of a service defined by the Kubernetes service or ServiceEntry.
-                            The recommended format is "\[\<Namespace\>\/\]\<Hostname\>"
-                            Example: "my-ext-authz.foo.svc.cluster.local" or "bar/my-ext-authz".
+                            Specifies the service that implements the Envoy `ext_authz` HTTP authorization service.
+                            The recommended format is `[Namespace/]Hostname`.
+                            Specify the namespace if it is required to unambiguously resolve a service in the service registry.
+                            The host name refers to the fully qualified host name of a service defined by either a Kubernetes Service or a ServiceEntry.
                           type: string
                         timeout:
-                          description: |-
-                            Specifies the timeout for the HTTP authorization request to the external service.
-                            Default timeout, as defined in [Envoy](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/http/ext_authz/v3/ext_authz.proto#extensions-filters-http-ext-authz-v3-extauthz) is 200ms.
+                          description: Specifies the timeout for the HTTP authorization
+                            request to the external service.
                           type: string
                       required:
                       - name
                       - port
-                      - service
                       type: object
                     type: array
+                  enableDNSProxying:
+                    description: |-
+                      Enables or disables global DNS proxying in Istio sidecar and gateway proxies across the service mesh.
+                      When enabled, DNS requests from application Pods are intercepted by Istio proxies
+                      instead of being sent directly to upstream DNS servers.
+                      Enabling this setting allows Istio proxies to distinguish traffic between two different TCP services that are outside the mesh thanks to virtual IP address assignment to each ServiceEntry from reserved IP range 240.240.0.0/16.
+                    type: boolean
+                  forwardClientCertDetails:
+                    description: |-
+                      Defines the strategy of handling the **X-Forwarded-Client-Cert** header only by the gateway proxies.
+                      This setting controls how the gateway proxy retrieves client attributes from incoming traffic and propagates them to upstream services in the cluster.
+                      Gateway proxies in Istio module are represented by the Istio Ingress Gateway and Istio Egress Gateway.
+                      The default behavior for gateway proxies is "SANITIZE_SET".
+                    enum:
+                    - APPEND_FORWARD
+                    - SANITIZE_SET
+                    - SANITIZE
+                    - ALWAYS_FORWARD_ONLY
+                    - FORWARD_ONLY
+                    type: string
                   gatewayExternalTrafficPolicy:
                     description: |-
-                      Defines the external traffic policy for the Istio Ingress Gateway Service. Valid configurations are "Local" or "Cluster". The external traffic policy set to "Local" preserves the client IP in the request, but also introduces the risk of unbalanced traffic distribution.
-                      WARNING: Switching `externalTrafficPolicy` may result in a temporal increase in request delay. Make sure that this is acceptable.
+                      Defines the external traffic policy for the Istio Ingress Gateway Service. Valid configurations are `"Local"` or `"Cluster"`. The external traffic policy set to `"Local"` preserves the client IP in the request, but also introduces the risk of unbalanced traffic distribution.
+                      WARNING: Switching **externalTrafficPolicy** may result in a temporal increase in request delay. Make sure that this is acceptable.
                     enum:
                     - Local
                     - Cluster
@@ -1426,34 +1533,53 @@ spec:
                     description: Defines the telemetry configuration of Istio.
                     properties:
                       metrics:
-                        description: Istio telemetry configuration related to metrics
+                        description: Configures Istio telemetry metrics.
                         properties:
                           prometheusMerge:
                             description: |-
-                              Defines whether the prometheusMerge feature is enabled. If yes, appropriate prometheus.io annotations will be added to all data plane pods to set up scraping.
-                              If these annotations already exist, they will be overwritten. With this option, the Envoy sidecar will merge Istio’s metrics with the application metrics.
-                              The merged metrics will be scraped from :15020/stats/prometheus.
+                              Defines whether the **prometheusMerge** feature is enabled. If it is, appropriate prometheus.io annotations are added to all data plane Pods to set up scraping.
+                              If these annotations already exist, they are overwritten. With this option, the Envoy sidecar merges Istio’s metrics with the application metrics.
+                              The merged metrics are scraped from `:15020/stats/prometheus`.
                             type: boolean
                         type: object
                     type: object
+                  trustDomain:
+                    description: Defines trust domain configuration of Istio.
+                    maxLength: 255
+                    minLength: 1
+                    pattern: ^[a-z0-9]*([a-z0-9-_]*)?(\.[a-z0-9]*([a-z0-9-_]*[a-z0-9]*)?)*$
+                    type: string
                 type: object
               experimental:
                 description: Defines experimental configuration options.
                 properties:
+                  enableAmbient:
+                    description: Enables ambient mode support.
+                    type: boolean
                   pilot:
+                    description: Defines experimental features for Istio Pilot.
                     properties:
                       enableAlphaGatewayAPI:
+                        description: Defines alpha Gateway API support.
                         type: boolean
                       enableMultiNetworkDiscoverGatewayAPI:
+                        description: Enables multi-network discovery for Gateway API.
                         type: boolean
                     type: object
                 type: object
+              networkPoliciesEnabled:
+                description: |-
+                  Enables installation of network policies that are required for the module to work under a deny-all traffic policy in the `kyma-system` and `istio-system` namespaces.
+                  The default value is `false`, which means that the network policies aren't installed.
+                  This enforces a secure-by-default posture in the cluster.
+                  Enabling this option is likely to cause connectivity issues in the cluster if you don't properly set up your workloads first.
+                type: boolean
             type: object
           status:
-            description: Status represents the current state of the Istio installation.
+            description: Defines the current state of the Istio installation.
             properties:
               conditions:
-                description: ' Conditions associated with IstioStatus.'
+                description: Contains conditions associated with **IstioStatus**.
                 items:
                   description: Condition contains details for one aspect of the current
                     state of this API Resource.
@@ -1510,12 +1636,12 @@ spec:
                   type: object
                 type: array
               description:
-                description: Description of Istio status.
+                description: Describes the Istio status.
                 type: string
               state:
-                description: |-
-                  State signifies the current state of CustomObject. Value
-                  can be one of ("Ready", "Processing", "Error", "Deleting", "Warning").
+                description: Signifies the current state of the Istio custom resource.
+                  Possible values are `Ready`, `Processing`, `Error`, `Deleting`,
+                  or `Warning`.
                 enum:
                 - Processing
                 - Deleting
@@ -1540,7 +1666,7 @@ metadata:
     app.kubernetes.io/instance: istio-operator-default
     app.kubernetes.io/name: istio-operator
     app.kubernetes.io/part-of: istio
-    app.kubernetes.io/version: 1.23.0-experimental
+    app.kubernetes.io/version: 1.26.0-experimental
     kyma-project.io/module: istio
   name: istio-controller-manager
   namespace: kyma-system
@@ -1553,7 +1679,7 @@ metadata:
     app.kubernetes.io/instance: istio-operator-default
     app.kubernetes.io/name: istio-operator
     app.kubernetes.io/part-of: istio
-    app.kubernetes.io/version: 1.23.0-experimental
+    app.kubernetes.io/version: 1.26.0-experimental
     kyma-project.io/module: istio
   name: istio-leader-election-role
   namespace: kyma-system
@@ -1598,7 +1724,7 @@ metadata:
     app.kubernetes.io/instance: istio-operator-default
     app.kubernetes.io/name: istio-operator
     app.kubernetes.io/part-of: istio
-    app.kubernetes.io/version: 1.23.0-experimental
+    app.kubernetes.io/version: 1.26.0-experimental
     kyma-project.io/module: istio
   name: istio-manager-role
 rules:
@@ -1609,14 +1735,11 @@ rules:
   - endpoints
   - events
   - namespaces
-  - persistentvolumeclaims
   - pods
-  - pods/portforward
-  - pods/proxy
-  - resourcequotas
   - secrets
   - serviceaccounts
   - services
+  - services/status
   verbs:
   - create
   - delete
@@ -1630,10 +1753,18 @@ rules:
   - ""
   resources:
   - nodes
+  - replicationcontrollers
   verbs:
   - get
   - list
   - watch
+- apiGroups:
+  - ""
+  resources:
+  - pods/status
+  verbs:
+  - patch
+  - update
 - apiGroups:
   - admissionregistration.k8s.io
   resources:
@@ -1700,6 +1831,18 @@ rules:
   - update
   - watch
 - apiGroups:
+  - authentication.k8s.io
+  resources:
+  - tokenreviews
+  verbs:
+  - create
+- apiGroups:
+  - authorization.k8s.io
+  resources:
+  - subjectaccessreviews
+  verbs:
+  - create
+- apiGroups:
   - autoscaling
   resources:
   - horizontalpodautoscalers
@@ -1719,6 +1862,73 @@ rules:
   verbs:
   - create
   - get
+  - patch
+  - update
+- apiGroups:
+  - discovery.k8s.io
+  resources:
+  - endpointslices
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - backendtlspolicies/status
+  - gatewayclasses/status
+  - gateways/status
+  - grpcroutes/status
+  - httproutes/status
+  - referencegrants/status
+  - tcproutes/status
+  - tlsroutes/status
+  - udproutes/status
+  verbs:
+  - patch
+  - update
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - gatewayclasses
+  verbs:
+  - create
+  - delete
+  - patch
+  - update
+- apiGroups:
+  - gateway.networking.k8s.io
+  - gateway.networking.x-k8s.io
+  - rbac.istio.io
+  resources:
+  - '*'
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - gateway.networking.x-k8s.io
+  resources:
+  - xbackendtrafficpolicies/status
+  - xlistenersets/status
+  verbs:
+  - patch
+  - update
+- apiGroups:
+  - inference.networking.k8s.io
+  - inference.networking.x-k8s.io
+  resources:
+  - inferencepools
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - inference.networking.k8s.io
+  - inference.networking.x-k8s.io
+  resources:
+  - inferencepools/status
+  verbs:
   - patch
   - update
 - apiGroups:
@@ -1742,6 +1952,60 @@ rules:
   - create
   - get
   - update
+- apiGroups:
+  - multicluster.x-k8s.io
+  resources:
+  - serviceexports
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - watch
+- apiGroups:
+  - multicluster.x-k8s.io
+  resources:
+  - serviceimports
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - ingressclasses
+  - ingresses
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - ingresses/status
+  verbs:
+  - '*'
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - networkpolicies
+  verbs:
+  - create
+  - delete
+  - deletecollection
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - networking.x-k8s.io
+  resources:
+  - gateways
+  verbs:
+  - get
+  - list
+  - watch
 - apiGroups:
   - operator.kyma-project.io
   resources:
@@ -1785,6 +2049,7 @@ rules:
   - rbac.authorization.k8s.io
   resources:
   - clusterrolebindings
+  - clusterroles
   - rolebindings
   - roles
   verbs:
@@ -1796,12 +2061,6 @@ rules:
   - patch
   - update
   - watch
-- apiGroups:
-  - rbac.authorization.k8s.io
-  resources:
-  - clusterroles
-  verbs:
-  - '*'
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -1811,7 +2070,7 @@ metadata:
     app.kubernetes.io/instance: istio-operator-default
     app.kubernetes.io/name: istio-operator
     app.kubernetes.io/part-of: istio
-    app.kubernetes.io/version: 1.23.0-experimental
+    app.kubernetes.io/version: 1.26.0-experimental
     kyma-project.io/module: istio
   name: istio-leader-election-rolebinding
   namespace: kyma-system
@@ -1832,7 +2091,7 @@ metadata:
     app.kubernetes.io/instance: istio-operator-default
     app.kubernetes.io/name: istio-operator
     app.kubernetes.io/part-of: istio
-    app.kubernetes.io/version: 1.23.0-experimental
+    app.kubernetes.io/version: 1.26.0-experimental
     kyma-project.io/module: istio
   name: istio-manager-rolebinding
 roleRef:
@@ -2270,7 +2529,7 @@ metadata:
     app.kubernetes.io/instance: istio-operator-default
     app.kubernetes.io/name: istio-operator
     app.kubernetes.io/part-of: istio
-    app.kubernetes.io/version: 1.23.0-experimental
+    app.kubernetes.io/version: 1.26.0-experimental
     busola.io/extension: resource
     busola.io/extension-version: "0.5"
     kyma-project.io/module: istio
@@ -4040,7 +4299,9 @@ data:
     category: Istio
     urlPath: destinationrules
     scope: namespace
-    description: resource.description
+    description: >-
+      {{[Destination Rule](https://istio.io/latest/docs/reference/config/networking/destination-rule/)}}
+      defines policies that apply to traffic routed to a service.
   list: |-
     - source: spec.host
       name: Host
@@ -4135,7 +4396,7 @@ metadata:
     app.kubernetes.io/instance: istio-operator-default
     app.kubernetes.io/name: istio-operator
     app.kubernetes.io/part-of: istio
-    app.kubernetes.io/version: 1.23.0-experimental
+    app.kubernetes.io/version: 1.26.0-experimental
     busola.io/extension: resource
     busola.io/extension-version: "0.5"
     kyma-project.io/module: istio
@@ -4378,7 +4639,7 @@ metadata:
     app.kubernetes.io/instance: istio-operator-default
     app.kubernetes.io/name: istio-operator
     app.kubernetes.io/part-of: istio
-    app.kubernetes.io/version: 1.23.0-experimental
+    app.kubernetes.io/version: 1.26.0-experimental
     busola.io/extension: resource
     busola.io/extension-version: "0.5"
     kyma-project.io/module: istio
@@ -4519,7 +4780,7 @@ metadata:
     app.kubernetes.io/instance: istio-operator-default
     app.kubernetes.io/name: istio-operator
     app.kubernetes.io/part-of: istio
-    app.kubernetes.io/version: 1.23.0-experimental
+    app.kubernetes.io/version: 1.26.0-experimental
     busola.io/extension: resource
     busola.io/extension-version: "0.5"
     kyma-project.io/module: istio
@@ -4710,7 +4971,7 @@ data:
     name: Service Entries
     scope: namespace
     description: >-
-      {{[ServiceEntry](https://istio.io/latest/docs/reference/config/networking/service-entry/)}}
+      {{[Service Entry](https://istio.io/latest/docs/reference/config/networking/service-entry/)}}
       allows for adding more entries to the internal service registry of Istio.
   list: |-
     - source: spec.location
@@ -4751,7 +5012,7 @@ metadata:
     app.kubernetes.io/instance: istio-operator-default
     app.kubernetes.io/name: istio-operator
     app.kubernetes.io/part-of: istio
-    app.kubernetes.io/version: 1.23.0-experimental
+    app.kubernetes.io/version: 1.26.0-experimental
     busola.io/extension: resource
     busola.io/extension-version: "0.5"
     kyma-project.io/module: istio
@@ -4993,7 +5254,7 @@ metadata:
     app.kubernetes.io/instance: istio-operator-default
     app.kubernetes.io/name: istio-operator
     app.kubernetes.io/part-of: istio
-    app.kubernetes.io/version: 1.23.0-experimental
+    app.kubernetes.io/version: 1.26.0-experimental
     busola.io/extension: resource
     busola.io/extension-version: "0.5"
     kyma-project.io/module: istio
@@ -5061,7 +5322,7 @@ data:
     scope: namespace
     description: >-
       {{[Telemetry](https://istio.io/latest/docs/reference/config/telemetry)}}
-      defines how the telemetry is generated for workloads within a mesh.
+      defines how telemetry is generated for workloads within a mesh.
 
 kind: ConfigMap
 metadata:
@@ -5070,7 +5331,7 @@ metadata:
     app.kubernetes.io/instance: istio-operator-default
     app.kubernetes.io/name: istio-operator
     app.kubernetes.io/part-of: istio
-    app.kubernetes.io/version: 1.23.0-experimental
+    app.kubernetes.io/version: 1.26.0-experimental
     busola.io/extension: resource
     busola.io/extension-version: "0.5"
     kyma-project.io/module: istio
@@ -5103,9 +5364,18 @@ data:
         - source: spec.config.gatewayExternalTrafficPolicy
           name: config.gatewayExternalTrafficPolicy
           visibility: '$exists($value)'
+        - source: spec.config.forwardClientCertDetails
+          name: config.forwardClientCertDetails
+          visibility: '$exists($value)'
         - source: spec.config.numTrustedProxies
           name: config.numTrustedProxies
           placeholder: '1'
+        - source: spec.config.trustDomain
+          name: config.trustDomain
+          visibility: '$exists($value)'
+        - source: spec.config.enableDNSProxying
+          name: config.enableDNSProxying
+          visibility: '$exists($value)'
         - source: spec.compatibilityMode
           name: compatibilityMode
           placeholder: 'false'
@@ -5278,11 +5548,32 @@ data:
         name: config.numTrustedProxies
         value:
           type: number
+      - path: config.trustDomain
+        name: config.trustDomain
+        simple: true
+        description: description.trustDomain
+        value:
+          type: string
+      - path: networkPoliciesEnabled
+        name: networkPoliciesEnabled
+        simple: true
+        description: description.networkPoliciesEnabled
+        value:
+          type: bool
       - path: compatibilityMode
         simple: true
         name: compatibilityMode
         value:
           type: bool
+      - path: config.enableDNSProxying
+        simple: true
+        name: config.enableDNSProxying
+        description: description.enableDNSProxying
+        value:
+          type: bool
+      - path: config.forwardClientCertDetails
+        simple: true
+        name: config.forwardClientCertDetails
       - path: config.telemetry.metrics.prometheusMerge
         simple: true
         name: config.prometheusMerge
@@ -5553,10 +5844,11 @@ data:
           - 'Error'
         critical:
           - 'Warning'
-  translations: |
+  translations: |-
     en:
       compatibilityMode: Compatibility Mode
       config.numTrustedProxies: Number of trusted proxies
+      config.trustDomain: Trust Domain
 
       config.authorizers: Authorizers
       config.authorizers.name: Name
@@ -5570,6 +5862,8 @@ data:
       config.authorizers.headers.toDownstream.onDeny: Forward To Downstream On Deny
       config.gatewayExternalTrafficPolicy: Gateway external traffic policy
       config.prometheusMerge: Enable PrometheusMerge
+      config.forwardClientCertDetails: X-Forwarded-Client-Cert header population strategy
+      config.enableDNSProxying: Enable global DNS Proxying
 
       k8s.hpaSpec: Horizontal Pod Autoscaler
       k8s.hpaSpec.minReplicas: Minimum number of replicas
@@ -5593,7 +5887,10 @@ data:
       description.requests.cpu: Total CPU requests of all Pods that are in a non-terminal state must not exceed this value
       description.requests.memory: Total memory requests of all Pods that are in a non-terminal state must not exceed this value
       description.externalTrafficPolicy: Specifies externalTrafficPolicy for the Istio Ingress Gateway Service
+      description.trustDomain: Defines the trust domain for the Istio service mesh. Change the value only if you have a specific requirement. Change of domain reconfiguring mTLS certificates and causes restart of all workloads in the mesh, this can lead to downtime.
+      description.networkPoliciesEnabled: Enables installation of module related Network Policies in the kyma-system and istio-system namespaces.
       description.compatibilityMode: Sets Istio compatibility version the last minor version.
+      description.enableDNSProxying: Enables or disables global DNS proxying in Istio sidecar and gateway proxies across the service mesh. When enabled, DNS requests from application pods are intercepted by the Istio proxies instead of being sent directly to upstream DNS servers.
 kind: ConfigMap
 metadata:
   labels:
@@ -5601,7 +5898,7 @@ metadata:
     app.kubernetes.io/instance: istio-operator-default
     app.kubernetes.io/name: istio-operator
     app.kubernetes.io/part-of: istio
-    app.kubernetes.io/version: 1.23.0-experimental
+    app.kubernetes.io/version: 1.26.0-experimental
     busola.io/extension: resource
     busola.io/extension-version: "0.5"
     kyma-project.io/module: istio
@@ -6490,8 +6787,8 @@ data:
     name: Virtual Services
     scope: namespace
     description: >-
-      {{[VirtualService](https://istio.io/latest/docs/reference/config/networking/virtual-service/)}}
-      describes a configuration that affects traffic routing. .
+      {{[Virtual Service](https://istio.io/latest/docs/reference/config/networking/virtual-service/)}}
+      describes a configuration that affects traffic routing.
   list: |-
     - name: hosts
       source: spec.hosts
@@ -6578,7 +6875,7 @@ metadata:
     app.kubernetes.io/instance: istio-operator-default
     app.kubernetes.io/name: istio-operator
     app.kubernetes.io/part-of: istio
-    app.kubernetes.io/version: 1.23.0-experimental
+    app.kubernetes.io/version: 1.26.0-experimental
     busola.io/extension: resource
     busola.io/extension-version: "0.5"
     kyma-project.io/module: istio
@@ -6592,7 +6889,7 @@ metadata:
     app.kubernetes.io/instance: istio-operator-default
     app.kubernetes.io/name: istio-operator
     app.kubernetes.io/part-of: istio
-    app.kubernetes.io/version: 1.23.0-experimental
+    app.kubernetes.io/version: 1.26.0-experimental
     kyma-project.io/module: istio
   name: istio-operator-metrics
   namespace: kyma-system
@@ -6616,7 +6913,7 @@ metadata:
     app.kubernetes.io/instance: istio-operator-default
     app.kubernetes.io/name: istio-operator
     app.kubernetes.io/part-of: istio
-    app.kubernetes.io/version: 1.23.0-experimental
+    app.kubernetes.io/version: 1.26.0-experimental
     kyma-project.io/module: istio
   name: istio-kyma-priority
 value: 2100000
@@ -6629,7 +6926,7 @@ metadata:
     app.kubernetes.io/instance: istio-operator-default
     app.kubernetes.io/name: istio-operator
     app.kubernetes.io/part-of: istio
-    app.kubernetes.io/version: 1.23.0-experimental
+    app.kubernetes.io/version: 1.26.0-experimental
     control-plane: controller-manager
     kyma-project.io/module: istio
   name: istio-controller-manager
@@ -6649,7 +6946,7 @@ spec:
         app.kubernetes.io/instance: istio-operator-default
         app.kubernetes.io/name: istio-operator
         app.kubernetes.io/part-of: istio
-        app.kubernetes.io/version: 1.23.0-experimental
+        app.kubernetes.io/version: 1.26.0-experimental
         control-plane: controller-manager
         kyma-project.io/module: istio
         sidecar.istio.io/inject: "false"
@@ -6663,12 +6960,26 @@ spec:
         - /manager
         env:
         - name: install-cni
-          value: europe-docker.pkg.dev/kyma-project/prod/external/istio/install-cni:1.27.1-distroless
+          value: europe-docker.pkg.dev/kyma-project/prod/external/istio/install-cni:1.28.3-distroless
         - name: proxyv2
-          value: europe-docker.pkg.dev/kyma-project/prod/external/istio/proxyv2:1.27.1-distroless
+          value: europe-docker.pkg.dev/kyma-project/prod/external/istio/proxyv2:1.28.3-distroless
         - name: pilot
-          value: europe-docker.pkg.dev/kyma-project/prod/external/istio/pilot:1.27.1-distroless
-        image: europe-docker.pkg.dev/kyma-project/prod/istio/releases/istio-manager:1.23.0-experimental
+          value: europe-docker.pkg.dev/kyma-project/prod/external/istio/pilot:1.28.3-distroless
+        - name: ztunnel
+          value: europe-docker.pkg.dev/kyma-project/prod/external/istio/ztunnel:1.28.3-distroless
+        - name: install-cni-fips
+          value: europe-docker.pkg.dev/kyma-project/restricted-prod/sap.com/istio-install-cni-fips:1.28.3
+        - name: proxyv2-fips
+          value: europe-docker.pkg.dev/kyma-project/restricted-prod/sap.com/istio-proxy-fips:1.28.3
+        - name: pilot-fips
+          value: europe-docker.pkg.dev/kyma-project/restricted-prod/sap.com/istio-pilot-fips:1.28.3
+        - name: ztunnel-fips
+          value: europe-docker.pkg.dev/kyma-project/restricted-prod/sap.com/ztunnel-fips:1.28.3
+        - name: GODEBUG
+          value: fips140=only,tlsmlkem=0
+        - name: GOMEMLIMIT
+          value: 400MiB
+        image: europe-docker.pkg.dev/kyma-project/prod/istio/releases/istio-manager:1.26.0-experimental
         livenessProbe:
           httpGet:
             path: /healthz
